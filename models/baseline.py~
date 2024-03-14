@@ -7,13 +7,13 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 # import the layers
-from models.layers import (
+from layers import (
     LayerNorm,
     CausalSelfAttention,
     FFN
 )
 
-from models.tokenizer import tokenizer
+from tokenizers import tokenizer
 
 
 class Block(nn.Module):
