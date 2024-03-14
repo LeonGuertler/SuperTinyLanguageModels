@@ -1,0 +1,7 @@
+paths:
+  output_dir: "outputs"
+  data_path: "../../../data"
+
+logging:
+  wandb_log: True
+  wandb_project: "TinyUniverse"
