@@ -17,8 +17,8 @@ training:
   seed: 489
   batch_size: 24
   gradient_accumulation_steps: 20
-  max_iters: 30000
-  lr_decay_iters: 30000
+  max_iters: 100000
+  lr_decay_iters: 100000
   warmup_iters: 1000
   eval_interval: 2000
   log_interval: 1

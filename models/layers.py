@@ -67,10 +67,10 @@ class FFN(nn.Module):
 
     def __init__(self, config):
         super().__init__()
-        self.c_fc    = nn.Linear(config.n_embd, 4 * config.n_embd, bias=config.bias)
+        self.c_fc    = nn.Linear(config["hidden_dim"], 4 * config["hidden_dim"], bias=config["bias"])
         self.gelu    = nn.GELU()
-        self.c_proj  = nn.Linear(4 * config.n_embd, config.n_embd, bias=config.bias)
-        self.dropout = nn.Dropout(config.dropout)
+        self.c_proj  = nn.Linear(4 * config["hidden_dim"], config["hidden_dim"], bias=config.["bias"])
+        self.dropout = nn.Dropout(config["dropout"])
 
     def forward(self, x):
         x = self.c_fc(x)
@@ -79,4 +79,15 @@ class FFN(nn.Module):
         x = self.dropout(x)
         return x
     
+
+class FFN_with_LoRA(nn.Moduel):
+    def __init__(self, config):
+        super().__init__()
+        self.c_fc    = nn.Linear(config["hidden_dim"], 4 * config["hidden_dim"], bias=config["bias"])
+        self.gelu    = nn.GELU()
+        self.c_proj  = nn.Linear(4 * config["hidden_dim"], config["hidden_dim"], bias=config["bias"])
+        self.dropout = nn.Dropout(config["dropout"])
+
+        self.lora_down_proj = nn.Linear(config["hidden_dim"], config["eval_iters"], bias=config["bias"])
+        #self.lora = lora
 

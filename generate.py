@@ -9,9 +9,8 @@ from contextlib import nullcontext
 
 
 
-@hydra.main(config_path="configs/test/", config_name="baseline.yaml")
+@hydra.main(config_path="config/test/", config_name="baseline.yaml")
 def main(cfg: DictConfig) -> None:
-
     model = build_model(
         ckpt_path=cfg["model_path"]
     )
@@ -33,8 +32,12 @@ def main(cfg: DictConfig) -> None:
             print(
                 model.generate(
                     "The quick brown fox jumps over the lazy dog",
-                    100,
-                    1.0,
-                    10
+                    cfg["max_new_tokens"],
+                    cfg["temperature"],
+                    cfg['top_k']
                 )
             )
+
+
+if __name__ == "__main__":
+    main()

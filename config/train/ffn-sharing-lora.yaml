@@ -1,7 +1,6 @@
-wandb_run_name: "baseline"
 
 arch:
-  model: "baseline"
+  model: "baseline_ffn_sharing"
   tokenizer: "gpt2"
   context_window: 512
   vocab_size: 50304
@@ -11,6 +10,7 @@ arch:
   mlp_dim: 3072
   dropout: 0.0
   bias: False
+  lora_dim: 768
 
 
 training:
@@ -21,18 +21,18 @@ training:
   max_iters: 100000
   lr_decay_iters: 100000
   warmup_iters: 1000
-  eval_interval: 5000
+  eval_interval: 2000
   log_interval: 1
   eval_iters: 200
 
 
   optimizer:
     type: "AdamW"
-    lr: 1e-4
+    lr: 6e-4
     weight_decay: 0.01
     beta1: 0.9
     beta2: 0.95
     grad_clip: 1.0
     decay_lr: True 
-    warmup_iters: 5000
-    min_lr: 1e-5
+    warmup_iters: 2000
+    min_lr: 6e-5

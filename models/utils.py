@@ -21,11 +21,12 @@ def count_params(model):
 
 
 DATASET_LOADERS = {
-    "en_wiki": lambda: load_dataset("wikipedia_en"),
+    "en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.en"),
+    "simple_en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
 }
 
 # dataset loader functions
-def load_dataset(dataset_name, shuffle=True):
+def load_datasets(dataset_name, shuffle=True):
     dataset = DATASET_LOADERS[dataset_name]()
 
     # cerate dataset split

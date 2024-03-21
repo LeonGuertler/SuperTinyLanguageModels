@@ -18,12 +18,18 @@ from models.tokenizer import tokenizer
 
 class Block(nn.Module):
 
-    def __init__(self, config):
+    def __init__(self, config, shared_mlp_block):
         super().__init__()
         self.ln_1 = LayerNorm(config.n_embd, bias=config.bias)
         self.attn = CausalSelfAttention(config)
         self.ln_2 = LayerNorm(config.n_embd, bias=config.bias)
         self.mlp = FFN(config)
+
+        # share the mlp block
+        self.mlp.c_fc.weight = shared_mlp_block.c_fc.weight
+        self.mlp.c_fc.bias = shared_mlp_block.c_fc.bias
+        self.mlp.c_proj.weight = shared_mlp_block.c_proj.weight
+        self.mlp.c_proj.bias = shared_mlp_block.c_proj.bias
 
 
 
@@ -47,13 +53,13 @@ class baseGPT(nn.Module):
         # prepare the dataset if necessary
         self.tokenizer.prepare_dataset()
 
-
+        self.shared_mlp_block = FFN(config)
         # construct the actual model
         self.transformer = nn.ModuleDict(dict(
             wte = nn.Embedding(config['arch']['vocab_size'], config['arch']['hidden_dim']),
             wpe = nn.Embedding(config['arch']['context_window'], config['arch']['hidden_dim']),
             drop = nn.Dropout(config['arch']['dropout']),
-            h = nn.ModuleList([Block(config) for _ in range(config['arch']['depth'])]),
+            h = nn.ModuleList([Block(config, shared=self.shared_mlp_block) for _ in range(config['arch']['depth'])]),
             ln_f = LayerNorm(config['arch']['hidden_dim'], bias=config['arch']['bias']),
         ))
         self.lm_head = nn.Linear(

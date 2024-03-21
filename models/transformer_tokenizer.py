@@ -18,13 +18,12 @@ from models.tokenizer import tokenizer
 
 class Block(nn.Module):
 
-    def __init__(self, config):
+    def __init__(self, config, MLP_weights):
         super().__init__()
         self.ln_1 = LayerNorm(config.n_embd, bias=config.bias)
         self.attn = CausalSelfAttention(config)
         self.ln_2 = LayerNorm(config.n_embd, bias=config.bias)
         self.mlp = FFN(config)
-
 
 
     def forward(self, x):
@@ -46,7 +45,6 @@ class baseGPT(nn.Module):
 
         # prepare the dataset if necessary
         self.tokenizer.prepare_dataset()
-
 
         # construct the actual model
         self.transformer = nn.ModuleDict(dict(

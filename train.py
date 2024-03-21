@@ -39,6 +39,7 @@ def get_lr(it, warmup_iters, lr_decay_iters, learning_rate, min_lr):
     return min_lr + coeff * (learning_rate - min_lr)
 
 
+
 @hydra.main(config_path="configs/train/", config_name="baseline.yaml")
 def main(model_cfg: DictConfig) -> None:
     # Load the general config file
@@ -74,15 +75,6 @@ def main(model_cfg: DictConfig) -> None:
     print(f"Tokens per iteration: {tokens_pre_iteration}")
 
 
-    # get dataloader
-    dataloader = DataLoader(
-        data_dir=os.path.join(
-            cfg.data_path, 
-            cfg.training.dataset,
-            cfg.training.tokenizer
-        ),
-        device=device,
-    )
 
 
     iter_num = 0
@@ -135,7 +127,6 @@ def main(model_cfg: DictConfig) -> None:
         if not iter_num % cfg.training.eval_interval:
             losses = estimate_loss(
                 model,
-                dataloader,
                 cfg.training.eval_iters,
                 ctx
             )

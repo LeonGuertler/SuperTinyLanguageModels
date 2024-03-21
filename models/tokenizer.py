@@ -1,11 +1,12 @@
-import os 
+import os, pickle
 from tqdm import tqdm 
 import numpy as np 
 import tiktoken 
 
 import torch
 
-from utils import load_dataset
+#from models.utils import load_datasets
+from models.utils import load_datasets
 
 TOKENIZERS = {
     "gpt2": lambda: tiktoken.get_encoding("gpt2"),
@@ -18,7 +19,7 @@ class tokenizer:
         self.tokenizer = TOKENIZERS[config["arch"]["tokenizer"]]()
         self.config = config 
         self.dataset_path = os.path.join(
-            self.config["data_dir"],
+            self.config["paths"]["data_path"],
             self.config["training"]["dataset"],
             self.config["arch"]["tokenizer"]
         )
@@ -53,13 +54,13 @@ class tokenizer:
         if not os.path.exists(self.dataset_path):
             # check if dataset folder exists
             dataset_folder = os.path.join(
-                self.config["data_dir"],
+                self.config["paths"]["data_path"],
                 self.config["training"]["dataset"]
             )
             if not os.path.exists(dataset_folder):
                 os.makedirs(dataset_folder)
             # load the dataset 
-            dataset = load_dataset(
+            dataset = load_datasets(
                 self.config["training"]["dataset"]
             )
 
@@ -86,7 +87,7 @@ class tokenizer:
             for split, dset in tokenized.items():
                 arr_len = np.sum(dset['len'], dtype=np.uint64)
                 filename = os.path.join(
-                    preprocessed_dataset_path, 
+                    self.dataset_path, 
                     f'{split}.bin'
                 )
                 dtype = np.uint16 # possible since enc.max_token_value ==50256 is < 2**16
@@ -111,4 +112,3 @@ class tokenizer:
                     arr[idx : idx + len(arr_batch)] = arr_batch
                     idx += len(arr_batch)
                 arr.flush()
-

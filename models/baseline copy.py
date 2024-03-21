@@ -18,13 +18,12 @@ from models.tokenizer import tokenizer
 
 class Block(nn.Module):
 
-    def __init__(self, config):
+    def __init__(self, config, MLP_weights):
         super().__init__()
         self.ln_1 = LayerNorm(config.n_embd, bias=config.bias)
         self.attn = CausalSelfAttention(config)
         self.ln_2 = LayerNorm(config.n_embd, bias=config.bias)
         self.mlp = FFN(config)
-
 
 
     def forward(self, x):
@@ -40,13 +39,16 @@ class baseGPT(nn.Module):
         assert config['arch']["vocab_size"] is not None
         assert config['arch']["context_window"] is not None
         self.config = config
-        self.tokenizer = tokenizer(
+        """self.tokenizer = tokenizer(
             config=config
         )
 
         # prepare the dataset if necessary
-        self.tokenizer.prepare_dataset()
+        self.tokenizer.prepare_dataset()"""
 
+        # init tokenizer
+        import tiktoken
+        self.tokenizer = tiktoken.get_encoding("gpt2")
 
         # construct the actual model
         self.transformer = nn.ModuleDict(dict(
