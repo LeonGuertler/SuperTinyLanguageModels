@@ -82,6 +82,10 @@ class tokenizer:
                 num_proc=8 # number workers
             )
 
+            # create dataset path if doesn't exist
+            if not os.path.exists(self.dataset_path):
+                os.makedirs(self.dataset_path)
+
 
             # concatenate all the ids in each dataset into one large file for training
             for split, dset in tokenized.items():

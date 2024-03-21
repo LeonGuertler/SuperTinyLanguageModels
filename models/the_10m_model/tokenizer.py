@@ -145,7 +145,7 @@ class character_bpe_tokenizer:
                     arr[idx : idx + len(arr_batch)] = arr_batch
                     idx += len(arr_batch)
                 arr.flush()
-        
+
 
 
 class character_tokenizer:
