@@ -20,9 +20,9 @@ class Block(nn.Module):
 
     def __init__(self, config, shared_mlp_block):
         super().__init__()
-        self.ln_1 = LayerNorm(config.n_embd, bias=config.bias)
+        self.ln_1 = LayerNorm(config['arch']['hidden_dim'], bias=config['arch']['bias'])
         self.attn = CausalSelfAttention(config)
-        self.ln_2 = LayerNorm(config.n_embd, bias=config.bias)
+        self.ln_2 = LayerNorm(config['arch']['hidden_dim'], bias=config['arch']['bias'])
         self.mlp = FFN(config)
 
         # share the mlp block

@@ -1,6 +1,6 @@
 
 arch:
-  model: "baseline_ffn_sharing"
+  model: "baseline_ffn_sharing_lora"
   tokenizer: "gpt2"
   context_window: 512
   vocab_size: 50304

@@ -2,10 +2,14 @@ import torch
 from dataclasses import dataclass 
 from models.baseline import baseGPT
 from models.the_10m_model.the_10m_model import the10mmodel
+from models.baseline_ffn_sharing import baseGPT as baseGPT_ffn_sharing
+from models.baseline_ffn_sharing_lora import baseGPT as baseGPT_ffn_sharing_lora
+
 
 MODEL_CLASSES = {
     "baseline": baseGPT,
-    "baseline_ffn_sharing": baseGPT,
+    "baseline_ffn_sharing": baseGPT_ffn_sharing,
+    "baseline_ffn_sharing_lora": baseGPT_ffn_sharing_lora,
     "the_10m_model": the10mmodel,
 }
 

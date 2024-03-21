@@ -22,17 +22,17 @@ class CausalSelfAttention(nn.Module):
 
     def __init__(self, config):
         super().__init__()
-        assert config.n_embd % config.n_head == 0
+        assert config['arch']["hidden_dim"] % config['arch']["num_heads"] == 0
         # key, query, value projections for all heads, but in a batch
-        self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd, bias=config.bias)
+        self.c_attn = nn.Linear(config['arch']["hidden_dim"], 3 * config['arch']["hidden_dim"], bias=config['arch']["bias"])
         # output projection
-        self.c_proj = nn.Linear(config.n_embd, config.n_embd, bias=config.bias)
+        self.c_proj = nn.Linear(config['arch']["hidden_dim"], config['arch']["hidden_dim"], bias=config['arch']["bias"])
         # regularization
-        self.attn_dropout = nn.Dropout(config.dropout)
-        self.resid_dropout = nn.Dropout(config.dropout)
-        self.n_head = config.n_head
-        self.n_embd = config.n_embd
-        self.dropout = config.dropout
+        self.attn_dropout = nn.Dropout(config['arch']["dropout"])
+        self.resid_dropout = nn.Dropout(config['arch']["dropout"])
+        self.n_head = config['arch']["num_heads"]
+        self.n_embd = config['arch']["hidden_dim"]
+        self.dropout = config['arch']["dropout"]
         # flash attention make GPU go brrrrr but support is only in PyTorch >= 2.0
         self.flash = hasattr(torch.nn.functional, 'scaled_dot_product_attention')
 
@@ -67,10 +67,10 @@ class FFN(nn.Module):
 
     def __init__(self, config):
         super().__init__()
-        self.c_fc    = nn.Linear(config["hidden_dim"], config["mlp_dim"], bias=config["bias"])
+        self.c_fc    = nn.Linear(config['arch']["hidden_dim"], config['arch']["mlp_dim"], bias=config['arch']["bias"])
         self.gelu    = nn.GELU()
-        self.c_proj  = nn.Linear(config["mlp_dim"], config["hidden_dim"], bias=config["bias"])
-        self.dropout = nn.Dropout(config["dropout"])
+        self.c_proj  = nn.Linear(config['arch']["mlp_dim"], config['arch']["hidden_dim"], bias=config['arch']["bias"])
+        self.dropout = nn.Dropout(config['arch']["dropout"])
 
     def forward(self, x):
         x = self.c_fc(x)
@@ -83,13 +83,13 @@ class FFN(nn.Module):
 class FFN_with_LoRA(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.c_fc    = nn.Linear(config["hidden_dim"], config["mlp_dim"], bias=config["bias"])
+        self.c_fc    = nn.Linear(config['arch']["hidden_dim"], config['arch']["mlp_dim"], bias=config['arch']["bias"])
         self.gelu    = nn.GELU()
-        self.c_proj  = nn.Linear(config["mlp_dim"], config["hidden_dim"], bias=config["bias"])
+        self.c_proj  = nn.Linear(config['arch']["mlp_dim"], config['arch']["hidden_dim"], bias=config['arch']["bias"])
         self.dropout = nn.Dropout(config["dropout"])
 
-        self.lora_down_proj = nn.Linear(config["hidden_dim"], config["eval_iters"], bias=config["bias"])
-        self.lora_up_proj = nn.Linear(config["hidden_dim"], config["eval_iters"], bias=config["bias"])
+        self.lora_down_proj = nn.Linear(config['arch']["hidden_dim"], config['arch']["eval_iters"], bias=config['arch']["bias"])
+        self.lora_up_proj = nn.Linear(config['arch']["hidden_dim"], config['arch']["eval_iters"], bias=config['arch']["bias"])
 
     def forward(self, x):
         x = self.c_fc(x)
