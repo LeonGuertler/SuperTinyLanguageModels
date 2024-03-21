@@ -19,6 +19,9 @@ t = tokenizer.character_bpe_tokenizer({
         "dataset": "simple_en_wiki"
     }
 })
+# try encoding text
+input_text = "This is a test sentence"
+encoded = t.encode_text(input_text, "cpu")
 t.fit()
 exit()
 # test input 

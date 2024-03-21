@@ -33,10 +33,40 @@ class character_bpe_tokenizer:
             self.config["arch"]["tokenizer"]
         )
 
-        # load the tokenizer if exists, otherwise, create
+
+        self.character_embedding = torch.nn.Embedding(
+            num_embeddings=self.config["arch"]["tokenizer_model"]["vocab_size"],
+            embedding_dim=self.config["arch"]["tokenizer_model"]["hidden_dim"]
+        )
+
+        self.chracter_level_transformer = torch.nn.TransformerEncoderLayer(
+            d_model=self.config["arch"]["tokenizer_model"]["hidden_dim"], 
+            nhead=self.config["arch"]["tokenizer_model"]["num_heads"], 
+            dim_feedforward=self.config["arch"]["tokenizer_model"]["mlp_dim"], 
+            dropout=self.config["arch"]["tokenizer_model"]["dropout"],
+        )
 
 
     def encode_text(self, text, device):
+        """
+        First encode the text into chracter tokens and bpe token length.
+        Then pass the character tokens through the transformer encoder.
+        """
+        token_ids, token_segments = self.character_tokenizer.encode(text)
+
+        # embed the character tokens
+        token_ids = torch.tensor(token_ids, device=device)
+        token_segments = torch.tensor(token_segments, device=device)
+
+        # embed the tokens
+        token_embeddings = self.character_embedding(token_ids)
+        
+
+        # pass the tokens through the transformer
+
+
+
+
         # TODO
         pass
     
@@ -191,7 +221,13 @@ class character_tokenizer:
 
 
             # only keep the most frequent config["arch"]["tokenizer_model"]["vocab_size"] tokens
-            sorted_tokens = sorted_tokens[:self.config["arch"]["tokenizer_model"]["vocab_size"]]
+            sorted_tokens = sorted_tokens[
+                :self.config["arch"]["tokenizer_model"]["vocab_size"]-self.config["arch"]["tokenizer_model"]["num_special_tokens"]
+                ]
+            
+            sorted_tokens["[unk]"] = 0
+            sorted_tokens["[pad]"] = 0
+            sorted_tokens["[eos]"] = 0
 
             # create an ID mapping
             id_mapping = {}
@@ -213,21 +249,27 @@ class character_tokenizer:
         """
         Accept text and return a list of token ids and a list of classical token segment lengths.
         """
-        token_ids = [self.id_mapping[token] for token in text]
+        token_ids = [] #[self.id_mapping[token] for token in text]
         token_segments = []
 
         start = 0
-        for token in self.classical_tokenizer.encode(text, add_special_tokens=False):
+        for token in self.classical_tokenizer.encode(text):
             # decode token and store length
-            bpe_length = len(self.classical_tokenizer.decode(token))
+            bpe_decoded = self.classical_tokenizer.decode([token])
+
+            bpe_length = len(bpe_decoded)
             token_segments.append((start, start + bpe_length))
             start += bpe_length
 
-        # print for debug
-        print(token_segments)
-        input(token_ids)
+            # encode characters
+            for char in bpe_decoded:
+                if char in self.id_mapping:
+                    token_ids.append(self.id_mapping[char])
+                else:
+                    token_ids.append(self.id_mapping["[unk]"])
 
-        return [self.id_mapping[token] for token in text]
+        return token_ids, token_segments
+
     
     def decode(self, token_ids):
         """
@@ -238,16 +280,3 @@ class character_tokenizer:
 
 
 
-if __name__ == "__main__":
-    t = character_tokenizer({
-        "arch": {
-            "tokenizer": "character"
-        },
-        "paths": {
-            "data_path": "../../../data"
-        },
-        "training": {
-            "dataset": "en_wiki"
-        }
-    })
-    t.fit()

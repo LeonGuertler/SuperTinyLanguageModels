@@ -13,8 +13,9 @@ from models.layers import (
     FFN
 )
 
-#from models.tokenizer import character_bpe_tokenizer
-
+from models.the_10m_model.tokenizer import (
+    character_bpe_tokenizer
+)
 
 
 class the10mmodel(nn.Module):

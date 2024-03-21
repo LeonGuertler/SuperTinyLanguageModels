@@ -67,9 +67,9 @@ class FFN(nn.Module):
 
     def __init__(self, config):
         super().__init__()
-        self.c_fc    = nn.Linear(config["hidden_dim"], 4 * config["hidden_dim"], bias=config["bias"])
+        self.c_fc    = nn.Linear(config["hidden_dim"], config["mlp_dim"], bias=config["bias"])
         self.gelu    = nn.GELU()
-        self.c_proj  = nn.Linear(4 * config["hidden_dim"], config["hidden_dim"], bias=config["bias"])
+        self.c_proj  = nn.Linear(config["mlp_dim"], config["hidden_dim"], bias=config["bias"])
         self.dropout = nn.Dropout(config["dropout"])
 
     def forward(self, x):
