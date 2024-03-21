@@ -1,3 +1,4 @@
 hydra-core
 tiktoken
 datasets
+wandb

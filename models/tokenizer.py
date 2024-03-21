@@ -24,6 +24,8 @@ class tokenizer:
             self.config["arch"]["tokenizer"]
         )
 
+        self.context_window = self.config["arch"]["context_window"]
+
     def encode_text(self, text, device):
         start_ids = self.tokenizer.encode(text)
         return (torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...])
