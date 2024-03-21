@@ -97,7 +97,7 @@ def main(model_cfg: DictConfig) -> None:
 
     # start logging 
     if cfg.logging.wandb_log:
-        run_name = f"{cfg['arch']['model']}_{cfg['training']['dataset']}_{cfg['training']['tokenizer']}"
+        run_name = f"{cfg['arch']['model']}_{cfg['training']['dataset']}_{cfg['arch']['tokenizer']}"
         import wandb
         wandb.init(
             project=cfg.logging.wandb_project, 

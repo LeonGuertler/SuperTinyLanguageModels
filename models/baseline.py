@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from torch.nn.parameter import Parameter
 
 # import the layers
 from models.layers import (
@@ -14,6 +15,7 @@ from models.layers import (
 )
 
 from models.tokenizer import tokenizer
+
 
 
 class Block(nn.Module):
@@ -77,6 +79,9 @@ class baseGPT(nn.Module):
         # report number of parameters
         print("number of parameters: %.2fM" % (self.get_num_params()/1e6,))
 
+
+    def get_num_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):

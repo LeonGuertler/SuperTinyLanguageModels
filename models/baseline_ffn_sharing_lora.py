@@ -64,7 +64,7 @@ class baseGPT(nn.Module):
             wte = nn.Embedding(config['arch']['vocab_size'], config['arch']['hidden_dim']),
             wpe = nn.Embedding(config['arch']['context_window'], config['arch']['hidden_dim']),
             drop = nn.Dropout(config['arch']['dropout']),
-            h = nn.ModuleList([Block(config, shared=self.shared_mlp_block) for _ in range(config['arch']['depth'])]),
+            h = nn.ModuleList([Block(config, shared_mlp_block=self.shared_mlp_block) for _ in range(config['arch']['depth'])]),
             ln_f = LayerNorm(config['arch']['hidden_dim'], bias=config['arch']['bias']),
         ))
         self.lm_head = nn.Linear(
@@ -88,6 +88,9 @@ class baseGPT(nn.Module):
         # report number of parameters
         print("number of parameters: %.2fM" % (self.get_num_params()/1e6,))
 
+
+    def get_num_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):
