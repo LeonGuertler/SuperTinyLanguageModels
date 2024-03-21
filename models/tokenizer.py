@@ -25,6 +25,7 @@ class tokenizer:
         )
 
         self.context_window = self.config["arch"]["context_window"]
+        self.batch_size = self.config["training"]["batch_size"]
 
     def encode_text(self, text, device):
         start_ids = self.tokenizer.encode(text)
