@@ -69,7 +69,7 @@ class FFN(nn.Module):
         super().__init__()
         self.c_fc    = nn.Linear(config["hidden_dim"], 4 * config["hidden_dim"], bias=config["bias"])
         self.gelu    = nn.GELU()
-        self.c_proj  = nn.Linear(4 * config["hidden_dim"], config["hidden_dim"], bias=config.["bias"])
+        self.c_proj  = nn.Linear(4 * config["hidden_dim"], config["hidden_dim"], bias=config["bias"])
         self.dropout = nn.Dropout(config["dropout"])
 
     def forward(self, x):
@@ -80,14 +80,26 @@ class FFN(nn.Module):
         return x
     
 
-class FFN_with_LoRA(nn.Moduel):
+class FFN_with_LoRA(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.c_fc    = nn.Linear(config["hidden_dim"], 4 * config["hidden_dim"], bias=config["bias"])
+        self.c_fc    = nn.Linear(config["hidden_dim"], config["mlp_dim"], bias=config["bias"])
         self.gelu    = nn.GELU()
-        self.c_proj  = nn.Linear(4 * config["hidden_dim"], config["hidden_dim"], bias=config["bias"])
+        self.c_proj  = nn.Linear(config["mlp_dim"], config["hidden_dim"], bias=config["bias"])
         self.dropout = nn.Dropout(config["dropout"])
 
         self.lora_down_proj = nn.Linear(config["hidden_dim"], config["eval_iters"], bias=config["bias"])
-        #self.lora = lora
+        self.lora_up_proj = nn.Linear(config["hidden_dim"], config["eval_iters"], bias=config["bias"])
 
+    def forward(self, x):
+        x = self.c_fc(x)
+        x = self.gelu(x)
+        x = self.c_proj(x)
+        x = self.dropout(x)
+
+        # LoRA
+        down = self.lora_down_proj(x)
+        down = self.gelu(down)
+        up = self.lora_up_proj(down)
+        
+        return x+up

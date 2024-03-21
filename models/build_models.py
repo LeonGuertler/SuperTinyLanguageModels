@@ -1,6 +1,7 @@
 import torch 
 from dataclasses import dataclass 
-from models.baseline import baseGPT, the10mmodel
+from models.baseline import baseGPT
+from models.the_10m_model.the_10m_model import the10mmodel
 
 MODEL_CLASSES = {
     "baseline": baseGPT,

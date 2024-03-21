@@ -10,7 +10,8 @@ from torch.nn import functional as F
 from models.layers import (
     LayerNorm,
     CausalSelfAttention,
-    FFN
+    FFN,
+    FFN_with_LoRA
 )
 
 from models.tokenizer import tokenizer
@@ -27,7 +28,7 @@ class Block(nn.Module):
         self.ln_1 = LayerNorm(config.n_embd, bias=config.bias)
         self.attn = CausalSelfAttention(config)
         self.ln_2 = LayerNorm(config.n_embd, bias=config.bias)
-        self.mlp = FFN(config)
+        self.mlp = FFN_with_LoRA(config)
 
         # share the mlp block
         self.mlp.c_fc.weight = shared_mlp_block.c_fc.weight
