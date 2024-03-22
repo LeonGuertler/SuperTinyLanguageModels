@@ -114,7 +114,7 @@ def main(model_cfg: DictConfig) -> None:
         )
 
     # start training
-    X, y = model.get_batch()
+    X, y = model.get_batch(device=device)
     t0 = time.time()
 
     while True:
@@ -151,7 +151,7 @@ def main(model_cfg: DictConfig) -> None:
                 logits, loss = model(X, y)
                 loss = loss / cfg.training.gradient_accumulation_steps
 
-            X, y = model.get_batch()
+            X, y = model.get_batch(device=device)
             scaler.scale(loss).backward()
 
         if cfg.training.optimizer.grad_clip != 0.0:

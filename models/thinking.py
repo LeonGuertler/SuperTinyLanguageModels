@@ -100,7 +100,7 @@ class ThinkingGPT(nn.Module):
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
-    def get_batch(self, split="train"):
+    def get_batch(self, split="train", device="cuda"):
         return self.tokenizer.get_batch(split=split, device=self.device)
 
     def forward(self, idx, targets=None):
