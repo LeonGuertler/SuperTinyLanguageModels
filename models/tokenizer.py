@@ -54,8 +54,8 @@ class tokenizer:
             ]
         )
 
-        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
-            self.device, non_blocking=True
+        X, y = X.pin_memory().to(device, non_blocking=True), y.pin_memory().to(
+            device, non_blocking=True
         )
         return X, y
 
