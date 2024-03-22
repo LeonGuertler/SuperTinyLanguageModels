@@ -33,7 +33,7 @@ class tokenizer:
     def decode_tokens(self, token_ids):
         return self.tokenizer.decode(token_ids)
 
-    def get_batch(self, split="train"):
+    def get_batch(self, split="train", device="cuda"):
         data = np.memmap(
             os.path.join(self.dataset_path, f"{split}.bin"), dtype=np.uint16, mode="r"
         )
@@ -54,9 +54,9 @@ class tokenizer:
             ]
         )
 
-        # X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
-        #     self.device, non_blocking=True
-        # )
+        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
+            self.device, non_blocking=True
+        )
         return X, y
 
     def prepare_dataset(self):

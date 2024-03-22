@@ -101,7 +101,7 @@ class ThinkingGPT(nn.Module):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
     def get_batch(self, split="train"):
-        return self.tokenizer.get_batch(split=split)
+        return self.tokenizer.get_batch(split=split, device=self.device)
 
     def forward(self, idx, targets=None):
         device = idx.device
