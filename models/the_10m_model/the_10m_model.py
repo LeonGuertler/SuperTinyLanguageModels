@@ -7,15 +7,9 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 # import the layers
-from models.layers import (
-    LayerNorm,
-    CausalSelfAttention,
-    FFN
-)
+from models.layers import LayerNorm, CausalSelfAttention, FFN
 
-from models.the_10m_model.tokenizer import (
-    character_bpe_tokenizer
-)
+from models.the_10m_model.tokenizer import character_bpe_tokenizer
 
 
 class the10mmodel(nn.Module):
@@ -23,9 +17,7 @@ class the10mmodel(nn.Module):
         self.config = config
 
         # load the tokenizer
-        self.tokenizer = character_bpe_tokenizer(
-            config=config
-        )
+        self.tokenizer = character_bpe_tokenizer(config=config)
 
         # prepare the dataset if necessary
         self.tokenizer.prepare_dataset()
