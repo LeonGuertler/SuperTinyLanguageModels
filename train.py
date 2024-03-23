@@ -140,6 +140,19 @@ def main(model_cfg: DictConfig) -> None:
                     "lr": lr,
                 })
 
+
+        # save every 25 000 iterations
+        if not iter_num % 25000:
+            checkpoint = {
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'iter_num': iter_num,
+                'best_val_loss': best_val_loss,
+                'config': cfg,
+            }
+            print(f"saving checkpoint to {general_cfg.output_dir}")
+            torch.save(checkpoint, f'ckpt_{iter_num}.pt')
+
         for micro_step in range(cfg.training.gradient_accumulation_steps):
             with ctx:
                 logits, loss = model(X, y)
