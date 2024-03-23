@@ -153,7 +153,7 @@ class character_bpe_tokenizer:
 
         # initialize decoding sequence ids with the start of character token
         start_token = self.character_tokenizer.id_mapping["[soc]"]
-        sequence_ids = torch.tensor(
+        #sequence_ids = torch.tensor(
 
 
     def get_batch(self, split="train"):
