@@ -39,6 +39,11 @@ class character_bpe_tokenizer:
             embedding_dim=self.config["arch"]["tokenizer_model"]["hidden_dim"]
         )
 
+        self.pos_encoding = torch.nn.Embedding(
+            num_embeddings=16,
+            embedding_dim=self.config["arch"]["tokenizer_model"]["hidden_dim"]
+        )
+
         self.chracter_level_transformer = torch.nn.TransformerEncoderLayer(
             d_model=self.config["arch"]["tokenizer_model"]["hidden_dim"], 
             nhead=self.config["arch"]["tokenizer_model"]["num_heads"], 

@@ -4,6 +4,36 @@ import matplotlib.pyplot as plt
 
 from models.the_10m_model import tokenizer
 
+
+# load gpt2 tokenizer, iterate over all tokens and check length distribution
+import tiktoken
+tokenizer = tiktoken.get_encoding("gpt2")
+max_token_length = 0
+longest_string = ""
+long_dist = {}
+for idx in range(50257):
+    print(idx)
+    token_length = len(tokenizer.decode([idx]))
+
+    if token_length > 15:
+        long_dist[token_length] = long_dist.get(token_length, 0) + 1
+
+
+    if token_length > max_token_length:
+        max_token_length = token_length
+        longest_string = tokenizer.decode([idx])
+
+print(max_token_length)
+print(longest_string)
+
+plt.bar(long_dist.keys(), long_dist.values())
+plt.show()
+exit()
+
+
+
+
+
 # test tokenizer call
 t = tokenizer.character_bpe_tokenizer({
     "arch": {

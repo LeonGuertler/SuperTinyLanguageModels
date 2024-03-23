@@ -49,6 +49,8 @@ class baseGPT(nn.Module):
         self.tokenizer = tokenizer(
             config=config
         )
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.tokenizer.device = self.device
 
         # prepare the dataset if necessary
         self.tokenizer.prepare_dataset()
