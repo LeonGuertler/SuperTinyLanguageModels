@@ -92,8 +92,8 @@ class baseGPT(nn.Module):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
 
-    def get_batch(self, split="train"):
-        return self.tokenizer.get_batch(split=split)
+    def get_batch(self, split="train", device="cuda"):
+        return self.tokenizer.get_batch(split=split, device=device)
 
     def forward(self, idx, targets=None):
         device = idx.device

@@ -7,6 +7,7 @@ import torch
 
 # from models.utils import load_datasets
 from models.utils import load_datasets
+from hydra.utils import get_original_cwd
 
 TOKENIZERS = {
     "gpt2": lambda: tiktoken.get_encoding("gpt2"),
@@ -18,6 +19,7 @@ class tokenizer:
         self.tokenizer = TOKENIZERS[config["arch"]["tokenizer"]]()
         self.config = config
         self.dataset_path = os.path.join(
+            get_original_cwd(),
             self.config["paths"]["data_path"],
             self.config["training"]["dataset"],
             self.config["arch"]["tokenizer"],
@@ -91,6 +93,7 @@ class tokenizer:
 
             # create dataset path if doesn't exist
             if not os.path.exists(self.dataset_path):
+                print("madedir?")
                 os.makedirs(self.dataset_path)
 
             # concatenate all the ids in each dataset into one large file for training
@@ -114,3 +117,4 @@ class tokenizer:
                     arr[idx : idx + len(arr_batch)] = arr_batch
                     idx += len(arr_batch)
                 arr.flush()
+                assert os.path.exists(filename)

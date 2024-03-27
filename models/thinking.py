@@ -24,6 +24,8 @@ class Block(nn.Module):
         self.ln_2 = LayerNorm(config["arch"]["hidden_dim"], bias=config["arch"]["bias"])
         self.mlp = FFN(config)
         self.confidence = nn.Linear(config["arch"]["hidden_dim"], 1, bias=False)
+        self.confidence_threshold = config["arch"]["confidence_threshold"]
+
 
     def forward(self, x, uncertainty_mask):
         # skip computation for high confidence tokens
@@ -65,7 +67,6 @@ class ThinkingGPT(nn.Module):
                 ),
             )
         )
-        self.confidence_threshold = config["arch"]["confidence_threshold"]
         self.lm_head = nn.Linear(
             config["arch"]["hidden_dim"], config["arch"]["vocab_size"], bias=False
         )
@@ -116,7 +117,7 @@ class ThinkingGPT(nn.Module):
         pos_emb = self.transformer.wpe(pos)  # position embeddings of shape (t, n_embd)
         x = self.transformer.drop(tok_emb + pos_emb)
         # initialize the uncertainty mask to all ones as we have no prior information
-        uncertainty_mask = torch.ones_like(x[:, :, 0])  # shape (b, t)
+        uncertainty_mask = torch.ones_like(x[:, :, 0]).unsqueeze(-1)  # shape (b, t, 1)
         raw_uncertainties = []
         for block in self.transformer.h:
             x, uncertainty_mask, raw_uncertainty = block(x, uncertainty_mask)
@@ -142,7 +143,7 @@ class ThinkingGPT(nn.Module):
             )
             # calculate the loss term
             uncertainty_loss = F.mse_loss(
-                torch.stack(raw_uncertainties, dim=2), target_uncertainty
+                torch.stack(raw_uncertainties, dim=2).squeeze(), target_uncertainty
             )
             # return the sum of the two losses
             loss += uncertainty_loss

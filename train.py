@@ -12,7 +12,7 @@ from models.build_models import build_model
 def estimate_loss(model, eval_iters, ctx):
     out = {}
     model.eval()
-    for split in ["train", "val"]:
+    for split in ["train"]:
         losses = torch.zeros(eval_iters)
         for k in range(eval_iters):
             X, Y = model.get_batch(split)
@@ -55,6 +55,7 @@ def main(model_cfg: DictConfig) -> None:
     # specify the device and dtype for training
     # device = "cuda"
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(device)
     dtype = (
         "bfloat16"
         if torch.cuda.is_available() and torch.cuda.is_bf16_supported()
@@ -134,14 +135,14 @@ def main(model_cfg: DictConfig) -> None:
             losses = estimate_loss(model, cfg.training.eval_iters, ctx)
 
             print(
-                f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}"
+                f"step {iter_num}: train loss {losses['train']:.4f}"
             )
             if cfg.logging.wandb_log:
                 wandb.log(
                     {
                         "iter": iter_num,
                         "train/loss": losses["train"],
-                        "val/loss": losses["val"],
+                        # "val/loss": losses["val"],
                         "lr": lr,
                     }
                 )

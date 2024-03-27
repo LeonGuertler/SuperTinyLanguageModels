@@ -13,7 +13,7 @@ arch:
 
 
 training:
-  dataset: "en_wiki"
+  dataset: "simple_en_wiki"
   seed: 489
   batch_size: 24
   gradient_accumulation_steps: 20

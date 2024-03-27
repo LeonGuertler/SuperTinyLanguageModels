@@ -31,7 +31,7 @@ def load_datasets(dataset_name, shuffle=True):
 
     # cerate dataset split
     split_dataset = dataset["train"].train_test_split(
-        test_size=0.01, 
+        test_size=0.01,
         seed=489, 
         shuffle=shuffle
     )
