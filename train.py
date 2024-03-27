@@ -17,7 +17,7 @@ def estimate_loss(model, eval_iters, ctx):
         for k in range(eval_iters):
             X, Y = model.get_batch(split)
             with ctx:
-                logits, loss = model(X, Y)
+                _, loss = model(X, Y)
             losses[k] = loss.item()
         out[split] = losses.mean()
     model.train()
@@ -134,9 +134,7 @@ def main(model_cfg: DictConfig) -> None:
         if not iter_num % cfg.training.eval_interval:
             losses = estimate_loss(model, cfg.training.eval_iters, ctx)
 
-            print(
-                f"step {iter_num}: train loss {losses['train']:.4f}"
-            )
+            print(f"step {iter_num}: train loss {losses['train']:.4f}")
             if cfg.logging.wandb_log:
                 wandb.log(
                     {
@@ -147,22 +145,21 @@ def main(model_cfg: DictConfig) -> None:
                     }
                 )
 
-
         # save every 25 000 iterations
         if not iter_num % 25000:
             checkpoint = {
-                'model': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'iter_num': iter_num,
-                'best_val_loss': best_val_loss,
-                'config': cfg,
+                "model": model.state_dict(),
+                "optimizer": optimizer.state_dict(),
+                "iter_num": iter_num,
+                "best_val_loss": best_val_loss,
+                "config": cfg,
             }
             print(f"saving checkpoint to {general_cfg.output_dir}")
-            torch.save(checkpoint, f'ckpt_{iter_num}.pt')
+            torch.save(checkpoint, f"ckpt_{iter_num}.pt")
 
         for micro_step in range(cfg.training.gradient_accumulation_steps):
             with ctx:
-                logits, loss = model(X, y)
+                logits, loss, aux_loss = model(X, y)
                 loss = loss / cfg.training.gradient_accumulation_steps
 
             X, y = model.get_batch(device=device)

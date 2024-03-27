@@ -26,7 +26,6 @@ class Block(nn.Module):
         self.confidence = nn.Linear(config["arch"]["hidden_dim"], 1, bias=False)
         self.confidence_threshold = config["arch"]["confidence_threshold"]
 
-
     def forward(self, x, uncertainty_mask):
         # skip computation for high confidence tokens
         x = x + self.attn(self.ln_1(x)) * uncertainty_mask
@@ -147,6 +146,7 @@ class ThinkingGPT(nn.Module):
             )
             # return the sum of the two losses
             loss += uncertainty_loss
+            print(loss, uncertainty_loss)
         else:
             # inference-time mini-optimization: only forward the lm_head on the very last position
             logits = self.lm_head(
