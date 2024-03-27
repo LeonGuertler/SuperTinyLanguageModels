@@ -86,10 +86,10 @@ class FFN_with_LoRA(nn.Module):
         self.c_fc    = nn.Linear(config['arch']["hidden_dim"], config['arch']["mlp_dim"], bias=config['arch']["bias"])
         self.gelu    = nn.GELU()
         self.c_proj  = nn.Linear(config['arch']["mlp_dim"], config['arch']["hidden_dim"], bias=config['arch']["bias"])
-        self.dropout = nn.Dropout(config["dropout"])
+        self.dropout = nn.Dropout(config["arch"]["dropout"])
 
-        self.lora_down_proj = nn.Linear(config['arch']["hidden_dim"], config['arch']["eval_iters"], bias=config['arch']["bias"])
-        self.lora_up_proj = nn.Linear(config['arch']["hidden_dim"], config['arch']["eval_iters"], bias=config['arch']["bias"])
+        self.lora_down_proj = nn.Linear(config['arch']["hidden_dim"], config['arch']["lora_dim"], bias=config['arch']["bias"])
+        self.lora_up_proj = nn.Linear(config['arch']["hidden_dim"], config['arch']["lora_dim"], bias=config['arch']["bias"])
 
     def forward(self, x):
         x = self.c_fc(x)

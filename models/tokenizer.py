@@ -71,7 +71,9 @@ class tokenizer:
         if not os.path.exists(self.dataset_path):
             # check if dataset folder exists
             dataset_folder = os.path.join(
-                self.config["paths"]["data_path"], self.config["training"]["dataset"]
+                get_original_cwd(),
+                self.config["paths"]["data_path"],
+                self.config["training"]["dataset"],
             )
             if not os.path.exists(dataset_folder):
                 os.makedirs(dataset_folder)
@@ -86,7 +88,7 @@ class tokenizer:
             # tokenize dataset
             tokenized = dataset.map(
                 process,
-                remove_columns=["url", "title", "text"],
+                remove_columns=["text"],  # ["url", "title", "text"],
                 desc="Tokenizing the dataset",
                 num_proc=8,  # number workers
             )

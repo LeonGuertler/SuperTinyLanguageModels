@@ -4,13 +4,53 @@ import matplotlib.pyplot as plt
 
 from models.the_10m_model import tokenizer
 
+
+"""# load gpt2 tokenizer, iterate over all tokens and check length distribution
+import tiktoken
+tokenizer = tiktoken.get_encoding("gpt2")
+max_token_length = 0
+longest_string = ""
+long_dist = {}
+for idx in range(50257):
+    print(idx)
+    token_length = len(tokenizer.decode([idx]))
+
+    if token_length > 15:
+        long_dist[token_length] = long_dist.get(token_length, 0) + 1
+
+
+    if token_length > max_token_length:
+        max_token_length = token_length
+        longest_string = tokenizer.decode([idx])
+
+print(max_token_length)
+print(longest_string)
+
+plt.bar(long_dist.keys(), long_dist.values())
+plt.show()
+exit()"""
+
+
+
+
+
 # test tokenizer call
 t = tokenizer.character_bpe_tokenizer({
     "arch": {
         "tokenizer": "character_basic",
         "tokenizer_model": {
             "vocab_size": 4096,
-        }
+            "num_special_tokens": 3,
+            "hidden_dim": 64,
+            "num_heads": 4,
+            "depth": 4,
+            "mlp_dim": 256,
+            "dropout": 0.1,
+            "bias": True,
+            "max_seq_len": 16,
+        },
+    "context_window": 100,
+    "hidden_dim": 768,
     },
     "paths": {
         "data_path": "../../../data"
@@ -20,7 +60,10 @@ t = tokenizer.character_bpe_tokenizer({
     }
 })
 # try encoding text
-input_text = "This is a test sentence"
+input_text = ["This is a test sentence", "as is this"]
+
+input_text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+
 encoded = t.encode_text(input_text, "cpu")
 t.fit()
 exit()
