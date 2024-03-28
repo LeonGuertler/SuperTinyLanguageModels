@@ -1,5 +1,5 @@
-import os, time, math, pickle, hydra, torch, tiktoken
-from omegaconf import DictConfig, OmegaConf
+import hydra, torch
+from omegaconf import DictConfig
 from contextlib import nullcontext
 import Levenshtein
 
@@ -12,6 +12,7 @@ from evals import (
     nonsense,
     mmlu,
     hellaswag,
+    model_wrapper,
 )
 from contextlib import nullcontext
 
@@ -20,7 +21,7 @@ def load_benchmark(name):
     if name == "vitaminc":
         return vitaminc.VitaminC
     elif name == "mteb":
-        return mteb_benchmark.M
+        return mteb_benchmark.MTEBBenchmark
     elif name == "arc":
         return arc.ARC
     elif name == "winograd":
@@ -28,7 +29,7 @@ def load_benchmark(name):
     elif name == "nonsense":
         return nonsense.Nonsense
     elif name == "mmlu":
-        return mmlu.MMLU
+        return mmlu.MMLUBenchmark
     elif name == "hellaswag":
         return hellaswag.HellaSwag
     else:
@@ -62,27 +63,13 @@ def main(cfg: DictConfig) -> None:
         if device_type == "cpu"
         else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
     )
+    wrapped_model = model_wrapper.ModelWrapper(model, ctx)
 
-    def predict(self, texts, options):
-        outputs = []
-        with torch.no_grad():
-            with ctx:
-                model.generate(
-                    "The quick brown fox jumps over the lazy dog",
-                    cfg["max_new_tokens"],
-                    cfg["temperature"],
-                    cfg["top_k"],
-                )
-
-        for output, option in zip(outputs, options):
-            best, best_score = None, float("inf")
-            for opt in option:
-                score = Levenshtein.distance(output, opt)
-                if score < best_score:
-                    best, best_score = opt, score
-            outputs.append(best)
-
-        return outputs
+    for benchmark_name in cfg["benchmarks"]:
+        benchmark = load_benchmark(name=benchmark_name)(
+            name=benchmark_name, model=wrapped_model
+        )
+        benchmark.execute()
 
 
 if __name__ == "__main__":
