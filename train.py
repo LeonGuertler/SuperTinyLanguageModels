@@ -154,12 +154,12 @@ def main(model_cfg: DictConfig) -> None:
                 "best_val_loss": best_val_loss,
                 "config": cfg,
             }
-            print(f"saving checkpoint to {general_cfg.output_dir}")
+            print(f"saving checkpoint to {general_cfg.paths.output_dir}")
             torch.save(checkpoint, f"ckpt_{iter_num}.pt")
 
         for micro_step in range(cfg.training.gradient_accumulation_steps):
             with ctx:
-                logits, loss, aux_loss = model(X, y)
+                logits, loss = model(X, y)
                 loss = loss / cfg.training.gradient_accumulation_steps
 
             X, y = model.get_batch(device=device)
@@ -185,6 +185,15 @@ def main(model_cfg: DictConfig) -> None:
         if not iter_num % cfg.training.log_interval:
             lossf = loss.item() * cfg.training.gradient_accumulation_steps
             print(f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {dt:.1f}s")
+            if cfg.logging.wandb_log:
+                wandb.log(
+                    {
+                        "iter": iter_num,
+                        "train/loss": lossf,
+                        # "val/loss": losses["val"],
+                        "lr": lr,
+                    }
+                )
 
         iter_num += 1
 

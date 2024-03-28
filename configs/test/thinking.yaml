@@ -1,0 +1,4 @@
+wandb_run_name: "thinking"
+defaults:
+  - baseline
+model_path: ../../../outputs/2024-03-27/17-01-56/ckpt_0.pt

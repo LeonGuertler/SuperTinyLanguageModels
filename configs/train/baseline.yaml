@@ -16,7 +16,7 @@ training:
   dataset: "simple_en_wiki"
   seed: 489
   batch_size: 24
-  gradient_accumulation_steps: 20
+  gradient_accumulation_steps: 2
   max_iters: 100000
   lr_decay_iters: 100000
   warmup_iters: 1000

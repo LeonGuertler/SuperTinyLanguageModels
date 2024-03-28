@@ -9,7 +9,7 @@ from contextlib import nullcontext
 
 
 
-@hydra.main(config_path="config/test/", config_name="baseline.yaml")
+@hydra.main(config_path="configs/test/", config_name="baseline.yaml")
 def main(cfg: DictConfig) -> None:
     model = build_model(
         ckpt_path=cfg["model_path"]

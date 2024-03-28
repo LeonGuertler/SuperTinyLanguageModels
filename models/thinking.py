@@ -131,7 +131,7 @@ class ThinkingGPT(nn.Module):
             )
             # add a loss term to penalize high uncertainty for low confidence tokens
             # the target uncertainty is the logit for the correct token * \gamma ^ l for layer l
-            target_uncertainty = logits.gather(2, targets.unsqueeze(2)).squeeze(2)
+            target_uncertainty = 1-logits.gather(2, targets.unsqueeze(2)).squeeze(2)
             # stack with powers of gamma for each layer
             target_uncertainty = torch.stack(
                 [
@@ -146,7 +146,6 @@ class ThinkingGPT(nn.Module):
             )
             # return the sum of the two losses
             loss += uncertainty_loss
-            print(loss, uncertainty_loss)
         else:
             # inference-time mini-optimization: only forward the lm_head on the very last position
             logits = self.lm_head(
