@@ -1,17 +1,15 @@
 import torch
 from models.baseline import BaseGPT
 from models.the_10m_model.the_10m_model import the10mmodel
-from models.baseline_ffn_sharing import baseGPT as baseGPT_ffn_sharing
-from models.baseline_ffn_sharing_lora import (
-    FFNSharedLoraGPT as baseGPT_ffn_sharing_lora,
-)
+from models import baseline_ffn_sharing
+from models import baseline_ffn_sharing_lora
 import hydra.utils
 
 
 MODEL_CLASSES = {
     "baseline": BaseGPT,
-    "baseline_ffn_sharing": baseGPT_ffn_sharing,
-    "baseline_ffn_sharing_lora": baseGPT_ffn_sharing_lora,
+    "baseline_ffn_sharing": baseline_ffn_sharing.FFNShareGPT,
+    "baseline_ffn_sharing_lora": baseline_ffn_sharing_lora.FFNSharedLoraGPT,
     "the_10m_model": the10mmodel,
 }
 
