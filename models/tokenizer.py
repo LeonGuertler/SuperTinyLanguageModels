@@ -18,11 +18,15 @@ class tokenizer:
     def __init__(self, config):
         self.tokenizer = TOKENIZERS[config["arch"]["tokenizer"]]()
         self.config = config 
-        self.dataset_path = os.path.join(
+        self.dataset_path = "../../../data"
+        """os.path.join(
             self.config["paths"]["data_path"],
             self.config["training"]["dataset"],
             self.config["arch"]["tokenizer"]
-        )
+        )"""
+
+        self.context_window = self.config["arch"]["context_window"]
+        self.batch_size = self.config["training"]["batch_size"]
 
     def encode_text(self, text, device):
         start_ids = self.tokenizer.encode(text)
@@ -32,6 +36,8 @@ class tokenizer:
         return self.tokenizer.decode(token_ids)
 
     def get_batch(self, split="train"):
+        if split != "train":
+            split = "test"
         data = np.memmap(os.path.join(self.dataset_path, f'{split}.bin'), dtype=np.uint16, mode='r')
 
         ix = torch.randint(len(data) - self.context_window, (self.batch_size,))
@@ -53,10 +59,11 @@ class tokenizer:
         # check if the dataset has already been prepared
         if not os.path.exists(self.dataset_path):
             # check if dataset folder exists
-            dataset_folder = os.path.join(
+            dataset_folder = "../../../data"
+            """os.path.join(
                 self.config["paths"]["data_path"],
                 self.config["training"]["dataset"]
-            )
+            )"""
             if not os.path.exists(dataset_folder):
                 os.makedirs(dataset_folder)
             # load the dataset 
@@ -77,10 +84,14 @@ class tokenizer:
             # tokenize dataset
             tokenized = dataset.map(
                 process,
-                remove_columns=["url", "title", "text"],
+                remove_columns=["text"], #["url", "title", "text"],
                 desc="Tokenizing the dataset",
                 num_proc=8 # number workers
             )
+
+            # create dataset path if doesn't exist
+            if not os.path.exists(self.dataset_path):
+                os.makedirs(self.dataset_path)
 
 
             # concatenate all the ids in each dataset into one large file for training

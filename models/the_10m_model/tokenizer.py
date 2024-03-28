@@ -33,16 +33,128 @@ class character_bpe_tokenizer:
             self.config["arch"]["tokenizer"]
         )
 
-        # load the tokenizer if exists, otherwise, create
+
+        self.character_embedding = torch.nn.Embedding(
+            num_embeddings=self.config["arch"]["tokenizer_model"]["vocab_size"],
+            embedding_dim=self.config["arch"]["tokenizer_model"]["hidden_dim"]
+        )
+
+        self.pos_encoding = torch.nn.Embedding(
+            num_embeddings=16,
+            embedding_dim=self.config["arch"]["tokenizer_model"]["hidden_dim"]
+        )
+
+        self.chracter_level_transformer_1 = torch.nn.TransformerEncoderLayer(
+            d_model=self.config["arch"]["tokenizer_model"]["hidden_dim"], 
+            nhead=self.config["arch"]["tokenizer_model"]["num_heads"], 
+            dim_feedforward=self.config["arch"]["tokenizer_model"]["mlp_dim"], 
+            dropout=self.config["arch"]["tokenizer_model"]["dropout"],
+        )
+        self.linear_projection = torch.nn.Linear(
+            self.config["arch"]["tokenizer_model"]["hidden_dim"],
+            self.config["arch"]["hidden_dim"]
+        )
+
+        self.chracter_level_transformer_2 = torch.nn.TransformerEncoderLayer(
+            d_model=self.config["arch"]["hidden_dim"],
+            nhead=self.config["arch"]["tokenizer_model"]["num_heads"],
+            dim_feedforward=self.config["arch"]["tokenizer_model"]["mlp_dim"],
+            dropout=self.config["arch"]["tokenizer_model"]["dropout"],
+        )
 
 
     def encode_text(self, text, device):
-        # TODO
-        pass
+        """
+        I left A LOT of room for optimization. Accepts one very long string and encodes it word wise.
+        Easy to split into a training batch afterwards.
+        """
+        token_ids, token_segments = self.character_tokenizer.encode(text)
+
+        # encode individual tokens, batch it, pad it and pass through character transformer
+
+        # first encode the individual words as sequences, then batch them and pass them
+        character_batch = torch.zeros(
+            (
+                len(token_segments),
+                self.config['arch']['tokenizer_model']['max_seq_len'],
+                self.config['arch']['tokenizer_model']['hidden_dim']
+            ),
+        )
+        # initialize all tokens as pad tokens
+        character_batch += self.character_embedding(
+            torch.tensor(
+                self.character_tokenizer.id_mapping["[pad]"]
+            )
+        )
+
+        input(character_batch)
+        for idx, (start, end) in enumerate(token_segments):
+            # check if truncation is necessary for word
+            start_idx = start
+            end_idx = np.min(
+                [
+                    end,
+                    start + self.config['arch']['tokenizer_model']['max_seq_len']
+                ]
+            )
+
+            # get id sequence and embed it
+            embedded_tokens = self.character_embedding(
+                torch.tensor(
+                    token_ids[start_idx:end_idx]
+                )
+            )
+
+            # add positional encoding
+            embedded_tokens += self.pos_encoding(
+                torch.arange(
+                    embedded_tokens.shape[0],
+                    device=device
+                )
+            )
+
+            character_batch[idx, :embedded_tokens.size(0)] = embedded_tokens
+
+
+        input(character_batch)
+
+        # pass through transformer
+        character_batch = self.chracter_level_transformer_1(character_batch)
+        character_batch = self.linear_projection(character_batch)
+        character_batch = self.chracter_level_transformer_2(character_batch)
+
+        # pool into sequence
+        character_batch = torch.mean(character_batch, dim=1)
+
+        input(character_batch)
+        input(character_batch.size())
+
+        return character_batch
     
-    def decode_tokens(self, token_ids):
-        # TODO 
-        pass
+
+    def decode_tokens(self, embed_batch):
+        """
+        given a batch of word level embeddings, decode each one into 
+        a list of character tokens. Output dim should be
+        batch size x context window x max_seq_len x character vocab size
+        where the last one are the logits / softmax for training.
+
+        input is of shape
+        batch_size x context_window x hidden_dim (model)
+
+        basic architecture will be VLM style that accepts both 
+        hidden dim (model) and the already decoded token embeds.
+        Once the all character token embeds are generated, pass 
+        them through the linear layer to get token ids.
+
+        so intermitted size will be 
+        batch_size x context_window x max_seq_len x hidden_dim (character)
+        """
+
+        # initialize decoding sequence ids with the start of character token
+        start_token = self.character_tokenizer.id_mapping["[soc]"]
+        #sequence_ids = torch.tensor(
+
 
     def get_batch(self, split="train"):
         # TODO 
@@ -115,7 +227,7 @@ class character_bpe_tokenizer:
                     arr[idx : idx + len(arr_batch)] = arr_batch
                     idx += len(arr_batch)
                 arr.flush()
-        
+
 
 
 class character_tokenizer:
@@ -134,7 +246,7 @@ class character_tokenizer:
         )
         self._load()
 
-    def _load(self, verbose=True):
+    def _load(self, verbose=False):
         """
         Iterate over dataset and count all unique tokens.
         """
@@ -151,7 +263,7 @@ class character_tokenizer:
 
             # count token occurences (at the character level)
             token_counts = {}
-            for example in tqdm(dataset, desc="Iterating over data samples"):
+            for example in tqdm(dataset["train"], desc="Iterating over data samples"):
                 for token in example["text"]:
                     if token not in token_counts:
                         token_counts[token] = 0
@@ -191,7 +303,13 @@ class character_tokenizer:
 
 
             # only keep the most frequent config["arch"]["tokenizer_model"]["vocab_size"] tokens
-            sorted_tokens = sorted_tokens[:self.config["arch"]["tokenizer_model"]["vocab_size"]]
+            sorted_tokens = sorted_tokens[
+                :self.config["arch"]["tokenizer_model"]["vocab_size"]-self.config["arch"]["tokenizer_model"]["num_special_tokens"]
+                ]
+            sorted_tokens.append(("[unk]", 9e9))
+            sorted_tokens.append(("[pad]", 9e9))
+            sorted_tokens.append(("[eoc]", 9e9))
+            sorted_tokens.append(("[soc]", 9e9))
 
             # create an ID mapping
             id_mapping = {}
@@ -213,21 +331,27 @@ class character_tokenizer:
         """
         Accept text and return a list of token ids and a list of classical token segment lengths.
         """
-        token_ids = [self.id_mapping[token] for token in text]
+        token_ids = [] #[self.id_mapping[token] for token in text]
         token_segments = []
 
         start = 0
-        for token in self.classical_tokenizer.encode(text, add_special_tokens=False):
+        for token in self.classical_tokenizer.encode(text):
             # decode token and store length
-            bpe_length = len(self.classical_tokenizer.decode(token))
+            bpe_decoded = self.classical_tokenizer.decode([token])
+
+            bpe_length = len(bpe_decoded)
             token_segments.append((start, start + bpe_length))
             start += bpe_length
 
-        # print for debug
-        print(token_segments)
-        input(token_ids)
+            # encode characters
+            for char in bpe_decoded:
+                if char in self.id_mapping:
+                    token_ids.append(self.id_mapping[char])
+                else:
+                    token_ids.append(self.id_mapping["[unk]"])
 
-        return [self.id_mapping[token] for token in text]
+        return token_ids, token_segments
+
     
     def decode(self, token_ids):
         """
@@ -238,16 +362,3 @@ class character_tokenizer:
 
 
 
-if __name__ == "__main__":
-    t = character_tokenizer({
-        "arch": {
-            "tokenizer": "character"
-        },
-        "paths": {
-            "data_path": "../../../data"
-        },
-        "training": {
-            "dataset": "en_wiki"
-        }
-    })
-    t.fit()

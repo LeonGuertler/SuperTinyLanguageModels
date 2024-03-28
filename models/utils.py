@@ -37,4 +37,4 @@ def load_datasets(dataset_name, shuffle=True):
     )
 
     # return the training and validation datasets
-    return split_dataset["train"]
+    return split_dataset

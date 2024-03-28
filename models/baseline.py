@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from torch.nn.parameter import Parameter
 
 # import the layers
 from models.layers import (
@@ -16,13 +17,14 @@ from models.layers import (
 from models.tokenizer import tokenizer
 
 
+
 class Block(nn.Module):
 
     def __init__(self, config):
         super().__init__()
-        self.ln_1 = LayerNorm(config.n_embd, bias=config.bias)
+        self.ln_1 = LayerNorm(config['arch']['hidden_dim'], bias=config['arch']['bias'])
         self.attn = CausalSelfAttention(config)
-        self.ln_2 = LayerNorm(config.n_embd, bias=config.bias)
+        self.ln_2 = LayerNorm(config['arch']['hidden_dim'], bias=config['arch']['bias'])
         self.mlp = FFN(config)
 
 
@@ -43,9 +45,11 @@ class baseGPT(nn.Module):
         self.tokenizer = tokenizer(
             config=config
         )
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.tokenizer.device = self.device
 
         # prepare the dataset if necessary
-        self.tokenizer.prepare_dataset()
+        #self.tokenizer.prepare_dataset()
 
 
         # construct the actual model
@@ -77,6 +81,9 @@ class baseGPT(nn.Module):
         # report number of parameters
         print("number of parameters: %.2fM" % (self.get_num_params()/1e6,))
 
+
+    def get_num_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):
@@ -150,7 +157,7 @@ class baseGPT(nn.Module):
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
         Most likely you'll want to make sure to be in model.eval() mode of operation for this.
         """
-        idx = self.tokenizer_encode(input_text, device=self.device)
+        idx = self.tokenizer.encode_text(input_text, device=self.device)
 
         for _ in range(max_new_tokens):
             # if the sequence context is growing too long we must crop it at block_size

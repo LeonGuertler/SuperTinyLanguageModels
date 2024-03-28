@@ -10,25 +10,20 @@ from torch.nn import functional as F
 from models.layers import (
     LayerNorm,
     CausalSelfAttention,
-    FFN,
-    FFN_with_LoRA
+    FFN
 )
 
 from models.tokenizer import tokenizer
-
-
-
-
 
 
 class Block(nn.Module):
 
     def __init__(self, config, shared_mlp_block):
         super().__init__()
-        self.ln_1 = LayerNorm(config.n_embd, bias=config.bias)
+        self.ln_1 = LayerNorm(config['arch']['hidden_dim'], bias=config['arch']['bias'])
         self.attn = CausalSelfAttention(config)
-        self.ln_2 = LayerNorm(config.n_embd, bias=config.bias)
-        self.mlp = FFN_with_LoRA(config)
+        self.ln_2 = LayerNorm(config['arch']['hidden_dim'], bias=config['arch']['bias'])
+        self.mlp = FFN(config)
 
         # share the mlp block
         self.mlp.c_fc.weight = shared_mlp_block.c_fc.weight
@@ -54,6 +49,8 @@ class baseGPT(nn.Module):
         self.tokenizer = tokenizer(
             config=config
         )
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.tokenizer.device = self.device
 
         # prepare the dataset if necessary
         self.tokenizer.prepare_dataset()
@@ -64,7 +61,7 @@ class baseGPT(nn.Module):
             wte = nn.Embedding(config['arch']['vocab_size'], config['arch']['hidden_dim']),
             wpe = nn.Embedding(config['arch']['context_window'], config['arch']['hidden_dim']),
             drop = nn.Dropout(config['arch']['dropout']),
-            h = nn.ModuleList([Block(config, shared=self.shared_mlp_block) for _ in range(config['arch']['depth'])]),
+            h = nn.ModuleList([Block(config, shared_mlp_block=self.shared_mlp_block) for _ in range(config['arch']['depth'])]),
             ln_f = LayerNorm(config['arch']['hidden_dim'], bias=config['arch']['bias']),
         ))
         self.lm_head = nn.Linear(
@@ -88,6 +85,8 @@ class baseGPT(nn.Module):
         # report number of parameters
         print("number of parameters: %.2fM" % (self.get_num_params()/1e6,))
 
+    def get_num_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):
@@ -161,7 +160,7 @@ class baseGPT(nn.Module):
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
         Most likely you'll want to make sure to be in model.eval() mode of operation for this.
         """
-        idx = self.tokenizer_encode(input_text, device=self.device)
+        idx = self.tokenizer.encode_text(input_text, device=self.device)
 
         for _ in range(max_new_tokens):
             # if the sequence context is growing too long we must crop it at block_size

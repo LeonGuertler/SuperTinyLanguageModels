@@ -4,13 +4,15 @@ arch:
   model: "the_10m_model"
   tokenizer: "character_basic"
   tokenizer_model:
-    vocab_size: 4096
+    vocab_size: 2048
+    num_special_tokens: 4
     depth: 4
     hidden_dim: 64
     num_heads: 4
     mlp_dim: 256
     dropout: 0.0
     bias: False
+    max_seq_len: 16
     
 
   context_window: 512
