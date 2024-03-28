@@ -31,7 +31,7 @@ class Block(nn.Module):
         x = x + self.attn(self.ln_1(x)) * uncertainty_mask
         x = x + self.mlp(self.ln_2(x)) * uncertainty_mask
         uncertainty = torch.sigmoid(self.confidence(x))
-        # map values with confidence above threshold to 1, below to 0
+        # map values which are uncertain to 1, certain to 0
         uncertainty_mask = (uncertainty > self.confidence_threshold).float().detach()
         return x, uncertainty_mask, uncertainty
 
@@ -131,7 +131,7 @@ class ThinkingGPT(nn.Module):
             )
             # add a loss term to penalize high uncertainty for low confidence tokens
             # the target uncertainty is the logit for the correct token * \gamma ^ l for layer l
-            target_uncertainty = logits.gather(2, targets.unsqueeze(2)).squeeze(2)
+            target_uncertainty = 1 - logits.gather(2, targets.unsqueeze(2)).squeeze(2)
             # stack with powers of gamma for each layer
             target_uncertainty = torch.stack(
                 [
