@@ -1,4 +1,6 @@
-import os, time, math, pickle, hydra
+import time
+import math
+import hydra.utils
 from omegaconf import DictConfig, OmegaConf
 from contextlib import nullcontext
 
@@ -15,9 +17,9 @@ def estimate_loss(model, eval_iters, ctx):
     for split in ["train", "val"]:
         losses = torch.zeros(eval_iters)
         for k in range(eval_iters):
-            X, Y = model.get_batch(split)
+            x, y = model.get_batch(split)
             with ctx:
-                logits, loss = model(X, Y)
+                _, loss = model(x, y)
             losses[k] = loss.item()
         out[split] = losses.mean()
     model.train()
@@ -58,7 +60,6 @@ def main(model_cfg: DictConfig) -> None:
         if torch.cuda.is_available() and torch.cuda.is_bf16_supported()
         else "float16"
     )
-    compile = True
 
     torch.backends.cuda.matmul.allow_tf32 = True  # allow tf32 on matmul
     torch.backends.cudnn.allow_tf32 = True  # allow tf32 on cudnn
@@ -76,7 +77,7 @@ def main(model_cfg: DictConfig) -> None:
         if device_type == "cpu"
         else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
     )
-    scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
+    scaler = torch.cuda.amp.GradScaler(enabled=dtype == "float16")
 
     tokens_pre_iteration = (
         cfg.training.gradient_accumulation_steps
@@ -103,6 +104,7 @@ def main(model_cfg: DictConfig) -> None:
     # start logging
     if cfg.logging.wandb_log:
         run_name = f"{cfg['arch']['model']}_{cfg['training']['dataset']}_{cfg['arch']['tokenizer']}"
+        # pylint: disable=import-outside-toplevel
         import wandb
 
         wandb.init(
@@ -112,7 +114,7 @@ def main(model_cfg: DictConfig) -> None:
         )
 
     # start training
-    X, y = model.get_batch()
+    x, y = model.get_batch()
     t0 = time.time()
 
     while True:
@@ -156,12 +158,12 @@ def main(model_cfg: DictConfig) -> None:
             print(f"saving checkpoint to {general_cfg.output_dir}")
             torch.save(checkpoint, f"ckpt_{iter_num}.pt")
 
-        for micro_step in range(cfg.training.gradient_accumulation_steps):
+        for _ in range(cfg.training.gradient_accumulation_steps):
             with ctx:
-                logits, loss = model(X, y)
+                _, loss = model(x, y)
                 loss = loss / cfg.training.gradient_accumulation_steps
 
-            X, y = model.get_batch()
+            x, y = model.get_batch()
             scaler.scale(loss).backward()
 
         if cfg.training.optimizer.grad_clip != 0.0:
