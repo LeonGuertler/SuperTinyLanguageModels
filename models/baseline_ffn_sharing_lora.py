@@ -16,7 +16,7 @@ from models.tokenizer import tokenizer
 class Block(nn.Module):
 
     def __init__(self, config, shared_mlp_block):
-        super().__init__()
+        super().__init__(config)
         self.ln_1 = layers.LayerNorm(
             config["arch"]["hidden_dim"], bias=config["arch"]["bias"]
         )
