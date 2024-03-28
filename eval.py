@@ -2,6 +2,8 @@ import hydra, torch
 from omegaconf import DictConfig
 from contextlib import nullcontext
 import Levenshtein
+import os
+from hydra.utils import get_original_cwd
 
 from models.build_models import build_model
 from evals import (
@@ -36,10 +38,12 @@ def load_benchmark(name):
         raise ValueError(f"Unknown benchmark name: {name}")
 
 
-@hydra.main(config_path="configs/test/", config_name="baseline.yaml")
+@hydra.main(config_path="configs/test/", config_name="eval.yaml")
 def main(cfg: DictConfig) -> None:
-    model = build_model(ckpt_path=cfg["model_path"])
+    path_base = get_original_cwd()
+    model = build_model(ckpt_path=f"{path_base}/{cfg['model_path']}")
     model.eval()
+    model.to("cuda")
 
     # generation hyperparameters
     dtype = (
@@ -47,7 +51,7 @@ def main(cfg: DictConfig) -> None:
         if torch.cuda.is_available() and torch.cuda.is_bf16_supported()
         else "float16"
     )  # 'float32' or 'bfloat16' or 'float16'
-    device = "cpu"
+    device = "cuda"
     torch.manual_seed(cfg["seed"])
     torch.cuda.manual_seed(cfg["seed"])
     torch.backends.cuda.matmul.allow_tf32 = True  # allow tf32 on matmul
@@ -63,13 +67,13 @@ def main(cfg: DictConfig) -> None:
         if device_type == "cpu"
         else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
     )
-    wrapped_model = model_wrapper.ModelWrapper(model, ctx)
+    wrapped_model = model_wrapper.ModelWrapper(model, ctx, cfg)
 
     for benchmark_name in cfg["benchmarks"]:
         benchmark = load_benchmark(name=benchmark_name)(
-            name=benchmark_name, model=wrapped_model
+            name=benchmark_name, model=wrapped_model, cache_dir=path_base+f"/data/eval/{benchmark_name}"
         )
-        benchmark.execute()
+        print(f"{benchmark_name}: {benchmark.execute()}")
 
 
 if __name__ == "__main__":

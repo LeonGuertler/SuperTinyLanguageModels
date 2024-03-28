@@ -2,6 +2,7 @@ outputs
 *__pycache__/*
 *.bin
 checkpoints
+data/
 
 ### DEFAULTS FROM GITHUB ###
 __pycache__/

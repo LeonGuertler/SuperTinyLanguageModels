@@ -3,4 +3,4 @@ max_new_tokens: 100
 temperature: 0.8
 top_k: 200
 seed: 489 
-model_path: "ckpt.pt"
+model_path: "checkpoints/ckpt.pt"
