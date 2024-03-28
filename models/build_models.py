@@ -18,18 +18,18 @@ def build_model(config=None, ckpt_path=None):
     # check if model is loaded
     if ckpt_path is not None:
         checkpoint = torch.load(
-            config["ckpt_path"],
+            ckpt_path, #config["ckpt_path"],
             map_location="cpu"
         )
 
         # load model with correct architecture
         model = MODEL_CLASSES[checkpoint['config']['arch']['model']](
-            config=checkpoint['config']['arch']
+            config=checkpoint['config']
         )
         
         # load model weights
-        model.load_state_dict(checkpoint['model_state_dict'])
-
+        model.load_state_dict(checkpoint['model'])
+        model.eval()
         return model 
     
 

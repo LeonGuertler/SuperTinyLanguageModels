@@ -49,7 +49,7 @@ class baseGPT(nn.Module):
         self.tokenizer.device = self.device
 
         # prepare the dataset if necessary
-        self.tokenizer.prepare_dataset()
+        #self.tokenizer.prepare_dataset()
 
 
         # construct the actual model
@@ -157,7 +157,7 @@ class baseGPT(nn.Module):
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
         Most likely you'll want to make sure to be in model.eval() mode of operation for this.
         """
-        idx = self.tokenizer_encode(input_text, device=self.device)
+        idx = self.tokenizer.encode_text(input_text, device=self.device)
 
         for _ in range(max_new_tokens):
             # if the sequence context is growing too long we must crop it at block_size
