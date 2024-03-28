@@ -28,7 +28,7 @@ class Nonsense(benchmark.Benchmark):
             batch_labels.append(label)
             output_tokens.append(sample["multiple_choice_targets"])
             if len(batch_prompts) == batch_size:
-                predictions = self.model.predict(batch_prompts, output_token=output_tokens)
+                predictions = self.model.predict(batch_prompts, options=output_tokens)
                 targets = batch_labels
                 acc_metric.batched_accumulate(predictions, targets)
                 batch_prompts = []

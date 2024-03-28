@@ -56,7 +56,7 @@ class ARC(benchmark.Benchmark):
             batch_labels.append(label)
             batch_options.append(options)
             if len(batch_prompts) == batch_size:
-                predictions = self.model.predict(batch_prompts, output_token=batch_options)
+                predictions = self.model.predict(batch_prompts, options=batch_options)
                 targets = batch_labels
                 acc_metric.batched_accumulate(predictions, targets)
                 batch_prompts = []

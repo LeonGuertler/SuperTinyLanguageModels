@@ -50,7 +50,7 @@ class VitaminC(benchmark.Benchmark):
             batch_prompts.append(prompt)
             batch_labels.append(label)
             if len(batch_prompts) == batch_size:
-                predictions = self.model.predict(batch_prompts, output_token=["A", "B"])
+                predictions = self.model.predict(batch_prompts, options=["A", "B"])
                 targets = batch_labels
                 acc_metric.batched_accumulate(predictions, targets)
                 f1_metric.batched_accumulate(predictions, targets)

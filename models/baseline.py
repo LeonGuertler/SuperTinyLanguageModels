@@ -186,7 +186,7 @@ class baseGPT(nn.Module):
             idx_cond = (
                 idx
                 if idx.size(1) <= self.config["arch"]["context_window"]
-                else idx[:, -self.config.block_size :]
+                else idx[:, -self.config["arch"]["context_window"] :]
             )
             # forward the model to get the logits for the index in the sequence
             logits, _ = self(idx_cond)
