@@ -12,7 +12,9 @@ class Nonsense(benchmark.Benchmark):
 
     def __init__(self, name, model, cache_dir="data/eval/nonsense"):
         super().__init__(name, model)
-        self.base_dataset = load_dataset("tasksource/bigbench", "nonsense_words_grammar", cache_dir=cache_dir)["validation"]
+        self.base_dataset = load_dataset(
+            "tasksource/bigbench", "nonsense_words_grammar", cache_dir=cache_dir
+        )["validation"]
         # preprocess the dataset
 
     def execute(self, batch_size=8):

@@ -15,12 +15,15 @@ class ModelWrapper:
         outputs = []
         with self.ctx:
             with torch.no_grad():
-                outputs = [self.model.generate(
-                    prompt,
-                    self.generate_config["max_new_tokens"],
-                    self.generate_config["temperature"],
-                    self.generate_config["top_k"],
-                ) for prompt in prompts]
+                outputs = [
+                    self.model.generate(
+                        prompt,
+                        self.generate_config["max_new_tokens"],
+                        self.generate_config["temperature"],
+                        self.generate_config["top_k"],
+                    )
+                    for prompt in prompts
+                ]
         for output, option in zip(outputs, options):
             best, best_score = None, float("inf")
             for opt in option:

@@ -33,7 +33,9 @@ class ARC(benchmark.Benchmark):
 
     def __init__(self, name, model, cache_dir="data/eval/arc"):
         super().__init__(name, model)
-        self.base_dataset = load_dataset("allenai/ai2_arc", "ARC-Easy", cache_dir=cache_dir)["test"]
+        self.base_dataset = load_dataset(
+            "allenai/ai2_arc", "ARC-Easy", cache_dir=cache_dir
+        )["test"]
         # preprocess the dataset
 
     def execute(self, batch_size=8):
@@ -46,10 +48,9 @@ class ARC(benchmark.Benchmark):
             options = sample["choices"]["label"]
             option_text = []
             for i, option in enumerate(sample["choices"]["text"]):
-                option_text.append(f"{options[i]}: \"{option}\"")
+                option_text.append(f'{options[i]}: "{option}"')
             prompt = ARC_PROMPT.format(
-                question=sample["question"],
-                options="\n".join(option_text)
+                question=sample["question"], options="\n".join(option_text)
             )
             label = str(sample["answerKey"])
             batch_prompts.append(prompt)

@@ -71,7 +71,9 @@ def main(cfg: DictConfig) -> None:
 
     for benchmark_name in cfg["benchmarks"]:
         benchmark = load_benchmark(name=benchmark_name)(
-            name=benchmark_name, model=wrapped_model, cache_dir=path_base+f"/data/eval/{benchmark_name}"
+            name=benchmark_name,
+            model=wrapped_model,
+            cache_dir=path_base + f"/data/eval/{benchmark_name}",
         )
         print(f"{benchmark_name}: {benchmark.execute()}")
 

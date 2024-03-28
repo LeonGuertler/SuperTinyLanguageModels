@@ -1,20 +1,20 @@
 import os, pickle
-from tqdm import tqdm 
-import numpy as np 
-import tiktoken 
+from tqdm import tqdm
+import numpy as np
+import tiktoken
 
 import torch
 
-#from models.utils import load_datasets
+# from models.utils import load_datasets
 from models.utils import load_datasets
 
 
 TOKENIZERS = {
     "gpt2": lambda: tiktoken.get_encoding("gpt2"),
-    "character_basic": lambda classical_tokenizer, config: character_tokenizer(classical_tokenizer,config)
+    "character_basic": lambda classical_tokenizer, config: character_tokenizer(
+        classical_tokenizer, config
+    ),
 }
-
-
 
 
 class character_bpe_tokenizer:
@@ -26,33 +26,32 @@ class character_bpe_tokenizer:
             classical_tokenizer=self.classical_tokenizer,
             config=config,
         )
-        self.config = config 
+        self.config = config
         self.dataset_path = os.path.join(
             self.config["paths"]["data_path"],
             self.config["training"]["dataset"],
-            self.config["arch"]["tokenizer"]
+            self.config["arch"]["tokenizer"],
         )
-
 
         self.character_embedding = torch.nn.Embedding(
             num_embeddings=self.config["arch"]["tokenizer_model"]["vocab_size"],
-            embedding_dim=self.config["arch"]["tokenizer_model"]["hidden_dim"]
+            embedding_dim=self.config["arch"]["tokenizer_model"]["hidden_dim"],
         )
 
         self.pos_encoding = torch.nn.Embedding(
             num_embeddings=16,
-            embedding_dim=self.config["arch"]["tokenizer_model"]["hidden_dim"]
+            embedding_dim=self.config["arch"]["tokenizer_model"]["hidden_dim"],
         )
 
         self.chracter_level_transformer_1 = torch.nn.TransformerEncoderLayer(
-            d_model=self.config["arch"]["tokenizer_model"]["hidden_dim"], 
-            nhead=self.config["arch"]["tokenizer_model"]["num_heads"], 
-            dim_feedforward=self.config["arch"]["tokenizer_model"]["mlp_dim"], 
+            d_model=self.config["arch"]["tokenizer_model"]["hidden_dim"],
+            nhead=self.config["arch"]["tokenizer_model"]["num_heads"],
+            dim_feedforward=self.config["arch"]["tokenizer_model"]["mlp_dim"],
             dropout=self.config["arch"]["tokenizer_model"]["dropout"],
         )
         self.linear_projection = torch.nn.Linear(
             self.config["arch"]["tokenizer_model"]["hidden_dim"],
-            self.config["arch"]["hidden_dim"]
+            self.config["arch"]["hidden_dim"],
         )
 
         self.chracter_level_transformer_2 = torch.nn.TransformerEncoderLayer(
@@ -61,7 +60,6 @@ class character_bpe_tokenizer:
             dim_feedforward=self.config["arch"]["tokenizer_model"]["mlp_dim"],
             dropout=self.config["arch"]["tokenizer_model"]["dropout"],
         )
-
 
     def encode_text(self, text, device):
         """
@@ -76,15 +74,13 @@ class character_bpe_tokenizer:
         character_batch = torch.zeros(
             (
                 len(token_segments),
-                self.config['arch']['tokenizer_model']['max_seq_len'],
-                self.config['arch']['tokenizer_model']['hidden_dim']
+                self.config["arch"]["tokenizer_model"]["max_seq_len"],
+                self.config["arch"]["tokenizer_model"]["hidden_dim"],
             ),
         )
         # initialize all tokens as pad tokens
         character_batch += self.character_embedding(
-            torch.tensor(
-                self.character_tokenizer.id_mapping["[pad]"]
-            )
+            torch.tensor(self.character_tokenizer.id_mapping["[pad]"])
         )
 
         input(character_batch)
@@ -92,29 +88,20 @@ class character_bpe_tokenizer:
             # check if truncation is necessary for word
             start_idx = start
             end_idx = np.min(
-                [
-                    end,
-                    start + self.config['arch']['tokenizer_model']['max_seq_len']
-                ]
+                [end, start + self.config["arch"]["tokenizer_model"]["max_seq_len"]]
             )
 
             # get id sequence and embed it
             embedded_tokens = self.character_embedding(
-                torch.tensor(
-                    token_ids[start_idx:end_idx]
-                )
+                torch.tensor(token_ids[start_idx:end_idx])
             )
 
             # add positional encoding
             embedded_tokens += self.pos_encoding(
-                torch.arange(
-                    embedded_tokens.shape[0],
-                    device=device
-                )
+                torch.arange(embedded_tokens.shape[0], device=device)
             )
 
-            character_batch[idx, :embedded_tokens.size(0)] = embedded_tokens
-
+            character_batch[idx, : embedded_tokens.size(0)] = embedded_tokens
 
         input(character_batch)
 
@@ -130,11 +117,10 @@ class character_bpe_tokenizer:
         input(character_batch.size())
 
         return character_batch
-    
 
     def decode_tokens(self, embed_batch):
         """
-        given a batch of word level embeddings, decode each one into 
+        given a batch of word level embeddings, decode each one into
         a list of character tokens. Output dim should be
         batch size x context window x max_seq_len x character vocab size
         where the last one are the logits / softmax for training.
@@ -142,24 +128,22 @@ class character_bpe_tokenizer:
         input is of shape
         batch_size x context_window x hidden_dim (model)
 
-        basic architecture will be VLM style that accepts both 
+        basic architecture will be VLM style that accepts both
         hidden dim (model) and the already decoded token embeds.
-        Once the all character token embeds are generated, pass 
+        Once the all character token embeds are generated, pass
         them through the linear layer to get token ids.
 
-        so intermitted size will be 
+        so intermitted size will be
         batch_size x context_window x max_seq_len x hidden_dim (character)
         """
 
         # initialize decoding sequence ids with the start of character token
         start_token = self.character_tokenizer.id_mapping["[soc]"]
-        #sequence_ids = torch.tensor(
-
+        # sequence_ids = torch.tensor(
 
     def get_batch(self, split="train"):
-        # TODO 
+        # TODO
         pass
-
 
     def prepare_dataset(self):
         """
@@ -168,59 +152,42 @@ class character_bpe_tokenizer:
         if not os.path.exists(self.dataset_path):
             # check if dataset folder exists
             dataset_folder = os.path.join(
-                self.config["paths"]["data_path"],
-                self.config["training"]["dataset"]
+                self.config["paths"]["data_path"], self.config["training"]["dataset"]
             )
             if not os.path.exists(dataset_folder):
                 os.makedirs(dataset_folder)
-                
-            # load the dataset 
-            dataset = load_datasets(
-                self.config["training"]["dataset"]
-            )
 
-            
+            # load the dataset
+            dataset = load_datasets(self.config["training"]["dataset"])
+
             def process(example):
-                ids = self.tokenizer.encode_ordinary(
-                    example["text"]
-                )
-                ids.append(
-                    self.tokenizer.eot_token
-                )
+                ids = self.tokenizer.encode_ordinary(example["text"])
+                ids.append(self.tokenizer.eot_token)
                 return {"ids": ids, "len": len(ids)}
-            
+
             # tokenize dataset
             tokenized = dataset.map(
                 process,
                 remove_columns=["url", "title", "text"],
                 desc="Tokenizing the dataset",
-                num_proc=8 # number workers
+                num_proc=8,  # number workers
             )
-
 
             # concatenate all the ids in each dataset into one large file for training
             for split, dset in tokenized.items():
-                arr_len = np.sum(dset['len'], dtype=np.uint64)
-                filename = os.path.join(
-                    self.dataset_path, 
-                    f'{split}.bin'
-                )
-                dtype = np.uint16 # possible since enc.max_token_value ==50256 is < 2**16
-                arr = np.memmap(
-                    filename,
-                    dtype=dtype,
-                    mode="w+",
-                    shape=(arr_len,)
-                )
+                arr_len = np.sum(dset["len"], dtype=np.uint64)
+                filename = os.path.join(self.dataset_path, f"{split}.bin")
+                dtype = (
+                    np.uint16
+                )  # possible since enc.max_token_value ==50256 is < 2**16
+                arr = np.memmap(filename, dtype=dtype, mode="w+", shape=(arr_len,))
                 total_batches = 1024
 
-                idx = 0 
+                idx = 0
                 for batch_idx in tqdm(range(total_batches), desc=f"writing {filename}"):
                     batch = dset.shard(
-                        num_shards=total_batches,
-                        index=batch_idx,
-                        contiguous=True
-                    ).with_format('numpy')
+                        num_shards=total_batches, index=batch_idx, contiguous=True
+                    ).with_format("numpy")
                     arr_batch = np.concatenate(batch["ids"])
 
                     # write into mmap
@@ -229,20 +196,19 @@ class character_bpe_tokenizer:
                 arr.flush()
 
 
-
 class character_tokenizer:
     def __init__(self, classical_tokenizer, config):
-        self.config = config 
+        self.config = config
         self.classical_tokenizer = classical_tokenizer
         self.dataset_path = os.path.join(
             self.config["paths"]["data_path"],
             self.config["training"]["dataset"],
-            self.config["arch"]["tokenizer"]
+            self.config["arch"]["tokenizer"],
         )
         self.tokenizer_path = os.path.join(
             self.config["paths"]["data_path"],
             self.config["training"]["dataset"],
-            "tokenizer.pickle"
+            "tokenizer.pickle",
         )
         self._load()
 
@@ -257,9 +223,7 @@ class character_tokenizer:
 
         else:
             # load the training dataset
-            dataset = load_datasets(
-                self.config["training"]["dataset"]
-            )
+            dataset = load_datasets(self.config["training"]["dataset"])
 
             # count token occurences (at the character level)
             token_counts = {}
@@ -271,12 +235,10 @@ class character_tokenizer:
 
             # sort tokens by frequency
             sorted_tokens = sorted(
-                token_counts.items(),
-                key=lambda x: x[1],
-                reverse=True
+                token_counts.items(), key=lambda x: x[1], reverse=True
             )
 
-            # print number of unique tokens 
+            # print number of unique tokens
             # and frequency percentiles
             if verbose:
                 print(f"Number of unique tokens: {len(sorted_tokens)}")
@@ -285,6 +247,7 @@ class character_tokenizer:
 
                 # plot frequencies as line chart
                 import matplotlib.pyplot as plt
+
                 frequency_distribution = {}
                 for token, count in sorted_tokens:
                     if count not in frequency_distribution:
@@ -294,18 +257,15 @@ class character_tokenizer:
                 # sort
                 frequency_distribution = dict(sorted(frequency_distribution.items()))
 
-                #plot
-                plt.plot(
-                    frequency_distribution.keys(),
-                    frequency_distribution.values()
-                )
+                # plot
+                plt.plot(frequency_distribution.keys(), frequency_distribution.values())
                 plt.show()
-
 
             # only keep the most frequent config["arch"]["tokenizer_model"]["vocab_size"] tokens
             sorted_tokens = sorted_tokens[
-                :self.config["arch"]["tokenizer_model"]["vocab_size"]-self.config["arch"]["tokenizer_model"]["num_special_tokens"]
-                ]
+                : self.config["arch"]["tokenizer_model"]["vocab_size"]
+                - self.config["arch"]["tokenizer_model"]["num_special_tokens"]
+            ]
             sorted_tokens.append(("[unk]", 9e9))
             sorted_tokens.append(("[pad]", 9e9))
             sorted_tokens.append(("[eoc]", 9e9))
@@ -326,12 +286,11 @@ class character_tokenizer:
 
             self.id_mapping = id_mapping
 
-
     def encode(self, text):
         """
         Accept text and return a list of token ids and a list of classical token segment lengths.
         """
-        token_ids = [] #[self.id_mapping[token] for token in text]
+        token_ids = []  # [self.id_mapping[token] for token in text]
         token_segments = []
 
         start = 0
@@ -352,13 +311,8 @@ class character_tokenizer:
 
         return token_ids, token_segments
 
-    
     def decode(self, token_ids):
         """
         Accept a list of token ids and return the original text.
         """
         return "".join([self.id_mapping[token] for token in token_ids])
-
-
-
-
