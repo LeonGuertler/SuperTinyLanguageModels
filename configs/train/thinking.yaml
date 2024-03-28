@@ -4,9 +4,9 @@ defaults:
 arch:
   model: "thinking"
   gamma: 0.9
-  confidence_threshold: 0.1
+  confidence_threshold: 0.05
 
 training:
-  dataset: "simple_en_wiki"
+  dataset: "en_wiki"
   iterations: 1
-  gradient_accumulation_steps: 2
+  gradient_accumulation_steps: 20

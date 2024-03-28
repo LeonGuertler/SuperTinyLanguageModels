@@ -23,7 +23,7 @@ class Block(nn.Module):
         self.attn = CausalSelfAttention(config)
         self.ln_2 = LayerNorm(config["arch"]["hidden_dim"], bias=config["arch"]["bias"])
         self.mlp = FFN(config)
-        self.confidence = nn.Linear(config["arch"]["hidden_dim"], 1, bias=False)
+        self.confidence = nn.Linear(config["arch"]["hidden_dim"], 1, bias=True)
         self.confidence_threshold = config["arch"]["confidence_threshold"]
 
     def forward(self, x, uncertainty_mask):
