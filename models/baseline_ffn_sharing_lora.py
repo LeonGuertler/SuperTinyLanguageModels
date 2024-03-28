@@ -16,7 +16,7 @@ from models.tokenizer import tokenizer
 class Block(nn.Module):
 
     def __init__(self, config, shared_mlp_block):
-        super().__init__(config)
+        super().__init__()
         self.ln_1 = layers.LayerNorm(
             config["arch"]["hidden_dim"], bias=config["arch"]["bias"]
         )
@@ -41,7 +41,7 @@ class Block(nn.Module):
 class FFNSharedLoraGPT(baseline.BaseGPT):
 
     def __init__(self, config):
-        super().__init__()
+        super().__init__(config)
         assert config["arch"]["vocab_size"] is not None
         assert config["arch"]["context_window"] is not None
         self.config = config
