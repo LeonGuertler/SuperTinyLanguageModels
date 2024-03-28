@@ -167,7 +167,7 @@ def main(model_cfg: DictConfig) -> None:
         for _ in range(cfg.training.gradient_accumulation_steps):
             X, Y_W, Y_L = get_batch((dataset, model.tokenizer, cfg.training.batch_size, cfg.arch.context_window))
             with ctx:
-                dpo(X, Y_W, Y_L, model, ref_model, cfg.training.beta)
+                loss = dpo(X, Y_W, Y_L, model, ref_model, cfg.training.beta)
                 loss = loss / cfg.training.gradient_accumulation_steps
             
             scaler.scale(loss).backward()
