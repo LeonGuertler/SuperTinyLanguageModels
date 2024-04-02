@@ -34,7 +34,9 @@ class StandardDataloader:
         )
 
         self.context_window = self.cfg["model"]["context_window"]
-        self.batch_size = self.cfg["training"]["batch_size"]
+        self.batch_size = self.cfg["trainer"]["training"]["batch_size"]
+        self.device = self.cfg["general"]["device"]
+
 
     def get_batch(self, split="train"):
         """
