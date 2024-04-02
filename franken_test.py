@@ -89,6 +89,7 @@ def test_baseline_embedder():
     be = BaselineEmbedder(
         hidden_dim=10,
         context_window=10,
+        vocab_size=100_000
     )
     
     # create a random tensor

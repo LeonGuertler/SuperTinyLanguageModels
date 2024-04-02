@@ -42,8 +42,6 @@ class StandardDataloader:
         """
         Get a train/val batch
         """
-        if split != "train":
-            split = "test"
         data = np.memmap(os.path.join(self.dataset_path, f'{split}.bin'), dtype=np.uint16, mode='r')
 
         ix = torch.randint(len(data) - self.context_window, (self.batch_size,))
