@@ -82,8 +82,10 @@ class BaseTrainer:
         set_seed(self.cfg["general"]["seed"])
 
         # get original path from hydra
-        self.original_cwd = hydra.utils.get_original_cwd()
-
+        try:
+            self.original_cwd = hydra.utils.get_original_cwd()
+        except:
+            self.original_cwd = os.getcwd()
         # check if the data has been preprocessed
         # TODO 
         self.is_processed = False
