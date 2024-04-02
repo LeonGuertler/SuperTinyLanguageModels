@@ -3,7 +3,7 @@
 
 import torch
 import hydra, os, wandb
-from time import time
+import time
 from omegaconf import DictConfig, OmegaConf
 
 # get local imports
