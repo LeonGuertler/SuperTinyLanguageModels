@@ -270,7 +270,7 @@ def test_build_optimizer():
     # build the optimizer
     optimizer = build_optimizer(
         model=model,
-        optimizer_config=test_dict
+        optimizer_config=test_dict["optimizer"]
     )
 
     # check the optimizer type
