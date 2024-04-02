@@ -225,7 +225,7 @@ test_dict= {
         'model': 'baseline', 
         'tokenizer': 'gpt2', 
         'context_window': 512, 
-        'vocab_size': 50256, 
+        'vocab_size': 50304, 
         'depth': 6, 
         'hidden_dim': 64, 
         'num_heads': 8, 
