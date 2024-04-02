@@ -227,10 +227,10 @@ test_dict= {
         'training': {
             'batch_size': 24, 
             'gradient_accumulation_steps': 20, 
-            'max_iters': 100000, 
-            'lr_decay_iters': 100000, 
-            'warmup_iters': 1000, 
-            'eval_interval': 5000, 
+            'max_iters': 1000, 
+            'lr_decay_iters': 1000, 
+            'warmup_iters': 10, 
+            'eval_interval': 500, 
             'log_interval': 1, 
             'eval_iters': 200
         }, 
@@ -327,4 +327,18 @@ def test_build_trainer():
         cfg=test_dict,
     )
 
- 
+
+"""
+Do a small test training run
+"""
+
+def test_training_run():
+    # load the relevant trainer
+    trainer = build_trainer(
+        cfg=test_dict,
+    )
+    # preprocess the training data
+    trainer.preprocess_data()
+
+    # train the model
+    trainer.train()
