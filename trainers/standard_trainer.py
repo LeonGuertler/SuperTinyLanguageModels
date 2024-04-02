@@ -155,7 +155,7 @@ class BaseTrainer:
                     })
                     
             # save every checkpoint_interval iterations
-            if not iter_num % self.cfg["training"]["training"]["checkpoint_interval"] and iter_num > 0:
+            if not iter_num % self.cfg["trainer"]["training"]["checkpoint_interval"] and iter_num > 0:
                 checkpoint = {
                     "model": self.model.state_dict(),
                     "optimizer": self.optimizer.state_dict(),
