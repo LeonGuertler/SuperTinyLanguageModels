@@ -1,10 +1,11 @@
 """MMLU benchmark: https://arxiv.org/pdf/2009.03300.pdf"""
 
-import tqdm
-import os
-import requests
 import glob
+import os
+
 import pandas as pd
+import requests
+import tqdm
 
 from evals import benchmark
 
@@ -39,11 +40,17 @@ class MMLUBenchmark(benchmark.Benchmark):
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
             try:
-                r = requests.get(MMLU_RAW_URL, allow_redirects=True)
+                r = requests.get(
+                    MMLU_RAW_URL,
+                    allow_redirects=True,
+                    timeout=10,
+                )
                 open(f"{cache_dir}/data.tar", "wb").write(r.content)
                 os.system(f"tar -xvf {cache_dir}/data.tar -C {cache_dir}")
+            # pylint: disable=broad-except
             except Exception as e:
                 print(f"Failed to download and extract MMLU data: {e}")
+            # pylint: enable=broad-except
 
     def execute(self):
         # search test data for all files

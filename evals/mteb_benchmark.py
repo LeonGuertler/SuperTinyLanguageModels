@@ -5,13 +5,6 @@ import mteb
 
 from evals import benchmark
 
-"""Run the mteb benchmark to evaluate the model embeddings.
-https://arxiv.org/abs/2210.07316"""
-
-import mteb
-
-from evals import benchmark
-
 
 class MTEBBenchmark(benchmark.Benchmark):
     def __init__(self, name, model, description=""):
