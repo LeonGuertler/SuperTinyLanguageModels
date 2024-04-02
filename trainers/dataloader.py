@@ -65,6 +65,9 @@ class StandardDataloader:
         """
         Tokenize and store the data
         """
+        # create folder
+        if not os.path.exists(self.dataset_path):
+            os.makedirs(self.dataset_path)
 
         # load the dataset
         split_dataset = load_data(
