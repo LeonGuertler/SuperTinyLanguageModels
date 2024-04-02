@@ -1,4 +1,4 @@
-.vscode
+.vscode/
 outputs
 *__pycache__/*
 *.bin
