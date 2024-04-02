@@ -36,7 +36,7 @@ class StandardDataloader(torch.nn.Module):
 
         # load the dataset
         split_dataset = load_data(
-            dataset_name=self.cfg["dataset_name"],
+            dataset_name=self.cfg["trainer"]["dataset"],
         )
 
         def process(example):
