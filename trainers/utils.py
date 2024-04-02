@@ -51,7 +51,7 @@ def load_data(dataset_name, shuffle=True):
     split_dataset["val"] = split_dataset.pop("test")
 
     if dataset_name == "debug":
-        split_dataset["train"] = split_dataset["train"].select(range(1000))
+        split_dataset["train"] = split_dataset["train"].select(range(2048))
 
     # return the training and validation datasets
     return split_dataset

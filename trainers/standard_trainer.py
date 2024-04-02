@@ -86,7 +86,11 @@ class BaseTrainer:
             self.original_cwd = hydra.utils.get_original_cwd()
         except:
             self.original_cwd = os.getcwd()
+
+
+
         # check if the data has been preprocessed
+        self.is_processed = self.dataloader.check_processed()
         # TODO 
         self.is_processed = False
 
