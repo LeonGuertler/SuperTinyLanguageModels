@@ -65,8 +65,8 @@ def build_dataloader(cfg):
     """
     return DATALODER_DICT[cfg["trainer"]["dataloader"]["name"]](
         dataloader_cfg = cfg["trainer"]["dataloader"],
-        data_dir = cfg["general"]["paths"]["data_dir"],
-        cfg=trainer_cfg
+        data_dir = cfg["general"]["paths"]["data_path"],
+        cfg=cfg
     )
 
 LOSS_FN_DICT = {

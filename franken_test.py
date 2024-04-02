@@ -312,6 +312,7 @@ def test_build_loss_fn():
 
     # forward pass
     output = loss_fn(x, y)
+    print(output)
 
     # check the output shape
     assert output.shape == (10,)
