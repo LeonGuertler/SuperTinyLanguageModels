@@ -257,6 +257,9 @@ test_dict= {
     }
 }
 
+# convert test dict to omegaconf
+from omegaconf import OmegaConf
+test_dict = OmegaConf.create(test_dict)
 
 
 # this test will only run if device has cuda enabled
