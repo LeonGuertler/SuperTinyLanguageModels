@@ -264,6 +264,9 @@ def test_build_optimizer():
     """
     Test the build_optimizer function.
     """
+    model = BaseGPT(
+        cfg=test_dict['model']
+    )
     # build the optimizer
     optimizer = build_optimizer(
         model=None,
