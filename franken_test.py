@@ -199,7 +199,7 @@ from trainers.build_trainers import (
 test_dict= {
     'general': {
         'logging': {
-            'wandb_log': True, 
+            'wandb_log': False, 
             'wandb_project': 'TinyUniverse'
         }, 
         'paths': {
