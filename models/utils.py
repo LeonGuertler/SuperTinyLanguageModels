@@ -1,15 +1,38 @@
 import torch
-from datasets import load_dataset
+import pandas as pd
+
+
+
+def print_model_stats(model):
+    """
+    Print relevant model statistics, including the number of parameters
+    with and without embeddings for a given PyTorch model.
+    """
+    total_params = sum(p.numel() for p in model.parameters())
+    embeddings_params = sum(p.numel() for p in model.transformer.embedder.parameters())
+    lm_head_params = sum(p.numel() for p in model.lm_head.parameters())
+    core_model_params = total_params - embeddings_params - lm_head_params
+    
+    # Prepare the data
+    data = {
+        "Component": ["Total", "Embeddings", "LM Head", "Core Model"],
+        "Parameters": [total_params, embeddings_params, lm_head_params, core_model_params]
+    }
+    
+    # Create a DataFrame
+    df = pd.DataFrame(data)
+    
+    # Print the table
+    print(df.to_string(index=False))
+
+
+
+"""from datasets import load_dataset
+
+
 
 
 def count_params(model):
-    """
-    Return a dict with four counts:
-        - all trainable parameters
-        - all parameters
-        - all embedding parameters
-        - all embedding and output paramters
-    """
     return {
         "all_trainable": sum(p.numel() for p in model.parameters() if p.requires_grad),
         "all": sum(p.numel() for p in model.parameters()),
@@ -34,3 +57,4 @@ def load_datasets(dataset_name, shuffle=True):
 
     # return the training and validation datasets
     return split_dataset
+"""

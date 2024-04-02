@@ -1,3 +1,6 @@
+"""
+A collection of basic model building blocks.
+"""
 import math
 import inspect
 
@@ -8,7 +11,6 @@ from torch.nn import functional as F
 
 class LayerNorm(nn.Module):
     """LayerNorm but with an optional bias. PyTorch doesn't support simply bias=False"""
-
     def __init__(self, ndim, bias):
         super().__init__()
         self.weight = nn.Parameter(torch.ones(ndim))
@@ -19,93 +21,102 @@ class LayerNorm(nn.Module):
 
 
 class CausalSelfAttention(nn.Module):
-
-    def __init__(self, config):
+    """
+    Basic Causal Self-Attention module.
+    """
+    def __init__(self, hidden_dim, num_heads, bias=False, dropout=0.0):
         super().__init__()
-        assert config["arch"]["hidden_dim"] % config["arch"]["num_heads"] == 0
+        assert hidden_dim % num_heads == 0
         # key, query, value projections for all heads, but in a batch
         self.c_attn = nn.Linear(
-            config["arch"]["hidden_dim"],
-            3 * config["arch"]["hidden_dim"],
-            bias=config["arch"]["bias"],
+            hidden_dim,
+            3 * hidden_dim,
+            bias=bias,
         )
+
         # output projection
         self.c_proj = nn.Linear(
-            config["arch"]["hidden_dim"],
-            config["arch"]["hidden_dim"],
-            bias=config["arch"]["bias"],
+            hidden_dim,
+            hidden_dim,
+            bias=bias,
         )
+
         # regularization
-        self.attn_dropout = nn.Dropout(config["arch"]["dropout"])
-        self.resid_dropout = nn.Dropout(config["arch"]["dropout"])
-        self.n_head = config["arch"]["num_heads"]
-        self.n_embd = config["arch"]["hidden_dim"]
-        self.dropout = config["arch"]["dropout"]
+        self.dropout = nn.Dropout(dropout)
+
+        self.hidden_dim = hidden_dim
+        self.num_heads = num_heads
+        self.dropout = dropout
+
         # flash attention make GPU go brrrrr but support is only in PyTorch >= 2.0
         self.flash = hasattr(torch.nn.functional, "scaled_dot_product_attention")
 
     def forward(self, x):
-        B, T, C = (
+        """
+        Forward pass
+        """
+        B, S, H = (
             x.size()
-        )  # batch size, sequence length, embedding dimensionality (n_embd)
+        ) # batch, sequence, hidden
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
-        q, k, v = self.c_attn(x).split(self.n_embd, dim=2)
-        k = k.view(B, T, self.n_head, C // self.n_head).transpose(
+        q, k, v = self.c_attn(x).split(self.hidden_dim, dim=2)
+        k = k.view(B, T, self.num_heads, C // self.num_heads).transpose(
             1, 2
         )  # (B, nh, T, hs)
-        q = q.view(B, T, self.n_head, C // self.n_head).transpose(
+        q = q.view(B, T, self.num_heads, C // self.num_heads).transpose(
             1, 2
         )  # (B, nh, T, hs)
-        v = v.view(B, T, self.n_head, C // self.n_head).transpose(
+        v = v.view(B, T, self.num_heads, C // self.num_heads).transpose(
             1, 2
         )  # (B, nh, T, hs)
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
-        if self.flash:
-            # efficient attention using Flash Attention CUDA kernels
-            y = torch.nn.functional.scaled_dot_product_attention(
-                q,
-                k,
-                v,
-                attn_mask=None,
-                dropout_p=self.dropout if self.training else 0,
-                is_causal=True,
-            )
-        else:
-            # manual implementation of attention
-            att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
-            att = att.masked_fill(self.bias[:, :, :T, :T] == 0, float("-inf"))
-            att = F.softmax(att, dim=-1)
-            att = self.attn_dropout(att)
-            y = att @ v  # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
+        # flash attention
+        y = torch.nn.functional.scaled_dot_product_attention(
+            query=q,
+            key=k,
+            value=v,
+            attn_mask=None,
+            dropout_p=self.dropout if self.training else 0,
+            is_causal=True,
+        )
         y = (
-            y.transpose(1, 2).contiguous().view(B, T, C)
+            y.transpose(1, 2).contiguous().view(B, S, H)
         )  # re-assemble all head outputs side by side
 
         # output projection
-        y = self.resid_dropout(self.c_proj(y))
+        y = self.dropout(self.c_proj(y)) # is this really necessary?
+    
         return y
 
 
 class FFN(nn.Module):
-
-    def __init__(self, config):
+    """
+    A simple Feed Forward Network block.
+    """
+    def __init__(self, hidden_dim, ffn_dim, bias=False, dropout=0.0):
         super().__init__()
         self.c_fc = nn.Linear(
-            config["arch"]["hidden_dim"],
-            config["arch"]["mlp_dim"],
-            bias=config["arch"]["bias"],
+            hidden_dim,
+            ffn_dim,
+            bias=bias,
         )
+
         self.gelu = nn.GELU()
         self.c_proj = nn.Linear(
-            config["arch"]["mlp_dim"],
-            config["arch"]["hidden_dim"],
-            bias=config["arch"]["bias"],
+            ffn_dim,
+            hidden_dim,
+            bias=bias,
         )
-        self.dropout = nn.Dropout(config["arch"]["dropout"])
+        self.dropout = nn.Dropout(
+            dropout
+        )
 
     def forward(self, x):
+        """
+        Forward pass
+        """
         x = self.c_fc(x)
         x = self.gelu(x)
         x = self.c_proj(x)
@@ -113,42 +124,3 @@ class FFN(nn.Module):
         return x
 
 
-class FFN_with_LoRA(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.c_fc = nn.Linear(
-            config["arch"]["hidden_dim"],
-            config["arch"]["mlp_dim"],
-            bias=config["arch"]["bias"],
-        )
-        self.gelu = nn.GELU()
-        self.c_proj = nn.Linear(
-            config["arch"]["mlp_dim"],
-            config["arch"]["hidden_dim"],
-            bias=config["arch"]["bias"],
-        )
-        self.dropout = nn.Dropout(config["arch"]["dropout"])
-
-        self.lora_down_proj = nn.Linear(
-            config["arch"]["hidden_dim"],
-            config["arch"]["lora_dim"],
-            bias=config["arch"]["bias"],
-        )
-        self.lora_up_proj = nn.Linear(
-            config["arch"]["hidden_dim"],
-            config["arch"]["lora_dim"],
-            bias=config["arch"]["bias"],
-        )
-
-    def forward(self, x):
-        x = self.c_fc(x)
-        x = self.gelu(x)
-        x = self.c_proj(x)
-        x = self.dropout(x)
-
-        # LoRA
-        down = self.lora_down_proj(x)
-        down = self.gelu(down)
-        up = self.lora_up_proj(down)
-
-        return x + up
