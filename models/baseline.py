@@ -28,7 +28,7 @@ class Block(nn.Module):
         return x
 
 
-class baseGPT(nn.Module):
+class BaseGPT(nn.Module):
 
     def __init__(self, config):
         super().__init__()
