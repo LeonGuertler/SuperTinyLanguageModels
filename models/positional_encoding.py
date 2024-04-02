@@ -26,6 +26,6 @@ class LearnedPosEncoding(nn.Module):
         x = x.to('cpu')
         self.pe.weight = self.pe.weight.to('cpu')
         if len(x.shape) >= 2:
-            return self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0)#.to(x.device)
+            return self.pe(torch.arange(x.size(1)-5, device=x.device)).unsqueeze(0)#.to(x.device)
         else:
             return self.pe(torch.arange(x.size(1), device=x.device))
