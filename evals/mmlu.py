@@ -95,9 +95,7 @@ class MMLUBenchmark(benchmark.Benchmark):
             prompts.append(prompt)
             labels.append(label)
             if len(prompts) == 8:
-                predictions = self.model.predict(
-                    prompts, options=["A", "B", "C", "D"]
-                )
+                predictions = self.model.predict(prompts, options=["A", "B", "C", "D"])
                 targets = labels
                 acc_metric.batched_accumulate(predictions, targets)
                 # f1_metric.batched_accumulate(predictions, targets)
