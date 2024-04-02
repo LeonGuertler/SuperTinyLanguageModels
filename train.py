@@ -4,10 +4,15 @@ The main training code
 import hydra
 
 from trainers.build_trainers import build_trainer
+from trainers.utils import create_folder_structure
 
 @hydra.main(config_path="configs/train", config_name="baseline")
 def main(cfg):
-    input(cfg)
+    # create necessary folder structure
+    create_folder_structure(
+        path_config=cfg["general"]["paths"]
+    )
+    
     # load the relevant trainer
     trainer = build_trainer(
         cfg=cfg,

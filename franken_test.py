@@ -7,6 +7,7 @@ import torch
 import os 
 
 
+
 """
 Test the individual layers. Specifically:
     - LayerNorm
@@ -267,6 +268,14 @@ test_dict= {
     }
 }
 
+# create necessary folders
+from trainers.utils import create_folder_structure
+
+
+# create the folder structure
+create_folder_structure(
+    path_config=test_dict['general']['paths']
+)
 # convert test dict to omegaconf
 from omegaconf import OmegaConf
 test_dict = OmegaConf.create(test_dict)
