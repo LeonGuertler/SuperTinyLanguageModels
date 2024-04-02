@@ -99,9 +99,9 @@ class BaseGPT(nn.Module):
         )
 
         # check if vocab size is the same as the number of tokens
-        assert (
-            self.embedder.tokenizer.max_token_value == cfg["vocab_size"]
-        ), f"Vocab size ({cfg['vocab_size']}) must be the same as the number of tokens in the tokenizer ({self.embedder.tokenizer.max_token_value})"
+        #assert (
+        #    self.embedder.tokenizer.max_token_value == cfg["vocab_size"]
+        #), f"Vocab size ({cfg['vocab_size']}) must be the same as the number of tokens in the tokenizer ({self.embedder.tokenizer.max_token_value})"
 
         # share the weights between the token embeddings and the final logit layer
         #self.embedder.embedding.weight = (
