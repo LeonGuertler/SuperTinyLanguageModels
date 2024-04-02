@@ -210,7 +210,7 @@ class BaseTrainer:
             iter_num += 1
 
 
-            if iter_num > self.cfg["trainer"]["training"]["max_iter"]:
+            if iter_num > self.cfg["trainer"]["training"]["max_iters"]:
                 break
 
         # save the final model
