@@ -141,6 +141,8 @@ class BaselineEmbedder(torch.nn.Module):
         self.embedding = self.embedding.to('cpu')
         self.positional_encoding = self.positional_encoding.to('cpu')
         print(self.embedding)
+        # print min and max index
+        print(torch.min(token_ids), torch.max(token_ids))
         token_embeddings = self.embedding(token_ids)
         pos_embeddings = self.positional_encoding(token_ids)
         return token_embeddings + pos_embeddings
