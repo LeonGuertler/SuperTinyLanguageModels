@@ -64,9 +64,8 @@ def build_dataloader(cfg):
     Given the config, build the dataloader
     """
     return DATALODER_DICT[cfg["trainer"]["dataloader"]["name"]](
-        dataloader_cfg = cfg["trainer"]["dataloader"],
+        cfg=cfg,
         data_dir = cfg["general"]["paths"]["data_path"],
-        cfg=cfg
     )
 
 LOSS_FN_DICT = {
@@ -90,6 +89,9 @@ def build_trainer(cfg):
     model = build_model(
         cfg=model_dict,
     )
+
+    # push model to device
+    model.to(cfg["general"]["device"])
 
     # build optimizer
     optimizer = build_optimizer(

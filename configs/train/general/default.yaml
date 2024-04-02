@@ -8,3 +8,4 @@ paths:
   checkpoint_dir: "checkpoints"
 
 seed: 489
+device: cuda

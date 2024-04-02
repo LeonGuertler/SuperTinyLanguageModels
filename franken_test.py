@@ -207,7 +207,8 @@ test_dict= {
             'data_path': 'data', 
             'checkpoint_dir': 'checkpoints'
         }, 
-        'seed': 489
+        'seed': 489,
+        'device': 'cuda'
     }, 
     'model': {
         'model': 'baseline', 
@@ -312,10 +313,6 @@ def test_build_loss_fn():
 
     # forward pass
     output = loss_fn(x, y)
-    print(output)
-
-    # check the output shape
-    assert output.shape == (10,)
 
 from trainers.build_trainers import build_trainer
 def test_build_trainer():

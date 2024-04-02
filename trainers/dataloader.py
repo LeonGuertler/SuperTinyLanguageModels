@@ -24,9 +24,10 @@ class StandardDataloader(torch.nn.Module):
         cfg: the data config
         preprocess: whether to preprocess the data
     """
-    def __init__(self, cfg):
+    def __init__(self, cfg, data_dir):
         super().__init__()
         self.cfg = cfg
+        self.data_dir = data_dir
 
     def prepare_data(self, tokenizer):
         """
