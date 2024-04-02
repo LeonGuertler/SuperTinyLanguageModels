@@ -24,6 +24,7 @@ class BaselineEmbedder(torch.nn.Module):
             self,
             hidden_dim,
             context_window,
+            vocab_size,
         ):
         super().__init__()
         # load the tokenizer
@@ -38,7 +39,7 @@ class BaselineEmbedder(torch.nn.Module):
 
         # initialize embedding weights
         self.embedding = torch.nn.Embedding(
-            num_embeddings=self.tokenizer.max_token_value,
+            num_embeddings=vocab_size,
             embedding_dim=hidden_dim
         )
         self.positional_encoding = LearnedPosEncoding(

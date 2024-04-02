@@ -77,6 +77,7 @@ class BaseGPT(nn.Module):
         self.embedder =  BaselineEmbedder(
             hidden_dim=cfg["hidden_dim"],
             context_window=cfg["context_window"],
+            vocab_size=cfg["vocab_size"],
         )
         self.transformer = nn.ModuleDict(
             dict(
