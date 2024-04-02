@@ -1,6 +1,8 @@
+"""General benchmarking Module"""
+
 import abc
+
 import numpy as np
-from sklearn import metrics
 
 
 class Benchmark(metaclass=abc.ABCMeta):
@@ -88,14 +90,16 @@ class FauxModel:
     def predict(self, batch, options=None):
         """Pass"""
         if options:
-            if type(options) == list and type(options[0]) == list:
+            if isinstance(options, list) and isinstance(options[0], list):
                 return [options[i][0] for i in range(len(batch))]
-            elif type(options) == list:
+            elif isinstance(options, list):
                 return [options[0]] * len(batch)
+            else:
+                raise ValueError("Invalid options")
         else:
             return ["A"] * len(batch)
 
-    def encode(self, sentences, batch_size=32, **kwargs):
+    def encode(self, sentences, **_):
         """
         Returns a list of embeddings for the given sentences.
         Args:

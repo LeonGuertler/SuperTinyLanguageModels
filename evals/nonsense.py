@@ -1,4 +1,5 @@
-"""Nonsense Benchmark: https://github.com/google/BIG-bench/tree/main/bigbench/benchmark_tasks/nonsense_words_grammar"""
+"""Nonsense Benchmark: https://github.com/google/BIG-bench/tree/main/bigbench/
+benchmark_tasks/nonsense_words_grammar"""
 
 import tqdm
 

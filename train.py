@@ -1,17 +1,19 @@
-import time
+"""Training Script"""
+
 import math
-import hydra.utils
-from omegaconf import DictConfig, OmegaConf
+import time
 from contextlib import nullcontext
 
+import hydra.utils
 import numpy as np
 import torch
-
 from models.build_models import build_model
+from omegaconf import DictConfig, OmegaConf
 
 
 @torch.no_grad()
 def estimate_loss(model, eval_iters, ctx):
+    """Estimate the loss over eval_iterations."""
     out = {}
     model.eval()
     for split in ["train", "val"]:
@@ -27,6 +29,7 @@ def estimate_loss(model, eval_iters, ctx):
 
 
 def get_lr(it, warmup_iters, lr_decay_iters, learning_rate, min_lr):
+    """Runs the learning rate schedule."""
     # 1) linear warmup for warmup_iters steps
     if it < warmup_iters:
         return learning_rate * it / warmup_iters
@@ -42,6 +45,7 @@ def get_lr(it, warmup_iters, lr_decay_iters, learning_rate, min_lr):
 
 @hydra.main(config_path="configs/train/", config_name="baseline.yaml")
 def main(model_cfg: DictConfig) -> None:
+    """Run training from config."""
     # Load the general config file
     general_cfg_path = hydra.utils.to_absolute_path("configs/general_config.yaml")
     general_cfg = OmegaConf.load(general_cfg_path)
@@ -205,4 +209,5 @@ def main(model_cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
+    # pylint: disable=no-value-for-parameter
     main()

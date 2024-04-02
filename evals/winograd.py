@@ -1,12 +1,11 @@
 """"""
 
 import tqdm
-
 from datasets import load_dataset
 
 from evals import benchmark
 
-
+# pylint: disable=line-too-long
 WINOGRAD_PROMPT = """A Winograd schema is a pair of sentences that differ in only one or two words and that contain an ambiguity that is resolved in opposite ways in the two sentences and requires the use of world knowledge and reasoning for its resolution.
 The schema takes its name from a well-known example by Terry Winograd:
 
@@ -29,6 +28,7 @@ REMAP = {
     "0": "A",
     "1": "B",
 }
+# pylint: enable=line-too-long
 
 
 class Winograd(benchmark.Benchmark):

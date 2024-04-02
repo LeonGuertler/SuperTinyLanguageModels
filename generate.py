@@ -1,14 +1,16 @@
-import os, time, math, pickle, hydra, torch, tiktoken
-from omegaconf import DictConfig, OmegaConf
+"""This script is used for generation"""
+
 from contextlib import nullcontext
 
+import hydra
+import torch
 from models.build_models import build_model
-
-from contextlib import nullcontext
+from omegaconf import DictConfig
 
 
 @hydra.main(config_path="config/test/", config_name="baseline.yaml")
 def main(cfg: DictConfig) -> None:
+    """Run generation from config"""
     model = build_model(ckpt_path=cfg["model_path"])
     model.eval()
 
@@ -50,4 +52,5 @@ def main(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
+    # pylint: disable=no-value-for-parameter
     main()

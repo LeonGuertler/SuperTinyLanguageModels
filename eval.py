@@ -1,24 +1,25 @@
+from contextlib import nullcontext
+
 import hydra
 import torch
-from omegaconf import DictConfig
-from contextlib import nullcontext
 from hydra.utils import get_original_cwd
-
 from models.build_models import build_model
+from omegaconf import DictConfig
+
 from evals import (
-    vitaminc,
-    mteb_benchmark,
     arc,
-    winograd,
-    nonsense,
-    mmlu,
     hellaswag,
+    mmlu,
     model_wrapper,
+    mteb_benchmark,
+    nonsense,
+    vitaminc,
+    winograd,
 )
-from contextlib import nullcontext
 
 
-def load_benchmark(name):
+def get_benchmark_class(name):
+    """Loads in the class for a given benchmark."""
     if name == "vitaminc":
         return vitaminc.VitaminC
     elif name == "mteb":
@@ -39,6 +40,7 @@ def load_benchmark(name):
 
 @hydra.main(config_path="configs/test/", config_name="eval.yaml")
 def main(cfg: DictConfig) -> None:
+    """Run the evaluation benchmarks."""
     path_base = get_original_cwd()
     model = build_model(ckpt_path=f"{path_base}/{cfg['model_path']}")
     model.eval()
@@ -69,7 +71,7 @@ def main(cfg: DictConfig) -> None:
     wrapped_model = model_wrapper.ModelWrapper(model, ctx, cfg)
 
     for benchmark_name in cfg["benchmarks"]:
-        benchmark = load_benchmark(name=benchmark_name)(
+        benchmark = get_benchmark_class(name=benchmark_name)(
             name=benchmark_name,
             model=wrapped_model,
             cache_dir=path_base + f"/data/eval/{benchmark_name}",
@@ -78,4 +80,6 @@ def main(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
+    # ignore parameter warning
+    # pylint: disable=no-value-for-parameter
     main()

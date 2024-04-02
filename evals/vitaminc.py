@@ -1,11 +1,11 @@
 """Vitamin C benchmark: https://aclanthology.org/2021.naacl-main.52/"""
 
 import tqdm
-
 from datasets import load_dataset
 
 from evals import benchmark
 
+# pylint: disable=line-too-long
 VITAMINC_PROMPT = """Read this claim and evidence and decide whether the evidence supports the claim.
 Your answer should be either A,B,C where:
 A: Supports
@@ -20,6 +20,7 @@ Answer: A
 Claim: "{claim}"
 Evidence: "{evidence}"
 Answer: """
+# pylint: enable=line-too-long
 
 REMAP = {
     "REFUTES": "C",

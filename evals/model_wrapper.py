@@ -5,12 +5,15 @@ import torch
 
 
 class ModelWrapper:
+    """Wrapper for a model to use in benchmarks"""
+
     def __init__(self, model, ctx, cfg):
         self.model = model
         self.ctx = ctx
         self.generate_config = cfg
 
     def predict(self, prompts, options):
+        """Predict the best option for a prompt using the model"""
 
         outputs = []
         with self.ctx:
@@ -35,4 +38,5 @@ class ModelWrapper:
         return outputs
 
     def embed(self, text):
-        return self.model()
+        """Embed text using the model"""
+        return self.model(text)

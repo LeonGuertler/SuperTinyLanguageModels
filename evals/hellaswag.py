@@ -1,7 +1,6 @@
 """Hella Swag Benchmark Code: https://arxiv.org/pdf/1905.07830.pdf"""
 
 import tqdm
-
 from datasets import load_dataset
 
 from evals import benchmark
