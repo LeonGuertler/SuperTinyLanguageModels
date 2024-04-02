@@ -7,8 +7,13 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 # import the layers
+<<<<<<< HEAD
 from models import layers
 from models import baseline
+=======
+from models.layers import LayerNorm, CausalSelfAttention, FFN
+
+>>>>>>> main
 from models.tokenizer import tokenizer
 
 
@@ -16,6 +21,7 @@ class Block(nn.Module):
 
     def __init__(self, config, shared_mlp_block):
         super().__init__()
+<<<<<<< HEAD
         self.ln_1 = layers.LayerNorm(
             config["arch"]["hidden_dim"], bias=config["arch"]["bias"]
         )
@@ -24,6 +30,12 @@ class Block(nn.Module):
             config["arch"]["hidden_dim"], bias=config["arch"]["bias"]
         )
         self.mlp = layers.FFN(config)
+=======
+        self.ln_1 = LayerNorm(config["arch"]["hidden_dim"], bias=config["arch"]["bias"])
+        self.attn = CausalSelfAttention(config)
+        self.ln_2 = LayerNorm(config["arch"]["hidden_dim"], bias=config["arch"]["bias"])
+        self.mlp = FFN(config)
+>>>>>>> main
 
         # share the mlp block
         self.mlp.c_fc.weight = shared_mlp_block.c_fc.weight
@@ -40,7 +52,11 @@ class Block(nn.Module):
 class FFNShareGPT(baseline.BaseGPT):
 
     def __init__(self, config):
+<<<<<<< HEAD
         super().__init__(config)
+=======
+        super().__init__()
+>>>>>>> main
         assert config["arch"]["vocab_size"] is not None
         assert config["arch"]["context_window"] is not None
         self.config = config
@@ -68,7 +84,11 @@ class FFNShareGPT(baseline.BaseGPT):
                         for _ in range(config["arch"]["depth"])
                     ]
                 ),
+<<<<<<< HEAD
                 ln_f=layers.LayerNorm(
+=======
+                ln_f=LayerNorm(
+>>>>>>> main
                     config["arch"]["hidden_dim"], bias=config["arch"]["bias"]
                 ),
             )
