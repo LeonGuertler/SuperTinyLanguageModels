@@ -65,8 +65,6 @@ class BaseTrainer:
         # push model to device
         self.model.to(self.device)
 
-        # load optimizer
-        self.optimizer = optimizer(self.model.parameters()) # the optimizer parameters are loaded via a lambda function
 
         self.use_wandb = self.cfg["general"]["logging"]["wandb_log"]
         if self.use_wandb:
