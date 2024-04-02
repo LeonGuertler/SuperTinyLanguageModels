@@ -96,7 +96,7 @@ class BaseTrainer:
         """
         print("Preprocessing the training data")
         self.dataloader.prepare_data(
-            tokenizer=self.model.tokenizer
+            tokenizer=self.model.embedder.tokenizer
         )
         self.is_processed = True 
     
