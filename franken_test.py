@@ -140,6 +140,7 @@ Test the model builder and baseline model
 """
 from models.build_models import build_model
 from models.baseline import BaseGPT
+from models.utils import print_model_stats
 
 def test_build_model():
     # create mock model dict containing
@@ -153,7 +154,8 @@ def test_build_model():
         "num_heads": 2,
         "depth": 2,
         "vocab_size": 50256,
-        "context_window": 10
+        "context_window": 10,
+        "shared_embedding": True
     }
 
     # create a model
@@ -183,28 +185,4 @@ def test_build_model():
     #model(x)
     #print('model did it')
 
-
-    """# test forward pass from string
-    x = [
-        "Hello World",
-        "Hello World, this is a test of the emergency broadcast system. This is only a test."
-    ]
-
-    output = model.inference(x)
-
-
-    # save and reload model
-    model.save("temp_model.pt")
-
-    model = None 
-    # load checkpoint
-    checkpoint = torch.load("temp_model.pt")
-
-    model = build_model(
-        checkpoint
-    )
-
-
-    # delete temporarily saved model
-    os.remove("temp_model.pt")"""
 

@@ -9,14 +9,23 @@ def print_model_stats(model):
     with and without embeddings for a given PyTorch model.
     """
     total_params = sum(p.numel() for p in model.parameters())
+
     embeddings_params = sum(p.numel() for p in model.embedder.parameters())
     lm_head_params = sum(p.numel() for p in model.lm_head.parameters())
-    core_model_params = total_params - embeddings_params - lm_head_params
+
+    # check if the parameters are shared
+    shared_embedding = model.embedder.embedding.weight is model.lm_head.linear.weight
+    if shared_embedding:
+        core_model_params = total_params - embeddings_params
+        lm_head_and_embeddings_params = lm_head_params
+    else:
+        core_model_params = total_params - embeddings_params - lm_head_params
+        lm_head_and_embeddings_params = lm_head_params + embeddings_params
     
     # Prepare the data
     data = {
-        "Component": ["Total", "Embeddings", "LM Head", "Core Model"],
-        "Parameters": [total_params, embeddings_params, lm_head_params, core_model_params]
+        "Component": ["Total", "lm_head_and_embeddings_params", "Core Model"],
+        "Parameters": [total_params, lm_head_and_embeddings_params, core_model_params]
     }
     
     # Create a DataFrame
