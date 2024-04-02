@@ -267,6 +267,7 @@ def test_build_optimizer():
     model = BaseGPT(
         cfg=test_dict['model']
     )
+    model.to('cuda')
     # build the optimizer
     optimizer = build_optimizer(
         model=model,
