@@ -128,8 +128,6 @@ def test_baseline_embedder():
         pad_truncate=True,
     )
 
-    print('test 1')
-    print(x_2)
 
     # check the output shape
     assert x_2.shape[1] == 10
