@@ -269,7 +269,7 @@ def test_build_optimizer():
     )
     # build the optimizer
     optimizer = build_optimizer(
-        model=None,
+        model=model,
         optimizer_config=test_dict
     )
 
