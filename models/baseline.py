@@ -155,13 +155,11 @@ class BaseGPT(nn.Module):
         x, attention_mask = self.embedder(
             text_string,
             pad_truncate=True)
-        print(x)
 
         # forward through the GPT transformer
         x = self.transformer.drop(x)
         for block in self.transformer.h:
             x = block(x)
-        print(x)
         # forward only the last token through the lm_head
         logits = self.lm_head(x[:, -1, :])
         return logits

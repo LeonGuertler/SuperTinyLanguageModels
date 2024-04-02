@@ -30,7 +30,7 @@ def create_folder_structure(path_config):
 
 
 DATASET_DICT = {
-    "debug": lambda: load_dataset(name='tiny_shakespeare'),
+    "debug": lambda: load_dataset("karpathy/tiny_shakespeare"),
     "en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.en"),
     "simple_en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
 }
@@ -42,7 +42,7 @@ def load_data(dataset_name, shuffle=True):
 
     # create dataset split
     split_dataset = dataset["train"].train_test_split(
-        test_size=0.01,
+        test_size=0.5 if dataset_name == "debug" else 0.01,
         seed=489,
         shuffle=shuffle
     )
