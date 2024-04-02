@@ -9,7 +9,7 @@ def print_model_stats(model):
     with and without embeddings for a given PyTorch model.
     """
     total_params = sum(p.numel() for p in model.parameters())
-    embeddings_params = sum(p.numel() for p in model.transformer.embedder.parameters())
+    embeddings_params = sum(p.numel() for p in model.embedder.parameters())
     lm_head_params = sum(p.numel() for p in model.lm_head.parameters())
     core_model_params = total_params - embeddings_params - lm_head_params
     

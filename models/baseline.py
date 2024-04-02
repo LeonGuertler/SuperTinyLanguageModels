@@ -41,14 +41,14 @@ class Block(nn.Module):
             dropout=dropout,
         )
 
-    def forward(self, x):
+    def forward(self, x, attention_mask=None):
         """
         A simple, residual forward 
         pass through the GPT block.
         Args:
             x: the input tensor (b, s, h)
         """
-        x = x + self.attn(self.ln_1(x))
+        x = x + self.attn(self.ln_1(x), attention_mask)
         x = x + self.mlp(self.ln_2(x))
         return x
     
@@ -74,13 +74,12 @@ class BaseGPT(nn.Module):
         self.cfg = cfg
 
         # construct the actual model
+        self.embedder =  BaselineEmbedder(
+            hidden_dim=cfg["hidden_dim"],
+            context_window=cfg["context_window"],
+        )
         self.transformer = nn.ModuleDict(
             dict(
-                embedder=BaselineEmbedder(
-                    hidden_dim=cfg["hidden_dim"],
-                    context_window=cfg["context_window"],
-                    batch_size=cfg["batch_size"],
-                ),
                 drop=nn.Dropout(cfg["dropout"]),
                 h=nn.ModuleList(
                     [Block(
@@ -99,14 +98,19 @@ class BaseGPT(nn.Module):
             vocab_size=cfg["vocab_size"],
         )
 
+        # check if vocab size is the same as the number of tokens
+        assert (
+            self.embedder.tokenizer.max_token_value == cfg["vocab_size"]
+        ), f"Vocab size ({cfg['vocab_size']}) must be the same as the number of tokens in the tokenizer ({self.embedder.tokenizer.max_token_value})"
+
         # share the weights between the token embeddings and the final logit layer
-        self.tokenizer.embedding.weight = (
+        self.embedder.embedding.weight = (
             self.lm_head.linear.weight
         ) # https://paperswithcode.com/method/weight-tying
 
 
         # init all weights
-        self.apply(gpt2_weights_init)
+        self.apply(lambda module: gpt2_weights_init(module, self.cfg["depth"]))
 
         # report number of parameters
         print_model_stats(self)
@@ -125,7 +129,7 @@ class BaseGPT(nn.Module):
         ), f"Cannot forward sequence of length {s}, block size is only {self.cfg['context_window']}"
 
         # embed and pos-encode the tokens
-        x = self.transformer.embedder.embed_tokens(token_ids)
+        x = self.embedder.embed_tokens(token_ids)
 
         # forward through the GPT transformer
         x = self.transformer.drop(x)
@@ -148,13 +152,16 @@ class BaseGPT(nn.Module):
             logits for the next token
         """
         # fully encode the text string (or batch of text string)
-        x = self.transformer.embedder(text_string)
+        x, attention_mask = self.embedder(
+            text_string,
+            pad_truncate=True)
+        print(x)
 
         # forward through the GPT transformer
         x = self.transformer.drop(x)
         for block in self.transformer.h:
             x = block(x)
-
+        print(x)
         # forward only the last token through the lm_head
         logits = self.lm_head(x[:, -1, :])
         return logits

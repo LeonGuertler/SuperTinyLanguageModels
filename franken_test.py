@@ -1,0 +1,210 @@
+"""
+Non-optimal testing structure by simply creating a bunch of testing functions
+for everything that are called one by one.
+"""
+import pytest
+import torch 
+import os 
+
+
+"""
+Test the individual layers. Specifically:
+    - LayerNorm
+    - CausalSelfAttention
+    - FFN
+"""
+from models.layers import LayerNorm, CausalSelfAttention, FFN
+
+def test_layer_norm():
+    """
+    Test the LayerNorm module.
+    """
+    # create a layer norm module
+    ln = LayerNorm(10, bias=True)
+    
+    # create a random tensor
+    x = torch.randn(10)
+    
+    # forward pass
+    output = ln(x)
+    
+    # check the output shape
+    assert output.shape == x.shape
+
+def test_causal_self_attention():
+    """
+    Test the CausalSelfAttention module.
+    """
+    # create a causal self attention module
+    csa = CausalSelfAttention(
+        hidden_dim=10,
+        num_heads=2,
+        bias=True,
+        dropout=0.1
+    )
+    
+    # create a random tensor
+    x = torch.randn(10, 10, 10)
+    
+    # forward pass
+    output = csa(x)
+    
+    # check the output shape
+    assert output.shape == x.shape
+
+def test_ffn():
+    """
+    Test the FFN module.
+    """
+    # create a FFN module
+    ffn = FFN(
+        hidden_dim=10,
+        ffn_dim=20,
+        bias=True,
+        dropout=0.1
+    )
+    
+    # create a random tensor
+    x = torch.randn(10, 10, 10)
+    
+    # forward pass
+    output = ffn(x)
+    
+    # check the output shape
+    assert output.shape == x.shape
+
+
+
+"""
+Test the embedding module.
+"""
+from models.embedding import BaselineEmbedder
+
+def test_baseline_embedder():
+    """
+    Test the BaselineEmbedder module.
+    """
+    # create a baseline embedder
+    be = BaselineEmbedder(
+        hidden_dim=10,
+        context_window=10,
+    )
+    
+    # create a random tensor
+    x = "Hello World"
+
+
+    # inidivdually encode
+    token_ids_batch, attention_mask_1 = be.tokenize_text(x, pad_truncate=False)
+
+
+    # embed
+    x_1 = be.embedding(token_ids_batch)
+
+    
+    # full forward encode
+    x_2, attention_mask_2 = be(x, pad_truncate=False)
+
+
+    # check the output shape
+    assert x_1.shape == x_2.shape
+
+    # check if attention_masks are either both None or the same
+    assert (attention_mask_1 is None and attention_mask_2 is None) or (attention_mask_1 == attention_mask_2)
+
+    # decode tokens to confirm the output is the same as the input
+    #print(token_ids_batch)
+    assert be.tokenizer.decode_batch(token_ids_batch.tolist())[0] == x
+    
+
+    # test that the padding is working as expected
+    x = [
+        "Hello World",
+        "Hello World, this is a test of the emergency broadcast system. This is only a test."
+    ]
+
+    x_2, attention_mask_2 = be(
+        x,
+        pad_truncate=True,
+    )
+
+    print('test 1')
+    print(x_2)
+
+    # check the output shape
+    assert x_2.shape[1] == 10
+
+
+"""
+Test the model builder and baseline model
+"""
+from models.build_models import build_model
+from models.baseline import BaseGPT
+
+def test_build_model():
+    # create mock model dict containing
+    # hiddem_dim, bias, dropout, ffn_dim, num_heads, depth, vocab_size, context_window
+    model_dict = {
+        "model": "baseline",
+        "hidden_dim": 10,
+        "bias": True,
+        "dropout": 0.1,
+        "ffn_dim": 20,
+        "num_heads": 2,
+        "depth": 2,
+        "vocab_size": 50256,
+        "context_window": 10
+    }
+
+    # create a model
+    model = build_model(
+        cfg=model_dict,
+    )
+
+    # test forward pass from token_ids
+    x = torch.randint(0, 100, (10, 10))
+    output = model(x)
+
+    # check the output shape
+    assert output.shape[:2] == x.shape
+    assert output.size(-1) == model_dict['vocab_size']
+
+
+    # test with encoded string
+    x = [
+        "Hello World",
+        "Hello World, this is a test of the emergency broadcast system. This is only a test."
+    ]
+
+    model.inference(x)
+
+    #x, _ = model.embedder(x, pad_truncate=True)
+    #print('encoded successfullyl')
+    #model(x)
+    #print('model did it')
+
+
+    """# test forward pass from string
+    x = [
+        "Hello World",
+        "Hello World, this is a test of the emergency broadcast system. This is only a test."
+    ]
+
+    output = model.inference(x)
+
+
+    # save and reload model
+    model.save("temp_model.pt")
+
+    model = None 
+    # load checkpoint
+    checkpoint = torch.load("temp_model.pt")
+
+    model = build_model(
+        checkpoint
+    )
+
+
+    # delete temporarily saved model
+    os.remove("temp_model.pt")"""
+

@@ -5,9 +5,11 @@ from text input to a sequence of tokens that can be fed into the model.
 import torch
 import torch.nn as nn
 
+import numpy as np
+
 import tiktoken
 
-from positional_encoding import (
+from models.positional_encoding import (
     LearnedPosEncoding
 )
 
@@ -22,20 +24,22 @@ class BaselineEmbedder(torch.nn.Module):
             self,
             hidden_dim,
             context_window,
-            batch_size,
         ):
         super().__init__()
         # load the tokenizer
         self.tokenizer = tiktoken.get_encoding("gpt2")
 
-        self.context_window = context_window
-        self.batch_size = batch_size
+        # technically the gpt2 tokenizer has not pad token,
+        # but when adjusting the attention_mask, this should
+        # not matter 
+        self.pad_token = 1
 
+        self.context_window = context_window
 
         # initialize embedding weights
         self.embedding = torch.nn.Embedding(
-            self.tokenizer.vocab_size,
-            hidden_dim
+            num_embeddings=self.tokenizer.max_token_value,
+            embedding_dim=hidden_dim
         )
         self.positional_encoding = LearnedPosEncoding(
             hidden_dim=hidden_dim,
@@ -43,7 +47,7 @@ class BaselineEmbedder(torch.nn.Module):
         )
 
 
-    def forward(self, text_batch):
+    def forward(self, text_batch, pad_truncate=True):
         """
         Convert a batch of strings into a batch 
         of sequences of embeddings.
@@ -52,23 +56,17 @@ class BaselineEmbedder(torch.nn.Module):
         Returns:
             a batch of sequences of embeddings
         """
-        # if text is not batched, wrap it
-        if isinstance(text_batch, str):
-            text_batch = [text_batch]
-
         # tokenize the text
-        token_ids_batch = self.tokenize_text(text_batch)
+        token_ids_batch, attention_mask = self.tokenize_text(
+            text_batch=text_batch,
+            pad_truncate=pad_truncate
+        )
         
-        # check if it is within the legal context window
-        assert (
-            token_ids_batch.size(1) <= self.context_window
-        ), f"Cannot forward sequence of length {token_ids_batch.size(1)}, block size is only {self.context_window}"
-
         # embed and positional encode the tokens
-        return self.embed_tokens(token_ids_batch)
+        return self.embed_tokens(token_ids_batch), attention_mask
     
 
-    def tokenize_text(self, text_input, truncate=True):
+    def tokenize_text(self, text_batch, pad_truncate=False):
         """
         tokenize the text input batch
         Args:
@@ -76,21 +74,59 @@ class BaselineEmbedder(torch.nn.Module):
         Returns:
             a batch of token ids (B, S, 1)
         """
+        # if text is not batched, wrap it
+        if isinstance(text_batch, str):
+            text_batch = [text_batch]
+
         # tokenize
         token_ids = self.tokenizer.encode_batch(
-            text_input,
-            pad_to_max_length=True
+            text_batch,
         )
 
-        if truncate:
-            token_ids = token_ids[:, -self.context_window:]
+        # pad and truncate the token ids
+        if pad_truncate:
+            token_ids, attention_mask = self._pad_token_batch(token_ids)
         else:
-            # assert if token ids are within the context window
-            assert (
-                    token_ids.size(1) <= self.context_window
-                ), f"Cannot forward sequence of length {token_ids.size(0)}, block size is only {self.context_window}, set truncate=True to truncate the sequence."
-        return token_ids
+            # check if all tokens sequences have the same length
+            # and are shorter than the context window
+            seq_len = len(token_ids[0])
+            for ids in token_ids:
+                assert len(ids) == seq_len, "All token sequences must have the same length"
+                assert len(ids) <= self.context_window, f"Cannot forward sequence of length {len(ids)}, block size is only {self.context_window}"
 
+
+            # convert to tensore and init attention_mask as None
+            token_ids = torch.tensor(token_ids, dtype=torch.long)
+            attention_mask = None
+        
+        return token_ids, attention_mask
+    
+    def _pad_token_batch(self, token_ids):
+        """
+        Pad the token ids to the length of the longest
+        sequence in the batch and return the attention mask 
+        Args:
+            token_ids: a batch of lists of token ids
+        Returns:
+            token_ids: a batch of padded token ids
+            attention_mask: a batch of attention masks
+        """
+        sequence_length = np.minimum(
+            max([len(ids) for ids in token_ids]),
+            self.context_window
+        )
+        attention_mask = torch.ones(
+            len(token_ids), sequence_length
+        )
+        for i, ids in enumerate(token_ids):
+            attention_mask[i, len(ids):] = 0
+            # pad where necessary
+            token_ids[i] += [self.pad_token] * (sequence_length - len(ids))
+            # truncate where necessary
+            if len(token_ids[i]) > sequence_length:
+                token_ids[i] = token_ids[i][-sequence_length:]
+
+        return torch.tensor(token_ids, dtype=torch.long), attention_mask
 
     def embed_tokens(self, token_ids):
         """
@@ -101,7 +137,7 @@ class BaselineEmbedder(torch.nn.Module):
             the token embeddings
         """
         token_embeddings = self.embedding(token_ids)
-        pos_embeddings = self.positional_encoding(token_embeddings)
+        pos_embeddings = self.positional_encoding(token_ids)
         return token_embeddings + pos_embeddings
     
     def preprocess_text(self, text):

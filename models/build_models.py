@@ -35,6 +35,6 @@ def build_model(cfg=None, model_checkpoint=None):
 
     else:
         # build model from scratch
-        model = MODEL_CLASSES[cfg["model"]](config=cfg)
+        model = MODEL_CLASSES[cfg["model"]](cfg=cfg)
 
         return model

@@ -12,10 +12,16 @@ class LearnedPosEncoding(nn.Module):
     """
     def __init__(self, hidden_dim, context_window):
         super().__init__()
-        self.pe = nn.Embedding(context_window, hidden_dim)
+        self.pe = nn.Embedding(
+            num_embeddings=context_window, 
+            embedding_dim=hidden_dim
+        )
 
     def forward(self, x):
         """
         Forward pass
         """
-        return self.pe(torch.arange(x.size(1), device=x.device))
+        if len(x.shape) > 2:
+            return self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0)
+        else:
+            return self.pe(torch.arange(x.size(1), device=x.device))

@@ -42,7 +42,7 @@ class CausalSelfAttention(nn.Module):
         )
 
         # regularization
-        self.dropout = nn.Dropout(dropout)
+        self.dropout_layer = nn.Dropout(dropout)
 
         self.hidden_dim = hidden_dim
         self.num_heads = num_heads
@@ -51,23 +51,24 @@ class CausalSelfAttention(nn.Module):
         # flash attention make GPU go brrrrr but support is only in PyTorch >= 2.0
         self.flash = hasattr(torch.nn.functional, "scaled_dot_product_attention")
 
-    def forward(self, x):
+    def forward(self, x, attention_mask=None):
         """
         Forward pass
         """
+        assert attention_mask is None, "Not implemented yet"
         B, S, H = (
             x.size()
         ) # batch, sequence, hidden
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
         q, k, v = self.c_attn(x).split(self.hidden_dim, dim=2)
-        k = k.view(B, T, self.num_heads, C // self.num_heads).transpose(
+        k = k.view(B, S, self.num_heads, H // self.num_heads).transpose(
             1, 2
         )  # (B, nh, T, hs)
-        q = q.view(B, T, self.num_heads, C // self.num_heads).transpose(
+        q = q.view(B, S, self.num_heads, H // self.num_heads).transpose(
             1, 2
         )  # (B, nh, T, hs)
-        v = v.view(B, T, self.num_heads, C // self.num_heads).transpose(
+        v = v.view(B, S, self.num_heads, H // self.num_heads).transpose(
             1, 2
         )  # (B, nh, T, hs)
 
@@ -86,7 +87,7 @@ class CausalSelfAttention(nn.Module):
         )  # re-assemble all head outputs side by side
 
         # output projection
-        y = self.dropout(self.c_proj(y)) # is this really necessary?
+        y = self.dropout_layer(self.c_proj(y)) # is this really necessary?
     
         return y
 
