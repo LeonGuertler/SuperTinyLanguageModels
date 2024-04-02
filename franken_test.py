@@ -342,7 +342,7 @@ def test_build_trainer():
 Do a small test training run
 """
 
-"""def test_training_run():
+def test_training_run():
     # load the relevant trainer
     trainer = build_trainer(
         cfg=test_dict,
@@ -351,4 +351,4 @@ Do a small test training run
     trainer.preprocess_data()
 
     # train the model
-    trainer.train()"""
+    trainer.train()
