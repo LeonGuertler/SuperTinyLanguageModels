@@ -23,6 +23,7 @@ class LearnedPosEncoding(nn.Module):
         """
         print(x.device)
         print(self.pe.weight.device)
+        print(torch.arange(x.size(1)).device)
         if len(x.shape) >= 2:
             return self.pe(torch.arange(x.size(1))).unsqueeze(0)#.to(x.device)
         else:
