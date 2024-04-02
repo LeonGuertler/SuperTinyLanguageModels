@@ -107,7 +107,7 @@ class BaseTrainer:
     @torch.no_grad()
     def estimate_loss(self):
         out = {}
-        eval_iters = self.cfg["training"]["eval_iters"]
+        eval_iters = self.cfg["trainer"]["training"]["eval_iters"]
 
         # set model to eval mode
         self.model.eval()
@@ -142,7 +142,7 @@ class BaseTrainer:
                 param_group["lr"] = lr
 
             # evaluate the loass on train/val sets
-            if not iter_num % self.cfg["general"]["eval_interval"]:
+            if not iter_num % self.cfg["trainer"]["training"]["eval_interval"]:
                 losses = self.estimate_loss()
                 print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
 
@@ -155,7 +155,7 @@ class BaseTrainer:
                     })
                     
             # save every checkpoint_interval iterations
-            if not iter_num % self.cfg["training"]["checkpoint_interval"] and iter_num > 0:
+            if not iter_num % self.cfg["training"]["training"]["checkpoint_interval"] and iter_num > 0:
                 checkpoint = {
                     "model": self.model.state_dict(),
                     "optimizer": self.optimizer.state_dict(),
@@ -164,7 +164,7 @@ class BaseTrainer:
                 }
                 checkpoint_path = os.path.join(
                     self.original_cwd,
-                    self.cfg["general"]["checkpoint_dir"],
+                    self.cfg["general"]["paths"]["checkpoint_dir"],
                     f"ckpt_{iter_num}.pt"
 
                 )
@@ -174,22 +174,22 @@ class BaseTrainer:
 
 
             # actually train the model
-            for micro_step in range(self.cfg["training"]["gradient_accumulation_steps"]):
+            for micro_step in range(self.cfg["trainer"]["training"]["gradient_accumulation_steps"]):
                 # get training batch
                 X, Y = self.dataloader.get_batch("train")
                 with self.ctx:
                     logits = self.model(X)
                     loss = self.loss_fn(logits, Y)
-                    loss = loss / self.cfg["training"]["gradient_accumulation_steps"]
+                    loss = loss / self.cfg["trainer"]["training"]["gradient_accumulation_steps"]
 
                 self.scaler.scale(loss).backward()
 
             # clip gradients if necessary
-            if self.cfg["training"]["optimizer"]["grad_clip"] != 0.0:
+            if self.cfg["trainer"]["optimizer"]["grad_clip"] != 0.0:
                 self.scaler.unscale_(self.optimizer)
                 torch.nn.utils.clip_grad_norm_(
                     self.model.parameters(),
-                    self.cfg["training"]["optimizer"]["grad_clip"]
+                    self.cfg["trainer"]["optimizer"]["grad_clip"]
                 )
 
             # step the optimizer and scaler
@@ -203,14 +203,14 @@ class BaseTrainer:
             t1 = time.time()
             dt = t1 - t0 
             t0 = t1
-            if not iter_num % self.cfg["training"]["log_interval"]:
-                lossf = loss.item() * self.cfg["training"]["gradient_accumulation_steps"]
+            if not iter_num % self.cfg["trainer"]["training"]["log_interval"]:
+                lossf = loss.item() * self.cfg["trainer"]["training"]["gradient_accumulation_steps"]
                 print(f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {dt:.1f}s")
 
             iter_num += 1
 
 
-            if iter_num > self.cfg["training"]["max_iter"]:
+            if iter_num > self.cfg["trainer"]["training"]["max_iter"]:
                 break
 
         # save the final model
@@ -222,7 +222,7 @@ class BaseTrainer:
         }
         checkpoint_path = os.path.join(
             self.original_cwd,
-            self.cfg["general"]["checkpoint_dir"],
+            self.cfg["general"]["paths"]["checkpoint_dir"],
             f"ckpt.pt"
 
         )
