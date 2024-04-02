@@ -244,7 +244,8 @@ test_dict= {
             'warmup_iters': 10, 
             'eval_interval': 500, 
             'log_interval': 1, 
-            'eval_iters': 200
+            'eval_iters': 200,
+            'checkpoint_interval': 500
         }, 
         'optimizer': {
             'name': 'nanoGPTadamW', 
