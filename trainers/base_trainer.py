@@ -21,7 +21,7 @@ class BaseTrainer:
         model,
         optimizer,
         scheduler,
-        dataloader,
+        dataloaders,
         loss_fn,
         config,
         log_fn=print,
@@ -31,7 +31,7 @@ class BaseTrainer:
         self.model = model
         self.optimizer = optimizer
         self.scheduler: schedulers.CosineScheduler = scheduler
-        self.dataloader = dataloader
+        self.dataloaders = dataloaders
         self.loss_fn = loss_fn
         self.gradient_accumulation_steps = config.training.gradient_accumulation_steps
         self.scaler = None
@@ -52,7 +52,7 @@ class BaseTrainer:
         for split in ["train", "val"]:
             losses = torch.zeros(eval_iters, device=ctx.device)
             for i in range(eval_iters):
-                x, y = model.get_batch(split)
+                x, y = next(self.dataloaders(split))
                 with ctx:
                     output = model(x)
                     losses[i] = self.loss_fn(output, y)
@@ -63,7 +63,7 @@ class BaseTrainer:
     def run_step(self, ctx):
         """Run a single step of training"""
         for _ in range(self.gradient_accumulation_steps):
-            x, y = self.model.get_batch()
+            x, y = next(self.dataloaders("train"))
             with ctx:
                 output = self.model(x)
                 loss = self.loss_fn(output, y)
@@ -156,6 +156,13 @@ def build_logger(config):
     return print
 
 
+def build_dataloader(model, split):
+    """TODO: Replace this..."""
+    model.tokenizer.prepare_data()
+    for x, y in model.tokenizer.get_dataloader(split):
+        yield x, y
+
+
 def build_trainer(config):
     """Build the trainer"""
     model = build_model(config)
@@ -167,16 +174,19 @@ def build_trainer(config):
         optimizer,
         **config.training.scheduler,
     )
-    dataloader = DataLoader(
-        **config.data,
-    )
     loss_fn = loss_fns.build_loss_fn(config.loss_fn)
     log_fn = build_logger(config)
+    train_dl = build_dataloader(model, "train")
+    val_dl = build_dataloader(model, "val")
+
     return BaseTrainer(
         model=model,
         optimizer=optimizer,
         scheduler=scheduler,
-        dataloader=dataloader,
+        dataloaders={
+            "train": train_dl,
+            "val": val_dl,
+        },
         log_fn=log_fn,
         loss_fn=loss_fn,
         config=config,
