@@ -138,6 +138,8 @@ class BaselineEmbedder(torch.nn.Module):
         """
         print(token_ids.size())
         token_ids = token_ids.to('cpu')
+        self.embedding = self.embedding.to('cpu')
+        self.positional_encoding = self.positional_encoding.to('cpu')
         token_embeddings = self.embedding(token_ids)
         pos_embeddings = self.positional_encoding(token_ids)
         return token_embeddings + pos_embeddings
