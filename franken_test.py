@@ -223,7 +223,7 @@ test_dict= {
         'bias': False
     }, 
     'trainer': {
-        'dataset': 'en_wiki', 
+        'dataset': 'debug', 
         'training': {
             'batch_size': 24, 
             'gradient_accumulation_steps': 20, 

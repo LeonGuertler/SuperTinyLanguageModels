@@ -2,7 +2,8 @@
 
 
 import torch
-import hydra, os
+import hydra, os, wandb
+from time import time
 from omegaconf import DictConfig, OmegaConf
 
 # get local imports
@@ -68,7 +69,6 @@ class BaseTrainer:
 
         self.use_wandb = self.cfg["general"]["logging"]["wandb_log"]
         if self.use_wandb:
-            import wandb
             # set run name
             run_name = f"{self.cfg['model']['model']}_{self.cfg['trainer']['dataset']}_{self.cfg['model']['tokenizer']}"
             wandb.init(
@@ -139,9 +139,7 @@ class BaseTrainer:
 
             # evaluate the loass on train/val sets
             if not iter_num % self.cfg["general"]["eval_interval"]:
-                losses = self.estimate_loss(
-                    self.cfg["training"]["eval_iters"],
-                )
+                losses = self.estimate_loss()
                 print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
 
                 if self.use_wandb:
