@@ -39,6 +39,8 @@ class StandardDataloader(torch.nn.Module):
             dataset_name=self.cfg["trainer"]["dataset"],
         )
 
+        print(split_dataset.keys())
+
         def process(example):
             ids = tokenizer.encode_ordinary(example['text'])
             ids.append(tokenizer.eot_token)
