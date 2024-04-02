@@ -30,7 +30,7 @@ def create_folder_structure(path_config):
 
 
 DATASET_DICT = {
-    "debug": lambda: load_dataset("Trelis/tiny-shakespeare"),
+    "debug": lambda: load_dataset("wikimedia/wikipedia", "20231101.en"),
     "en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.en"),
     "simple_en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
 }
@@ -39,18 +39,19 @@ def load_data(dataset_name, shuffle=True):
     """Load the data"""
     assert dataset_name in DATASET_DICT, f"Dataset {dataset_name} not found!"
     dataset = DATASET_DICT[dataset_name]()
-    print(dataset)
+
     # create dataset split
-    train_col = "Train" if "Train" in dataset.keys() else "train" 
-    split_dataset = dataset[train_col].train_test_split(
-        test_size=0.5 if dataset_name == "debug" else 0.01,
+    split_dataset = dataset["train"].train_test_split(
+        test_size=0.01,
         seed=489,
         shuffle=shuffle
     )
 
     # rename test split to val
     split_dataset["val"] = split_dataset.pop("test")
-    split_dataset["train"] = split_dataset.pop(train_col)
+
+    if dataset_name == "debug":
+        split_dataset["train"] = split_dataset["train"].select(range(1000))
 
     # return the training and validation datasets
     return split_dataset
