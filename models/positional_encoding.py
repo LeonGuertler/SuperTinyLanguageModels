@@ -24,4 +24,5 @@ class LearnedPosEncoding(nn.Module):
         if len(x.shape) > 2:
             return self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0)
         else:
+            print(x.size())
             return self.pe(torch.arange(x.size(1), device=x.device))
