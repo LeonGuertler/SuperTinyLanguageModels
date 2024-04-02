@@ -41,7 +41,8 @@ def load_data(dataset_name, shuffle=True):
     dataset = DATASET_DICT[dataset_name]()
     print(dataset)
     # create dataset split
-    split_dataset = dataset["train"].train_test_split(
+    train_col = "Train" if "Train" in dataset.keys() else "train" 
+    split_dataset = dataset[train_col].train_test_split(
         test_size=0.5 if dataset_name == "debug" else 0.01,
         seed=489,
         shuffle=shuffle
