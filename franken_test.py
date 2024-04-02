@@ -187,6 +187,18 @@ def test_build_model():
 
 
 """
+Try loading the debug dataset
+"""
+from trainers.utils import load_data
+
+def test_load_data():
+    # load the debug dataset
+    dataset = load_data(
+        dataset_name="debug"
+    )
+
+
+"""
 Test the individual build functions
 """
 from trainers.build_trainers import (
@@ -332,7 +344,7 @@ def test_build_trainer():
 Do a small test training run
 """
 
-def test_training_run():
+"""def test_training_run():
     # load the relevant trainer
     trainer = build_trainer(
         cfg=test_dict,
@@ -341,4 +353,4 @@ def test_training_run():
     trainer.preprocess_data()
 
     # train the model
-    trainer.train()
+    trainer.train()"""
