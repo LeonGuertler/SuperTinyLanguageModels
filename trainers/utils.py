@@ -50,6 +50,7 @@ def load_data(dataset_name, shuffle=True):
 
     # rename test split to val
     split_dataset["val"] = split_dataset.pop("test")
+    split_dataset["train"] = split_dataset.pop(train_col)
 
     # return the training and validation datasets
     return split_dataset
