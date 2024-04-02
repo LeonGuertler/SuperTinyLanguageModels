@@ -21,11 +21,6 @@ class LearnedPosEncoding(nn.Module):
         """
         Forward pass
         """
-        print(x.device)
-        print(self.pe.weight.device)
-        print(self.pe(torch.arange(x.size(1)-1, device=x.device)))
-        x = x.to('cpu')
-        self.pe.weight = self.pe.weight.to('cpu')
         if len(x.shape) >= 2:
             return self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0)#.to(x.device)
         else:
