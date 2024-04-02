@@ -70,7 +70,7 @@ class BaseTrainer:
         if self.use_wandb:
             import wandb
             # set run name
-            run_name = f"{self.cfg['general']['model']}_{self.cfg['general']['dataset']}_{self.cfg['general']['tokenizer']}"
+            run_name = f"{self.cfg['model']['model']}_{self.cfg['general']['dataset']}_{self.cfg['general']['tokenizer']}"
             wandb.init(
                 project=self.cfg["general"]["logging"]["wandb_project"], 
                 config=OmegaConf.to_container(self.cfg),
