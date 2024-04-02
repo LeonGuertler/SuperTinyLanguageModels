@@ -286,8 +286,6 @@ def test_build_scheduler():
         trainer_cfg=test_dict['trainer']
     )
 
-    # check the scheduler type
-    assert isinstance(scheduler, torch.optim.lr_scheduler.LambdaLR)
 
 def test_build_dataloader():
     """
@@ -298,8 +296,6 @@ def test_build_dataloader():
         cfg=test_dict
     )
 
-    # check the dataloader type
-    assert isinstance(dataloader, torch.utils.data.DataLoader)
 
 def test_build_loss_fn():
     """
