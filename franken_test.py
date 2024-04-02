@@ -186,3 +186,144 @@ def test_build_model():
     #print('model did it')
 
 
+"""
+Test the individual build functions
+"""
+from trainers.build_trainers import (
+    build_optimizer,
+    build_scheduler,
+    build_dataloader,
+    build_loss_fn
+)
+# load the config
+test_dict= {
+    'general': {
+        'logging': {
+            'wandb_log': True, 
+            'wandb_project': 'TinyUniverse'
+        }, 
+        'paths': {
+            'output_dir': 'outputs', 
+            'data_path': 'data', 
+            'checkpoint_dir': 'checkpoints'
+        }, 
+        'seed': 489
+    }, 
+    'model': {
+        'model': 'baseline', 
+        'tokenizer': 'gpt2', 
+        'context_window': 512, 
+        'vocab_size': 50256, 
+        'depth': 6, 
+        'hidden_dim': 64, 
+        'num_heads': 8, 
+        'ffn_dim': 256, 
+        'dropout': 0.0, 
+        'bias': False
+    }, 
+    'trainer': {
+        'dataset': 'en_wiki', 
+        'training': {
+            'batch_size': 24, 
+            'gradient_accumulation_steps': 20, 
+            'max_iters': 100000, 
+            'lr_decay_iters': 100000, 
+            'warmup_iters': 1000, 
+            'eval_interval': 5000, 
+            'log_interval': 1, 
+            'eval_iters': 200
+        }, 
+        'optimizer': {
+            'name': 'nanoGPTadamW', 
+            'lr': 0.0006, 
+            'min_lr': 6e-05, 
+            'weight_decay': 0.1, 
+            'beta1': 0.9, 
+            'beta2': 0.95, 
+            'grad_clip': 1.0, 
+            'decay_lr': True, 
+            'warmup_iters': 5000
+        }, 
+        'scheduler': {
+            'name': 'cosine'
+        }, 
+        'dataloader': {
+            'name': 'standard'
+        }, 
+        'loss_fn': {
+            'name': 'cross_entropy'
+        }
+    }
+}
+
+
+
+# this test will only run if device has cuda enabled
+
+def test_build_optimizer():
+    """
+    Test the build_optimizer function.
+    """
+    # build the optimizer
+    optimizer = build_optimizer(
+        model=None,
+        optimizer_config=test_dict
+    )
+
+    # check the optimizer type
+    assert isinstance(optimizer, torch.optim.AdamW)
+
+def test_build_scheduler():
+    """
+    Test the build_scheduler function.
+    """
+    # build the scheduler
+    scheduler = build_scheduler(
+        trainer_cfg=test_dict['trainer']
+    )
+
+    # check the scheduler type
+    assert isinstance(scheduler, torch.optim.lr_scheduler.LambdaLR)
+
+def test_build_dataloader():
+    """
+    Test the build_dataloader function.
+    """
+    # build the dataloader
+    dataloader = build_dataloader(
+        cfg=test_dict
+    )
+
+    # check the dataloader type
+    assert isinstance(dataloader, torch.utils.data.DataLoader)
+
+def test_build_loss_fn():
+    """
+    Test the build_loss_fn function.
+    """
+    # build the loss function
+    loss_fn = build_loss_fn(
+        loss_fn_name=test_dict['trainer']['loss_fn']['name']
+    )
+
+    # create a random tensor
+    x = torch.randn(10, 10, 10)
+    y = torch.randint(0, 10, (10, 10))
+
+    # forward pass
+    output = loss_fn(x, y)
+
+    # check the output shape
+    assert output.shape == (10,)
+
+from trainers.build_trainers import build_trainer
+def test_build_trainer():
+    """
+    Test the build_trainer function.
+    """
+    # build the trainer
+    trainer = build_trainer(
+        cfg=test_dict,
+    )
+
+ 

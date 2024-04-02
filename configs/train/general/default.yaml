@@ -1,0 +1,10 @@
+logging:
+  wandb_log: True
+  wandb_project: "TinyUniverse"
+
+paths:
+  output_dir: "outputs"
+  data_path: "data"
+  checkpoint_dir: "checkpoints"
+
+seed: 489
