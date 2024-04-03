@@ -1,6 +1,0 @@
-input_text: "In the beginning, there was Elon"
-max_new_tokens: 100
-temperature: 0.8
-top_k: 200
-seed: 489
-model_path: "ckpt.pt"
