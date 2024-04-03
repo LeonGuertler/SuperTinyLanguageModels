@@ -7,6 +7,7 @@ import inspect
 
 
 def configure_nanoGPT_optimizer(model, weight_decay, learning_rate, betas):
+    """Configure the optimizer for NanoGPT"""
     # start with all of the candidate parameters
     param_dict = {pn: p for pn, p in model.named_parameters()}
     # filter out those that do not require grad
