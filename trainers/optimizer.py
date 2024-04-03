@@ -6,6 +6,7 @@ import torch
 import inspect
 
 
+# pylint: disable=invalid-name
 def configure_nanoGPT_optimizer(model, weight_decay, learning_rate, betas):
     """Configure the optimizer for NanoGPT"""
     # start with all of the candidate parameters
@@ -23,10 +24,12 @@ def configure_nanoGPT_optimizer(model, weight_decay, learning_rate, betas):
     num_decay_params = sum(p.numel() for p in decay_params)
     num_nodecay_params = sum(p.numel() for p in nodecay_params)
     print(
-        f"num decayed parameter tensors: {len(decay_params)}, with {num_decay_params:,} parameters"
+        f"num decayed parameter tensors: {len(decay_params)},"
+        f" with {num_decay_params:,} parameters"
     )
     print(
-        f"num non-decayed parameter tensors: {len(nodecay_params)}, with {num_nodecay_params:,} parameters"
+        f"num non-decayed parameter tensors: {len(nodecay_params)},"
+        f" with {num_nodecay_params:,} parameters"
     )
     # Create AdamW optimizer and use the fused version if it is available
     fused_available = "fused" in inspect.signature(torch.optim.AdamW).parameters
@@ -38,3 +41,6 @@ def configure_nanoGPT_optimizer(model, weight_decay, learning_rate, betas):
     print(f"using fused AdamW: {use_fused}")
 
     return optimizer
+
+
+# pylint: enable=invalid-name
