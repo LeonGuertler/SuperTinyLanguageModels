@@ -3,7 +3,6 @@ The main training code
 """
 
 import hydra
-import hydra.utils
 
 from trainers.build_trainers import build_trainer
 from trainers.utils import create_folder_structure
@@ -11,6 +10,7 @@ from trainers.utils import create_folder_structure
 
 @hydra.main(config_path="configs/train", config_name="baseline")
 def main(cfg):
+    """Creates folder structure as necessary, and runs train"""
     # create necessary folder structure
     create_folder_structure(path_config=cfg["general"]["paths"])
 
