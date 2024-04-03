@@ -1,9 +1,9 @@
 """Utilities for the trainer"""
-import os 
 
-import torch
+import os
+
 import numpy as np
-
+import torch
 from datasets import load_dataset
 
 
@@ -23,10 +23,6 @@ def create_folder_structure(path_config):
 
     if not os.path.exists(path_config["checkpoint_dir"]):
         os.makedirs(path_config["checkpoint_dir"])
-                    
-
-
-
 
 
 DATASET_DICT = {
@@ -35,6 +31,7 @@ DATASET_DICT = {
     "simple_en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
 }
 
+
 def load_data(dataset_name, shuffle=True):
     """Load the data"""
     assert dataset_name in DATASET_DICT, f"Dataset {dataset_name} not found!"
@@ -42,9 +39,7 @@ def load_data(dataset_name, shuffle=True):
 
     # create dataset split
     split_dataset = dataset["train"].train_test_split(
-        test_size=0.01,
-        seed=489,
-        shuffle=shuffle
+        test_size=0.01, seed=489, shuffle=shuffle
     )
 
     # rename test split to val
@@ -55,4 +50,3 @@ def load_data(dataset_name, shuffle=True):
 
     # return the training and validation datasets
     return split_dataset
-
