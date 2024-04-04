@@ -33,20 +33,12 @@ class StandardGenerator(nn.Module):
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
         Most likely you'll want to make sure to be in model.eval() mode of operation for this.
         """
-        idx = self.model.tokenizer.encode_text(input_text)
-
+        input_string = input_text
         for _ in range(max_new_tokens):
-            # if the sequence context is growing too long we must crop it at block_size
-            # input(idx)
-            idx_cond = (
-                idx
-                if idx.size(1) <= self.config["arch"]["context_window"]
-                else idx[:, -self.config["arch"]["context_window"] :]
-            )
             # forward the model to get the logits for the index in the sequence
-            logits, _ = self(idx_cond)
+            logits = self.model.inference(input_string)
             # pluck the logits at the final step and scale by desired temperature
-            logits = logits[:, -1, :] / temperature
+            logits = logits / temperature
             # optionally crop the logits to only the top k options
             if top_k is not None:
                 v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
@@ -55,10 +47,11 @@ class StandardGenerator(nn.Module):
             probs = F.softmax(logits, dim=-1)
             # sample from the distribution
             idx_next = torch.multinomial(probs, num_samples=1)
-            # append sampled index to the running sequence and continue
-            idx = torch.cat((idx, idx_next), dim=1)
-
-        return self.model.tokenizer.decode_tokens(idx[0].tolist())
+            print(idx_next)
+            new_char = self.model.embedder.tokenizer.decode([idx_next])
+            if new_char == self.model.embedder.tokenizer.eot_token:
+                break
+            input_string += new_char
 
     def forward(self, x):
         """Call the underlying model"""
