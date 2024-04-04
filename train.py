@@ -3,7 +3,6 @@ The main training code
 """
 
 import hydra
-
 from trainers.build_trainers import build_trainer
 from trainers.utils import create_folder_structure
 
@@ -26,8 +25,11 @@ def main(cfg):
     # train the model
     trainer.train()
 
+
 def override_paths(cfg):
-    cfg["general"]["paths"]["data_path"]=hydra.utils.to_absolute_path(cfg["general"]["paths"]["data_path"])
+    cfg["general"]["paths"]["data_path"] = hydra.utils.to_absolute_path(
+        cfg["general"]["paths"]["data_path"]
+    )
 
 
 if __name__ == "__main__":

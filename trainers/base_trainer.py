@@ -1,12 +1,10 @@
 """Trainer class for training models with Next Token Prediction"""
 
 import time
-from contextlib import nullcontext
 
-from omegaconf import OmegaConf
 import torch
 import wandb
-from models.build_models import build_model
+from omegaconf import OmegaConf
 from trainers import utils
 
 
@@ -23,7 +21,9 @@ class BaseTrainer:
         self.dataloader = dataloader
         self.loss_fn = loss_fn
         self.cfg = cfg
-        self.gradient_accumulation_steps = cfg.trainer.training.gradient_accumulation_steps
+        self.gradient_accumulation_steps = (
+            cfg.trainer.training.gradient_accumulation_steps
+        )
         self.scaler = None
         self.eval_interval = cfg.trainer.training.eval_interval
         self.use_wandb = cfg.general.logging.wandb_log
@@ -50,7 +50,6 @@ class BaseTrainer:
             )
             wandb.init(project=self.cfg.general.logging.wandb_project)
             print("wand_b_initted")
-
 
     def _setup_ctx(self):
         """Get the context manager"""
