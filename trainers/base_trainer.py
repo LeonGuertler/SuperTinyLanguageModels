@@ -4,10 +4,9 @@ import time
 from contextlib import nullcontext
 
 import torch
+import wandb
 from models.build_models import build_model
-from trainers import loss_fn as loss_fns
-from trainers import scheduler as schedulers
-from trainers import utilities
+from trainers import utils
 
 
 class BaseTrainer:
@@ -16,55 +15,71 @@ class BaseTrainer:
     Uses subcomponents: optimizer, scheduler,
     model, dataloader, loss functions, logger"""
 
-    def __init__(
-        self,
-        model,
-        optimizer,
-        scheduler,
-        dataloaders,
-        loss_fn,
-        config,
-        log_fn=print,
-        output_dir=".",
-        device="cuda",
-    ) -> None:
+    def __init__(self, cfg, model, optimizer, scheduler, dataloader, loss_fn) -> None:
         self.model = model
         self.optimizer = optimizer
-        self.scheduler: schedulers.CosineScheduler = scheduler
-        self.dataloaders = dataloaders
+        self.scheduler = scheduler
+        self.dataloader = dataloader
         self.loss_fn = loss_fn
-        self.gradient_accumulation_steps = config.training.gradient_accumulation_steps
+        self.cfg = cfg
+        self.gradient_accumulation_steps = cfg.training.gradient_accumulation_steps
         self.scaler = None
-        self.eval_interval = config.training.eval_interval
-        self.log_interval = config.training.log_interval
-        self.checkpoint_interval = config.training.checkpoint_interval
-        self.log_fn = log_fn
-        self.output_dir = output_dir
-        self.device = device
-        self.max_iters = config.training.max_iters
-        self.config = config
+        self.eval_interval = cfg.training.eval_interval
+        self.use_wandb = cfg.general.logging.wandb_log
+        self.log_interval = cfg.training.log_interval
+        self.checkpoint_interval = cfg.training.checkpoint_interval
+        self.output_dir = cfg.training.output_dir
+        self.max_iters = cfg.training.max_iters
+        # For training, always force the device to be cuda
+        assert torch.cuda.is_available(), "CUDA must be available for training"
+        self.device = torch.device("cuda")
+        self.ctx = self._setup_ctx()
+        self.is_processed = False
+
+    def _setup_ctx(self):
+        """Get the context manager"""
+        if self.device == "cuda":
+            dtype = (
+                torch.bfloat16
+                if torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+                else torch.float16
+            )
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+            ctx = torch.amp.autocast(device_type="cuda", dtype=dtype)
+        else:
+            ctx = nullcontext()
+        return ctx
+
+    def preprocess_data(self):
+        """
+        Preprocess the data
+        """
+        print("Preprocessing the training data")
+        self.dataloader.prepare_data(tokenizer=self.model.embedder.tokenizer)
+        self.is_processed = True
 
     @torch.no_grad()
-    def estimate_loss(self, model, ctx, eval_iters=1000):
+    def estimate_loss(self, model, eval_iters=1000):
         """Estimate the loss"""
         out = {}
         model.eval()
         for split in ["train", "val"]:
-            losses = torch.zeros(eval_iters, device=ctx.device)
+            losses = torch.zeros(eval_iters)
             for i in range(eval_iters):
-                x, y = next(self.dataloaders(split))
-                with ctx:
+                x, y = next(self.dataloader(split))
+                with self.ctx:
                     output = model(x)
                     losses[i] = self.loss_fn(output, y)
             out[split] = losses.mean().item()
         model.train()
         return out
 
-    def run_step(self, ctx):
+    def _run_step(self):
         """Run a single step of training"""
         for _ in range(self.gradient_accumulation_steps):
-            x, y = next(self.dataloaders("train"))
-            with ctx:
+            x, y = next(self.dataloader("train"))
+            with self.ctx:
                 output = self.model(x)
                 loss = self.loss_fn(output, y)
                 loss = loss / self.gradient_accumulation_steps
@@ -81,26 +96,11 @@ class BaseTrainer:
         self.optimizer.zero_grad(set_to_none=True)
         return loss
 
-    def setup_ctx(self):
-        """Get the context manager"""
-        if self.device == "cuda":
-            dtype = (
-                torch.bfloat16
-                if torch.cuda.is_available() and torch.cuda.is_bf16_supported()
-                else torch.float16
-            )
-            torch.backends.cuda.matmul.allow_tf32 = True
-            torch.backends.cudnn.allow_tf32 = True
-            ctx = torch.amp.autocast(device_type="cuda", dtype=dtype)
-        else:
-            ctx = nullcontext()
-        return ctx
-
-    def setup_scaler(self, ctx):
+    def setup_scaler(self):
         """Setup the scaler"""
-        self.scaler = torch.cuda.amp.GradScaler(enabled=ctx.dtype == torch.float16)
+        self.scaler = torch.cuda.amp.GradScaler(enabled=self.ctx.dtype == torch.float16)
 
-    def run_training_loop(self, ctx):
+    def run_training_loop(self):
         """Run the training loop"""
         for iter_num in range(self.max_iters):
             t0 = time.time()
@@ -108,30 +108,31 @@ class BaseTrainer:
             self.scheduler.apply_lr(self.optimizer, lr)
             # estimate the loss on the train/val sets
             if not iter_num % self.eval_interval:
-                losses = self.estimate_loss(self.model, ctx)
+                losses = self.estimate_loss(self.model)
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}"
                 )
-                self.log_fn(
-                    {
-                        "iter": iter_num,
-                        "train/loss": losses["train"],
-                        "val/loss": losses["val"],
-                        "lr": lr,
-                    }
-                )
+                if self.use_wandb:
+                    wandb.log(
+                        {
+                            "iter": iter_num,
+                            "train/loss": losses["train"],
+                            "val/loss": losses["val"],
+                            "lr": lr,
+                        }
+                    )
             # save checkpoints
             if not iter_num % self.checkpoint_interval:
                 checkpoint = {
                     "model": self.model.state_dict(),
                     "optimizer": self.optimizer.state_dict(),
                     "iter_num": iter_num,
-                    "config": self.config,
+                    "config": self.cfg,
                 }
                 print(f"saving checkpoint to {self.output_dir}")
                 torch.save(checkpoint, f"ckpt_{iter_num}.pt")
 
-            loss = self.run_step(ctx)
+            loss = self._run_step()
             t1 = time.time()
             if not iter_num % self.log_interval:
                 lossf = loss.item() * self.gradient_accumulation_steps
@@ -141,53 +142,6 @@ class BaseTrainer:
 
     def train(self, seed=42):
         """Train the model"""
-        utilities.set_seed(seed)
-        ctx = self.setup_ctx()
-        self.setup_scaler(ctx)
-        self.run_training_loop(ctx)
-
-
-def build_logger(config):
-    """Build the logger"""
-    if config.logger == "wandb":
-        import wandb
-
-        return wandb.log
-    return print
-
-
-def build_dataloader(model, split):
-    """TODO: Replace this..."""
-    model.tokenizer.prepare_data()
-    for x, y in model.tokenizer.get_dataloader(split):
-        yield x, y
-
-
-def build_trainer(config):
-    """Build the trainer"""
-    model = build_model(config)
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        **config.training.optimizer,
-    )
-    scheduler = schedulers.CosineScheduler(
-        optimizer,
-        **config.training.scheduler,
-    )
-    loss_fn = loss_fns.build_loss_fn(config.loss_fn)
-    log_fn = build_logger(config)
-    train_dl = build_dataloader(model, "train")
-    val_dl = build_dataloader(model, "val")
-
-    return BaseTrainer(
-        model=model,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        dataloaders={
-            "train": train_dl,
-            "val": val_dl,
-        },
-        log_fn=log_fn,
-        loss_fn=loss_fn,
-        config=config,
-    )
+        utils.set_seed(seed)
+        self.setup_scaler()
+        self.run_training_loop()
