@@ -1,26 +1,23 @@
 """Model wrapper for use on benchmarks"""
 
+from contextlib import nullcontext
 import Levenshtein
 import torch
 
 
 class ModelWrapper:
-    def __init__(self, model, ctx, cfg):
+    """Wrapper for running models on benchmarks"""
+
+    def __init__(self, model):
         self.model = model
-        self.ctx = ctx
-        self.generate_config = cfg
+        self.ctx = nullcontext()
 
     def predict(self, prompts, options):
-
+        """Predicts the best option for each prompt"""
         outputs = []
         with self.ctx:
             with torch.no_grad():
-                outputs = [self.model.generate(
-                    prompt,
-                    self.generate_config["max_new_tokens"],
-                    self.generate_config["temperature"],
-                    self.generate_config["top_k"],
-                ) for prompt in prompts]
+                outputs = [self.model.generate(prompt) for prompt in prompts]
         for output, option in zip(outputs, options):
             best, best_score = None, float("inf")
             for opt in option:
@@ -31,5 +28,6 @@ class ModelWrapper:
 
         return outputs
 
-    def embed(self, text):
-        return self.model()
+    def embed(self, _):
+        """Embed the input"""
+        pass

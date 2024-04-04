@@ -2,14 +2,7 @@
 Baseline GPT model (a close copy of NanoGPT)
 """
 
-import math
-import inspect
-from dataclasses import dataclass
-
-import torch
 import torch.nn as nn
-from torch.nn import functional as F
-from torch.nn.parameter import Parameter
 
 # import the layers
 from models.layers import LayerNorm, CausalSelfAttention, FFN
@@ -19,11 +12,13 @@ from models.embedding import BaselineEmbedder
 from models.weight_init import gpt2_weights_init
 from models.utils import print_model_stats
 
+
 class Block(nn.Module):
     """
-    A simple abstraction to combine the 
+    A simple abstraction to combine the
     LayerNorms, SelfAttention and FeedForward layers
     """
+
     def __init__(self, hidden_dim, ffn_dim, bias, num_heads, dropout):
         super().__init__()
         self.ln_1 = LayerNorm(hidden_dim, bias=bias)
@@ -43,7 +38,7 @@ class Block(nn.Module):
 
     def forward(self, x, attention_mask=None):
         """
-        A simple, residual forward 
+        A simple, residual forward
         pass through the GPT block.
         Args:
             x: the input tensor (b, s, h)
@@ -51,7 +46,8 @@ class Block(nn.Module):
         x = x + self.attn(self.ln_1(x), attention_mask)
         x = x + self.mlp(self.ln_2(x))
         return x
-    
+
+
 class NextTokenHead(nn.Module):
     def __init__(self, hidden_dim, vocab_size):
         super().__init__()
@@ -74,7 +70,7 @@ class BaseGPT(nn.Module):
         self.cfg = cfg
 
         # construct the actual model
-        self.embedder =  BaselineEmbedder(
+        self.embedder = BaselineEmbedder(
             hidden_dim=cfg["hidden_dim"],
             context_window=cfg["context_window"],
             vocab_size=cfg["vocab_size"],
@@ -83,14 +79,17 @@ class BaseGPT(nn.Module):
             dict(
                 drop=nn.Dropout(cfg["dropout"]),
                 h=nn.ModuleList(
-                    [Block(
-                        hidden_dim=cfg["hidden_dim"], 
-                        ffn_dim=cfg["ffn_dim"], 
-                        bias=cfg["bias"], 
-                        num_heads=cfg["num_heads"], 
-                        dropout=cfg["dropout"],
-                    ) for _ in range(cfg["depth"])]
-                )
+                    [
+                        Block(
+                            hidden_dim=cfg["hidden_dim"],
+                            ffn_dim=cfg["ffn_dim"],
+                            bias=cfg["bias"],
+                            num_heads=cfg["num_heads"],
+                            dropout=cfg["dropout"],
+                        )
+                        for _ in range(cfg["depth"])
+                    ]
+                ),
             )
         )
 
@@ -100,15 +99,14 @@ class BaseGPT(nn.Module):
         )
 
         # check if vocab size is the same as the number of tokens
-        #assert (
+        # assert (
         #    self.embedder.tokenizer.max_token_value == cfg["vocab_size"]
-        #), f"Vocab size ({cfg['vocab_size']}) must be the same as the number of tokens in the tokenizer ({self.embedder.tokenizer.max_token_value})"
+        # ), f"Vocab size ({cfg['vocab_size']}) must be the same as the number of tokens in the tokenizer ({self.embedder.tokenizer.max_token_value})"
 
         # share the weights between the token embeddings and the final logit layer
-        #self.embedder.embedding.weight = (
+        # self.embedder.embedding.weight = (
         #    self.lm_head.linear.weight
-        #) # https://paperswithcode.com/method/weight-tying
-
+        # ) # https://paperswithcode.com/method/weight-tying
 
         # init all weights
         self.apply(lambda module: gpt2_weights_init(module, self.cfg["depth"]))
@@ -118,8 +116,8 @@ class BaseGPT(nn.Module):
 
     def forward(self, token_ids):
         """
-        The default forward pass is used for training and accepts the 
-        token_ids as input. When the model is in eval mode, only the 
+        The default forward pass is used for training and accepts the
+        token_ids as input. When the model is in eval mode, only the
         last token is passed into the NextTokenHead.
         """
         b, s = token_ids.size()
@@ -139,13 +137,12 @@ class BaseGPT(nn.Module):
 
         # forward the entire sequence through the lm_head
         logits = self.lm_head(x)
-        return logits 
+        return logits
 
-        
     def inference(self, text_string):
         """
-        Similar to the forward pass, but takes in a string 
-        (or batch of strings) and only return the logits 
+        Similar to the forward pass, but takes in a string
+        (or batch of strings) and only return the logits
         for the next token.
         Args:
             text_string: a string or list of strings
@@ -153,9 +150,7 @@ class BaseGPT(nn.Module):
             logits for the next token
         """
         # fully encode the text string (or batch of text string)
-        x, attention_mask = self.embedder(
-            text_string,
-            pad_truncate=True)
+        x, attention_mask = self.embedder(text_string, pad_truncate=True)
 
         # forward through the GPT transformer
         x = self.transformer.drop(x)
@@ -164,6 +159,3 @@ class BaseGPT(nn.Module):
         # forward only the last token through the lm_head
         logits = self.lm_head(x[:, -1, :])
         return logits
-
-        
-

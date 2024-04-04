@@ -36,7 +36,7 @@ class Metric(metaclass=abc.ABCMeta):
     def aggregate(self):
         """Compute the metric and return the result."""
 
-    def batched_accumulate(self, predictions,targets):
+    def batched_accumulate(self, predictions, targets):
         """accumulate but batched"""
         for prediction, target in zip(predictions, targets):
             self.accumulate(prediction, target)
@@ -93,7 +93,7 @@ class FauxModel:
             elif type(options) == list:
                 return [options[0]] * len(batch)
         else:
-            return ["A"]*len(batch)
+            return ["A"] * len(batch)
 
     def encode(self, sentences, batch_size=32, **kwargs):
         """

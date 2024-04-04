@@ -1,0 +1,13 @@
+model: baseline
+benchmarks:
+  - arc
+  - hellaswag
+  - mmlu
+  - mteb
+  - nonsense
+  - vitaminc
+  - winograd
+generate_config:
+  - max_new_tokens: 100
+  - temperature: 0.4
+  - top_k: 10
