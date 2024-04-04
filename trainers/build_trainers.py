@@ -7,7 +7,7 @@ from models.build_models import build_model
 
 # from trainers.standard_trainer import BaseTrainer
 from trainers.base_trainer import BaseTrainer
-from trainers.base_profier import BaseProfiler
+from trainers.base_profiler import BaseProfiler
 from trainers.dataloader import StandardDataloader
 from trainers.loss_fn import cross_entropy_loss_fn
 from trainers.optimizer import configure_nanoGPT_optimizer
