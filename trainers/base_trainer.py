@@ -3,6 +3,7 @@
 import time
 from contextlib import nullcontext
 
+from omegaconf import OmegaConf
 import torch
 import wandb
 from models.build_models import build_model
@@ -22,34 +23,51 @@ class BaseTrainer:
         self.dataloader = dataloader
         self.loss_fn = loss_fn
         self.cfg = cfg
-        self.gradient_accumulation_steps = cfg.training.gradient_accumulation_steps
+        self.gradient_accumulation_steps = cfg.trainer.training.gradient_accumulation_steps
         self.scaler = None
-        self.eval_interval = cfg.training.eval_interval
+        self.eval_interval = cfg.trainer.training.eval_interval
         self.use_wandb = cfg.general.logging.wandb_log
-        self.log_interval = cfg.training.log_interval
-        self.checkpoint_interval = cfg.training.checkpoint_interval
-        self.checkpoint_dir = cfg.general.checkpoint_dir
-        self.max_iters = cfg.training.max_iters
+        self.log_interval = cfg.trainer.training.log_interval
+        self.checkpoint_interval = cfg.trainer.optimizer.checkpoint_interval
+        self.checkpoint_dir = cfg.general.paths.checkpoint_dir
+        self.max_iters = cfg.trainer.training.max_iters
+        self.grad_clip = cfg.trainer.optimizer.grad_clip
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
         self.device = torch.device("cuda")
         self.ctx = self._setup_ctx()
         self.is_processed = False
+        self._setup_logging()
+
+    def _setup_logging(self):
+        if self.use_wandb:
+            # set run name
+            run_name = f"{self.cfg.model.model}_{self.cfg.trainer.dataset}_{self.cfg.model.tokenizer}"
+            wandb.init(
+                project=self.cfg.general.logging.wandb_project,
+                config=OmegaConf.to_container(self.cfg),
+                name=run_name,
+            )
+            wandb.init(project=self.cfg.general.logging.wandb_project)
+            print("wand_b_initted")
+
 
     def _setup_ctx(self):
         """Get the context manager"""
-        if self.device == "cuda":
-            dtype = (
-                torch.bfloat16
-                if torch.cuda.is_available() and torch.cuda.is_bf16_supported()
-                else torch.float16
-            )
-            torch.backends.cuda.matmul.allow_tf32 = True
-            torch.backends.cudnn.allow_tf32 = True
-            ctx = torch.amp.autocast(device_type="cuda", dtype=dtype)
-        else:
-            ctx = nullcontext()
+        dtype = (
+            torch.bfloat16
+            if torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+            else torch.float16
+        )
+        self._setup_scaler(dtype)
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+        ctx = torch.amp.autocast(device_type="cuda", dtype=dtype)
         return ctx
+
+    def _setup_scaler(self, dtype=torch.float16):
+        """Setup the scaler"""
+        self.scaler = torch.cuda.amp.GradScaler(enabled=dtype == torch.float16)
 
     def preprocess_data(self):
         """
@@ -67,7 +85,7 @@ class BaseTrainer:
         for split in ["train", "val"]:
             losses = torch.zeros(eval_iters)
             for i in range(eval_iters):
-                x, y = next(self.dataloader(split))
+                x, y = self.dataloader.get_batch(split)
                 with self.ctx:
                     output = model(x)
                     losses[i] = self.loss_fn(output, y)
@@ -78,17 +96,17 @@ class BaseTrainer:
     def _run_step(self):
         """Run a single step of training"""
         for _ in range(self.gradient_accumulation_steps):
-            x, y = next(self.dataloader("train"))
+            x, y = self.dataloader.get_batch("train")
             with self.ctx:
                 output = self.model(x)
                 loss = self.loss_fn(output, y)
                 loss = loss / self.gradient_accumulation_steps
             self.scaler.scale(loss).backward()
-        if self.optimizer.grad_clip != 0.0:
+        if self.grad_clip != 0.0:
             self.scaler.unscale_(self.optimizer)
             torch.nn.utils.clip_grad_norm_(
                 self.model.parameters(),
-                self.optimizer.grad_clip,
+                self.grad_clip,
             )
         self.scaler.step(self.optimizer)
         self.scaler.update()
@@ -96,15 +114,11 @@ class BaseTrainer:
         self.optimizer.zero_grad(set_to_none=True)
         return loss
 
-    def setup_scaler(self):
-        """Setup the scaler"""
-        self.scaler = torch.cuda.amp.GradScaler(enabled=self.ctx.dtype == torch.float16)
-
     def run_training_loop(self):
         """Run the training loop"""
         for iter_num in range(self.max_iters):
             t0 = time.time()
-            lr = self.scheduler.get_lr()
+            lr = self.scheduler.get_lr(iter_num)
             self.scheduler.apply_lr(self.optimizer, lr)
             # estimate the loss on the train/val sets
             if not iter_num % self.eval_interval:
@@ -130,7 +144,11 @@ class BaseTrainer:
                     "config": self.cfg,
                 }
                 print(f"saving checkpoint to {self.checkpoint_dir}")
-                torch.save(checkpoint, self.checkpoint_dir / f"ckpt_{iter_num}.pt")
+                checkpoint_path = f"{self.checkpoint_dir}/ckpt_{iter_num}.pt"
+                torch.save(
+                    checkpoint,
+                    checkpoint_path,
+                )
 
             loss = self._run_step()
             t1 = time.time()
@@ -146,12 +164,11 @@ class BaseTrainer:
             "iter_num": iter_num,
             "config": self.cfg,
         }
-        checkpoint_path = self.checkpoint_dir / "final_checkpoint.pt"
+        checkpoint_path = f"{self.checkpoint_dir}/final_checkpoint.pt"
         print(f"saving final checkpoint to {self.checkpoint_dir}")
         torch.save(checkpoint, checkpoint_path)
 
     def train(self, seed=42):
         """Train the model"""
         utils.set_seed(seed)
-        self.setup_scaler()
         self.run_training_loop()

@@ -11,7 +11,8 @@ from trainers.scheduler import (
     CosineScheduler
 )
 
-from trainers.standard_trainer import BaseTrainer
+# from trainers.standard_trainer import BaseTrainer
+from trainers.base_trainer import BaseTrainer
 
 from trainers.dataloader import (
     StandardDataloader
