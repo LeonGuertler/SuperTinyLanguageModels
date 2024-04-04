@@ -73,6 +73,8 @@ class StandardDataloader:
         # create folder
         if not os.path.exists(self.dataset_path):
             os.makedirs(self.dataset_path)
+        else:
+            return # already processed
 
         # load the dataset
         split_dataset = load_data(

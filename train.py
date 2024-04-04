@@ -4,13 +4,19 @@ The main training code
 
 import hydra
 from trainers.build_trainers import build_trainer
-from trainers.utils import create_folder_structure
+from trainers.utils import (
+    create_folder_structure,
+)
 
 
 @hydra.main(config_path="configs/train", config_name="baseline")
 def main(cfg):
     """Creates folder structure as necessary, and runs train"""
-    override_paths(cfg)
+
+    # set data path to absolute path 
+    cfg["general"]["paths"]["data_path"] = hydra.utils.to_absolute_path(
+        cfg["general"]["paths"]["data_path"]
+    )
 
     # create necessary folder structure
     create_folder_structure(path_config=cfg["general"]["paths"])
@@ -26,10 +32,7 @@ def main(cfg):
     trainer.train()
 
 
-def override_paths(cfg):
-    cfg["general"]["paths"]["data_path"] = hydra.utils.to_absolute_path(
-        cfg["general"]["paths"]["data_path"]
-    )
+
 
 
 if __name__ == "__main__":
