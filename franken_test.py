@@ -339,65 +339,67 @@ test the profiler
 """
 from trainers.base_profiler import BaseProfiler
 # load the config
-test_dict = {
-    "general": {
-        "logging": {
-            "wandb_log": False, 
-            "wandb_project": "TinyUniverse",
-            
-        },
-        "paths": {
-            "output_dir": "outputs",
-            "data_path": "data",
-            "checkpoint_dir": "checkpoints",
-        },
-        "seed": 489,
-        "device": "cuda",
-    },
-    "model": {
-        "model": "baseline",
-        "tokenizer": "gpt2",
-        "context_window": 512,
-        "vocab_size": 50304,
-        "depth": 6,
-        "hidden_dim": 64,
-        "num_heads": 8,
-        "ffn_dim": 256,
-        "dropout": 0.0,
-        "bias": False,
-    },
-    "trainer": {
-        "dataset": "debug",
-        "training": {
-            "trainer": "base_profiler",
-            "batch_size": 24,
-            "gradient_accumulation_steps": 20,
-            "max_iters": 1000,
-            "lr_decay_iters": 1000,
-            "warmup_iters": 10,
-            "eval_interval": 500,
-            "log_interval": 1,
-            "eval_iters": 200,
-            "checkpoint_interval": 100,
-        },
-        "optimizer": {
-            "name": "nanoGPTadamW",
-            "lr": 0.0006,
-            "min_lr": 6e-05,
-            "weight_decay": 0.1,
-            "beta1": 0.9,
-            "beta2": 0.95,
-            "grad_clip": 1.0,
-            "decay_lr": True,
-            "warmup_iters": 5000,
-        },
-        "scheduler": {"name": "cosine"},
-        "dataloader": {"name": "standard"},
-        "loss_fn": {"name": "cross_entropy"},
-    },
-}
 
 def test_training_run():
+    test_dict = {
+        "general": {
+            "logging": {
+                "wandb_log": False, 
+                "wandb_project": "TinyUniverse",
+                
+            },
+            "paths": {
+                "output_dir": "outputs",
+                "data_path": "data",
+                "checkpoint_dir": "checkpoints",
+            },
+            "seed": 489,
+            "device": "cuda",
+        },
+        "model": {
+            "model": "baseline",
+            "tokenizer": "gpt2",
+            "context_window": 512,
+            "vocab_size": 50304,
+            "depth": 6,
+            "hidden_dim": 64,
+            "num_heads": 8,
+            "ffn_dim": 256,
+            "dropout": 0.0,
+            "bias": False,
+        },
+        "trainer": {
+            "dataset": "debug",
+            "training": {
+                "trainer": "base_profiler",
+                "batch_size": 24,
+                "gradient_accumulation_steps": 20,
+                "max_iters": 1000,
+                "lr_decay_iters": 1000,
+                "warmup_iters": 10,
+                "eval_interval": 500,
+                "log_interval": 1,
+                "eval_iters": 200,
+                "checkpoint_interval": 100,
+            },
+            "optimizer": {
+                "name": "nanoGPTadamW",
+                "lr": 0.0006,
+                "min_lr": 6e-05,
+                "weight_decay": 0.1,
+                "beta1": 0.9,
+                "beta2": 0.95,
+                "grad_clip": 1.0,
+                "decay_lr": True,
+                "warmup_iters": 5000,
+            },
+            "scheduler": {"name": "cosine"},
+            "dataloader": {"name": "standard"},
+            "loss_fn": {"name": "cross_entropy"},
+        },
+    }
+
+    test_dict = OmegaConf.create(test_dict)
     # load the relevant trainer
     trainer = build_trainer(
         cfg=test_dict,
