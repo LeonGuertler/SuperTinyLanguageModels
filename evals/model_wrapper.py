@@ -17,7 +17,7 @@ class ModelWrapper:
         outputs = []
         with self.ctx:
             with torch.no_grad():
-                outputs = [self.model.generate(prompt) for prompt in prompts]
+                outputs = [self.model.default_generate(prompt) for prompt in prompts]
         for output, option in zip(outputs, options):
             best, best_score = None, float("inf")
             for opt in option:

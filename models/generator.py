@@ -1,6 +1,6 @@
 """Generator Base Wrapper"""
 
-import SuperTinyLanguageModels.models.baseline as baseline
+import models.baseline as baseline
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -15,6 +15,17 @@ class StandardGenerator(nn.Module):
         self.model = model
         self.generate_config = generate_cfg
 
+    def default_generate(self, input_text):
+        """
+        Generate text using the default generation method
+        """
+        return self.generate(
+            input_text,
+            self.generate_config["max_new_tokens"],
+            self.generate_config["temperature"],
+            self.generate_config["top_k"]
+        )
+
     @torch.no_grad()
     def generate(self, input_text, max_new_tokens, temperature=1.0, top_k=None):
         """
@@ -22,7 +33,7 @@ class StandardGenerator(nn.Module):
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
         Most likely you'll want to make sure to be in model.eval() mode of operation for this.
         """
-        idx = self.model.tokenizer.encode_text(input_text, device=self.device)
+        idx = self.model.tokenizer.encode_text(input_text)
 
         for _ in range(max_new_tokens):
             # if the sequence context is growing too long we must crop it at block_size

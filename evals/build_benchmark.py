@@ -1,13 +1,13 @@
 # Build class for making benchmark classes
 
-import eval.arc as arc
-import eval.benchmark as benchmark
-import eval.hellaswag as hellaswag
-import eval.mteb_benchmark as mteb_benchmark
-import eval.mmlu as mmlu
-import eval.vitaminc as vitaminc
-import eval.nonsense as nonsense
-import eval.winograd as winograd
+import evals.arc as arc
+import evals.benchmark as benchmark
+import evals.hellaswag as hellaswag
+import evals.mteb_benchmark as mteb_benchmark
+import evals.mmlu as mmlu
+import evals.vitaminc as vitaminc
+import evals.nonsense as nonsense
+import evals.winograd as winograd
 
 
 def build_benchmark(benchmark_name, model) -> benchmark.Benchmark:
