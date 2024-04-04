@@ -164,7 +164,7 @@ class BaseGPT(nn.Module):
             logits for the next token
         """
         # fully encode the text string (or batch of text string)
-        token_ids, attention_mask = self.embedder(
+        x, attention_mask = self.embedder(
             text_string,
             pad_truncate=True)
         
