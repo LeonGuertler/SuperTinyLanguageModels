@@ -47,6 +47,12 @@ class TimeWrapperModel:
             self.time_tracker_eval.append(t1 - t0)
         return out
     
+    def eval(self):
+        self.model.eval()
+
+    def train(self):
+        self.model.train()
+    
     def get_time_train(self):
         return self.time_tracker_train 
 
