@@ -1,13 +1,13 @@
 dataset: "en_wiki"
 
 training:
-  trainer: "base_trainer"
+  trainer: "base_profiler"
   batch_size: 24
   gradient_accumulation_steps: 20
-  max_iters: 100000
-  lr_decay_iters: 100000
-  warmup_iters: 1000
-  eval_interval: 5000
+  max_iters: 1000
+  lr_decay_iters: 1000
+  warmup_iters: 100
+  eval_interval: 100
   log_interval: 1
   eval_iters: 200
 
@@ -20,8 +20,8 @@ optimizer:
   beta2: 0.95
   grad_clip: 1.0
   decay_lr: True
-  warmup_iters: 5000
-  checkpoint_interval: 100000
+  warmup_iters: 100
+  checkpoint_interval: 100
 
 scheduler:
   name: "cosine"

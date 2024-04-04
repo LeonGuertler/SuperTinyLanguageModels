@@ -12,7 +12,6 @@ from trainers.utils import (
 @hydra.main(config_path="configs/train", config_name="baseline")
 def main(cfg):
     """Creates folder structure as necessary, and runs train"""
-
     # set data path to absolute path 
     cfg["general"]["paths"]["data_path"] = hydra.utils.to_absolute_path(
         cfg["general"]["paths"]["data_path"]

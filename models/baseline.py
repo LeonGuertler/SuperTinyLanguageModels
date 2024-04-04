@@ -114,11 +114,11 @@ class BaseGPT(nn.Module):
         # report number of parameters
         print_model_stats(self)
 
-    def forward(self, token_ids):
+
+
+    def feature_extraction(self, token_ids):
         """
-        The default forward pass is used for training and accepts the
-        token_ids as input. When the model is in eval mode, only the
-        last token is passed into the NextTokenHead.
+        Use the model to get the text features.
         """
         b, s = token_ids.size()
 
@@ -135,6 +135,17 @@ class BaseGPT(nn.Module):
         for block in self.transformer.h:
             x = block(x)
 
+        return x
+
+    def forward(self, token_ids):
+        """
+        The default forward pass is used for training and accepts the 
+        token_ids as input. When the model is in eval mode, only the 
+        last token is passed into the NextTokenHead.
+        """
+        # extract the features
+        x = self.feature_extraction(token_ids)        
+
         # forward the entire sequence through the lm_head
         logits = self.lm_head(x)
         return logits
@@ -150,12 +161,15 @@ class BaseGPT(nn.Module):
             logits for the next token
         """
         # fully encode the text string (or batch of text string)
-        x, attention_mask = self.embedder(text_string, pad_truncate=True)
-
-        # forward through the GPT transformer
+        x, attention_mask = self.embedder(
+            text_string,
+            pad_truncate=True)
+        
+        # extract the features
         x = self.transformer.drop(x)
         for block in self.transformer.h:
             x = block(x)
+
         # forward only the last token through the lm_head
         logits = self.lm_head(x[:, -1, :])
         return logits
