@@ -169,7 +169,9 @@ class BaseGPT(nn.Module):
             pad_truncate=True)
         
         # extract the features
-        x = self.feature_extraction(token_ids)
+        x = self.transformer.drop(x)
+        for block in self.transformer.h:
+            x = block(x)
 
         # forward only the last token through the lm_head
         logits = self.lm_head(x[:, -1, :])
