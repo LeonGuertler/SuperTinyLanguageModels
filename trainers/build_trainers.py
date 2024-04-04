@@ -75,6 +75,7 @@ TRAINER_DICT = {
     "base_trainer": BaseTrainer,
     "base_profiler": BaseProfiler
 }
+
 def build_trainer(cfg):
     """
     Given a config, this function builds a trainer
@@ -105,6 +106,7 @@ def build_trainer(cfg):
     loss_fn = build_loss_fn(loss_fn_name=cfg["trainer"]["loss_fn"]["name"])
 
     # build the trainer
+    input(cfg["trainer"]["training"]["trainer"])
     trainer = TRAINER_DICT[cfg["trainer"]["training"]["trainer"]](
         cfg=cfg,
         model=model,
