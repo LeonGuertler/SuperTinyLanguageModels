@@ -146,7 +146,7 @@ class BaseTrainer:
                         }
                     )
             # save checkpoints
-            if not iter_num % self.cfg.trainer.optimizer.checkpoint_interval:
+            if not iter_num % self.cfg.trainer.training.checkpoint_interval:
                 self._save_model(iter_num)
 
 

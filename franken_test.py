@@ -217,6 +217,7 @@ test_dict = {
     "trainer": {
         "dataset": "debug",
         "training": {
+            "trainer": "base_profiler",
             "batch_size": 24,
             "gradient_accumulation_steps": 20,
             "max_iters": 1000,
