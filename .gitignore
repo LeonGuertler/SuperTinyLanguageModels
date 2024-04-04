@@ -4,6 +4,7 @@ outputs
 *.bin
 checkpoints
 data/
+*.DS_store
 
 ### DEFAULTS FROM GITHUB ###
 __pycache__/

@@ -28,7 +28,7 @@ class BaseTrainer:
         self.use_wandb = cfg.general.logging.wandb_log
         self.log_interval = cfg.training.log_interval
         self.checkpoint_interval = cfg.training.checkpoint_interval
-        self.output_dir = cfg.training.output_dir
+        self.checkpoint_dir = cfg.general.checkpoint_dir
         self.max_iters = cfg.training.max_iters
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
@@ -129,8 +129,8 @@ class BaseTrainer:
                     "iter_num": iter_num,
                     "config": self.cfg,
                 }
-                print(f"saving checkpoint to {self.output_dir}")
-                torch.save(checkpoint, f"ckpt_{iter_num}.pt")
+                print(f"saving checkpoint to {self.checkpoint_dir}")
+                torch.save(checkpoint, self.checkpoint_dir / f"ckpt_{iter_num}.pt")
 
             loss = self._run_step()
             t1 = time.time()
@@ -139,6 +139,16 @@ class BaseTrainer:
                 print(
                     f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {t1-t0:.1f}s"
                 )
+        # save the final model
+        checkpoint = {
+            "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "iter_num": iter_num,
+            "config": self.cfg,
+        }
+        checkpoint_path = self.checkpoint_dir / "final_checkpoint.pt"
+        print(f"saving final checkpoint to {self.checkpoint_dir}")
+        torch.save(checkpoint, checkpoint_path)
 
     def train(self, seed=42):
         """Train the model"""
