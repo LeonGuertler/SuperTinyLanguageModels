@@ -25,18 +25,11 @@ class BaseTrainer:
             cfg.trainer.training.gradient_accumulation_steps
         )
         self.scaler = None
-        self.eval_interval = cfg.trainer.training.eval_interval
         self.use_wandb = cfg.general.logging.wandb_log
-        self.log_interval = cfg.trainer.training.log_interval
-        self.checkpoint_interval = cfg.trainer.optimizer.checkpoint_interval
         self.checkpoint_dir = cfg.general.paths.checkpoint_dir
-        self.max_iters = cfg.trainer.training.max_iters
-        self.grad_clip = cfg.trainer.optimizer.grad_clip
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
-        self.device = torch.device("cuda")
         self.ctx = self._setup_ctx()
-        self.is_processed = False
         self._setup_logging()
 
     def _setup_logging(self):
@@ -74,7 +67,6 @@ class BaseTrainer:
         """
         print("Preprocessing the training data")
         self.dataloader.prepare_data(tokenizer=self.model.embedder.tokenizer)
-        self.is_processed = True
 
     @torch.no_grad()
     def estimate_loss(self, model, eval_iters=1000):
@@ -101,11 +93,12 @@ class BaseTrainer:
                 loss = self.loss_fn(output, y)
                 loss = loss / self.gradient_accumulation_steps
             self.scaler.scale(loss).backward()
-        if self.grad_clip != 0.0:
+        grad_clip = self.cfg.trainer.optimizer.grad_clip
+        if grad_clip != 0.0:
             self.scaler.unscale_(self.optimizer)
             torch.nn.utils.clip_grad_norm_(
                 self.model.parameters(),
-                self.grad_clip,
+                grad_clip,
             )
         self.scaler.step(self.optimizer)
         self.scaler.update()
@@ -115,12 +108,12 @@ class BaseTrainer:
 
     def run_training_loop(self):
         """Run the training loop"""
-        for iter_num in range(self.max_iters):
+        for iter_num in range(self.cfg.trainer.training.max_iters):
             t0 = time.time()
             lr = self.scheduler.get_lr(iter_num)
             self.scheduler.apply_lr(self.optimizer, lr)
             # estimate the loss on the train/val sets
-            if not iter_num % self.eval_interval:
+            if not iter_num % self.cfg.trainer.training.eval_interval:
                 losses = self.estimate_loss(self.model)
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}"
@@ -135,7 +128,7 @@ class BaseTrainer:
                         }
                     )
             # save checkpoints
-            if not iter_num % self.checkpoint_interval:
+            if not iter_num % self.cfg.trainer.optimizer.checkpoint_interval:
                 checkpoint = {
                     "model": self.model.state_dict(),
                     "optimizer": self.optimizer.state_dict(),
@@ -151,7 +144,7 @@ class BaseTrainer:
 
             loss = self._run_step()
             t1 = time.time()
-            if not iter_num % self.log_interval:
+            if not iter_num % self.cfg.trainer.training.log_interval:
                 lossf = loss.item() * self.gradient_accumulation_steps
                 print(
                     f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {t1-t0:.1f}s"
