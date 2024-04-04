@@ -7,6 +7,7 @@ from models.build_models import build_model
 
 # from trainers.standard_trainer import BaseTrainer
 from trainers.base_trainer import BaseTrainer
+from trainers.base_profier import BaseProfiler
 from trainers.dataloader import StandardDataloader
 from trainers.loss_fn import cross_entropy_loss_fn
 from trainers.optimizer import configure_nanoGPT_optimizer
@@ -70,6 +71,10 @@ def build_loss_fn(loss_fn_name):
     return LOSS_FN_DICT[loss_fn_name]
 
 
+TRAINER_DICT = {
+    "base_trainer": BaseTrainer,
+    "base_profiler": BaseProfiler
+}
 def build_trainer(cfg):
     """
     Given a config, this function builds a trainer
@@ -100,7 +105,7 @@ def build_trainer(cfg):
     loss_fn = build_loss_fn(loss_fn_name=cfg["trainer"]["loss_fn"]["name"])
 
     # build the trainer
-    trainer = BaseTrainer(
+    trainer = TRAINER_DICT[cfg["trainer"]["training"]["trainer"]](
         cfg=cfg,
         model=model,
         optimizer=optimizer,
