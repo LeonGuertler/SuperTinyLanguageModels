@@ -59,6 +59,9 @@ class TimeWrapperModel:
     def get_time_eval(self):
         return self.time_tracker_eval
     
+    def state_dict(self):
+        return self.model.state_dict()
+    
     
 class BaseProfiler(BaseTrainer):
     def train(self):
