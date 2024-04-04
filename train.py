@@ -11,6 +11,8 @@ from trainers.utils import create_folder_structure
 @hydra.main(config_path="configs/train", config_name="baseline")
 def main(cfg):
     """Creates folder structure as necessary, and runs train"""
+    override_paths(cfg)
+
     # create necessary folder structure
     create_folder_structure(path_config=cfg["general"]["paths"])
 
@@ -23,6 +25,9 @@ def main(cfg):
 
     # train the model
     trainer.train()
+
+def override_paths(cfg):
+    cfg["general"]["paths"]["data_path"]=hydra.utils.to_absolute_path(cfg["general"]["paths"]["data_path"])
 
 
 if __name__ == "__main__":
