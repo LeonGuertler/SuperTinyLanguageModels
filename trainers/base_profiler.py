@@ -8,7 +8,7 @@ import torch
 import wandb
 from omegaconf import OmegaConf
 from trainers import utils
-from base_trainer import BaseTrainer
+from trainers.base_trainer import BaseTrainer
 
 import time
 import torch
