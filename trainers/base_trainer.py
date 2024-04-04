@@ -30,19 +30,21 @@ class BaseTrainer:
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
         self.ctx = self._setup_ctx()
-        self._setup_logging()
+        if self.use_wandb:
+            self._setup_logging()
+
 
     def _setup_logging(self):
-        if self.use_wandb:
-            # set run name
-            run_name = f"{self.cfg.model.model}_{self.cfg.trainer.dataset}_{self.cfg.model.tokenizer}"
-            wandb.init(
-                project=self.cfg.general.logging.wandb_project,
-                config=OmegaConf.to_container(self.cfg),
-                name=run_name,
-            )
-            wandb.init(project=self.cfg.general.logging.wandb_project)
-            print("wand_b_initted")
+        # set run name
+        run_name = f"{self.cfg.model.model}_{self.cfg.trainer.dataset}_{self.cfg.model.tokenizer}"
+        wandb.init(
+            project=self.cfg.general.logging.wandb_project,
+            config=OmegaConf.to_container(self.cfg),
+            name=run_name,
+        )
+        wandb.init(project=self.cfg.general.logging.wandb_project)
+        print("wand_b_initted")
+
 
     def _setup_ctx(self):
         """Get the context manager"""
@@ -105,6 +107,23 @@ class BaseTrainer:
 
         self.optimizer.zero_grad(set_to_none=True)
         return loss
+    
+    def _save_model(self, iter_num=0):
+        """
+        store the current model checkpoint.
+        """
+        checkpoint = {
+            "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "iter_num": iter_num,
+            "config": self.cfg,
+        }
+        checkpoint_path = f"{self.checkpoint_dir}/ckpt_{iter_num}.pt"
+        print(f"saving checkpoint to {checkpoint_path}")
+        torch.save(
+            checkpoint, 
+            checkpoint_path
+        )
 
     def run_training_loop(self):
         """Run the training loop"""
@@ -128,18 +147,8 @@ class BaseTrainer:
                     )
             # save checkpoints
             if not iter_num % self.cfg.trainer.optimizer.checkpoint_interval:
-                checkpoint = {
-                    "model": self.model.state_dict(),
-                    "optimizer": self.optimizer.state_dict(),
-                    "iter_num": iter_num,
-                    "config": self.cfg,
-                }
-                print(f"saving checkpoint to {self.checkpoint_dir}")
-                checkpoint_path = f"{self.checkpoint_dir}/ckpt_{iter_num}.pt"
-                torch.save(
-                    checkpoint,
-                    checkpoint_path,
-                )
+                self._save_model(iter_num)
+
 
             loss = self._run_step()
             t1 = time.time()
@@ -149,17 +158,11 @@ class BaseTrainer:
                     f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {t1-t0:.1f}s"
                 )
         # save the final model
-        checkpoint = {
-            "model": self.model.state_dict(),
-            "optimizer": self.optimizer.state_dict(),
-            "iter_num": iter_num,
-            "config": self.cfg,
-        }
-        checkpoint_path = f"{self.checkpoint_dir}/final_checkpoint.pt"
-        print(f"saving final checkpoint to {self.checkpoint_dir}")
-        torch.save(checkpoint, checkpoint_path)
+        self._save_model(iter_num)
 
     def train(self, seed=42):
         """Train the model"""
         utils.set_seed(seed)
         self.run_training_loop()
+
+
