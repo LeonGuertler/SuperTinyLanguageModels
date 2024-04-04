@@ -24,3 +24,10 @@ class CosineScheduler:
         """Apply the learning rate to the optimizer"""
         for param_group in optimizer.param_groups:
             param_group["lr"] = lr
+
+
+    def step(self, optimizer, iter_num):
+        """Step the scheduler"""
+        lr = self.get_lr(iter_num)
+        self.apply_lr(optimizer, lr)
+        return lr

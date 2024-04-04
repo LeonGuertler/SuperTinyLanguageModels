@@ -110,8 +110,7 @@ class BaseTrainer:
         """Run the training loop"""
         for iter_num in range(self.cfg.trainer.training.max_iters):
             t0 = time.time()
-            lr = self.scheduler.get_lr(iter_num)
-            self.scheduler.apply_lr(self.optimizer, lr)
+            lr = self.scheduler.step(self.optimizer, iter_num)
             # estimate the loss on the train/val sets
             if not iter_num % self.cfg.trainer.training.eval_interval:
                 losses = self.estimate_loss(self.model)
