@@ -30,7 +30,7 @@ class TimeWrapper:
         return self.time_tracker
     
 
-class TimeWrapperModel:
+"""class TimeWrapperModel:
     def __init__(self, model):
         self.model = model
         self.time_tracker_train = []
@@ -63,8 +63,65 @@ class TimeWrapperModel:
         return self.model.state_dict()
     
     def parameters(self):
+        return self.model.parameters()"""
+
+
+class TimeWrapperModel:
+    def __init__(self, model):
+        self.model = model
+        self.time_tracker_train = []
+        self.time_tracker_eval = []
+        self.layer_time_memory_stats = []
+
+    def __call__(self, *args, **kwargs):
+        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
+                     record_shapes=True, profile_memory=True, with_stack=True) as prof:
+            t0 = time.time()
+            out = self.model(*args, **kwargs)
+            t1 = time.time()
+        
+        if self.model.training:
+            self.time_tracker_train.append(t1 - t0)
+        else:
+            self.time_tracker_eval.append(t1 - t0)
+        
+        self._parse_profiler(prof)
+        
+        return out
+    
+    def _parse_profiler(self, profiler):
+        # Parse the profiler output to store layer-wise time and memory usage
+        for event in profiler.key_averages(group_by_input_shape=True):
+            self.layer_time_memory_stats.append({
+                "layer": event.key,
+                "cpu_time_total": event.cpu_time_total,
+                "cuda_time_total": event.cuda_time_total,
+                "cpu_memory_usage": event.cpu_memory_usage,
+                "cuda_memory_usage": event.cuda_memory_usage
+            })
+
+    def get_layer_time_memory_stats(self):
+        return self.layer_time_memory_stats
+
+    def eval(self):
+        self.model.eval()
+
+    def train(self):
+        self.model.train()
+    
+    def get_time_train(self):
+        return self.time_tracker_train 
+
+    def get_time_eval(self):
+        return self.time_tracker_eval
+    
+    def state_dict(self):
+        return self.model.state_dict()
+    
+    def parameters(self):
         return self.model.parameters()
     
+
     
 class BaseProfiler(BaseTrainer):
     def pretty_print_stats(self, time_dict):
@@ -122,6 +179,41 @@ class BaseProfiler(BaseTrainer):
 
 
 
-        input(time_dict)
+        #input(time_dict)
         self.pretty_print_stats(time_dict)
-        
+
+
+        def structure_layer_stats(layer_stats):
+            """
+            Organize layer statistics into a hierarchical structure.
+            """
+            structured_data = {}
+            for stat in layer_stats:
+                path = stat['layer'].split('/')
+                current_level = structured_data
+                for part in path:
+                    if part not in current_level:
+                        current_level[part] = {'_stats': [], 'children': {}}
+                    current_level = current_level[part]['children']
+                current_level['_stats'].append(stat)
+            return structured_data
+
+        def print_layer_stats(structured_data, indent=0):
+            """
+            Recursively print the structured layer statistics with indentation.
+            """
+            for layer, data in structured_data.items():
+                if layer == '_stats':
+                    continue  # Skip printing the stats directly; they are printed when accessing their parent
+                avg_cpu_time = sum(d['cpu_time_total'] for d in data['_stats']) / len(data['_stats'])
+                avg_cuda_time = sum(d['cuda_time_total'] for d in data['_stats']) / len(data['_stats'])
+                avg_cpu_memory = sum(d['cpu_memory_usage'] for d in data['_stats']) / len(data['_stats'])
+                avg_cuda_memory = sum(d['cuda_memory_usage'] for d in data['_stats']) / len(data['_stats'])
+                print(f"{' ' * indent}{layer}: CPU Time: {avg_cpu_time:.3f}ms, CUDA Time: {avg_cuda_time:.3f}ms, CPU Memory: {avg_cpu_memory}B, CUDA Memory: {avg_cuda_memory}B")
+                print_layer_stats(data['children'], indent + 4)
+
+        # Example usage:
+        layer_stats = self.model.get_layer_time_memory_stats()  # Assuming this returns your collected stats
+        structured_stats = structure_layer_stats(layer_stats)
+        print_layer_stats(structured_stats)
+                
