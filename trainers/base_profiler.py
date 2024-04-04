@@ -55,7 +55,6 @@ class TimeWrapperModel:
     
     
 class BaseProfiler(BaseTrainer):
-    def __init__(self, cfg):
     def train(self):
         # first wrap all relevant functions
 
