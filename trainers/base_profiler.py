@@ -67,6 +67,18 @@ class TimeWrapperModel:
     
     
 class BaseProfiler(BaseTrainer):
+    def pretty_print_stats(self, time_dict):
+        # Header for the table
+        print(f"{'Component':<25} {'Calls':<10} {'Total Time (s)':<15} {'Average Time (ms)':<20}")
+        print("-" * 70)
+        
+        # Loop through each component and print its stats
+        for component, times in time_dict.items():
+            total_time = sum(times)
+            avg_time = (total_time / len(times)) * 1000  # Converting to milliseconds for readability
+            print(f"{component:<25} {len(times):<10} {total_time:<15.3f} {avg_time:<20.3f}")
+    
+
     def train(self):
         # first wrap all relevant functions
 
@@ -108,5 +120,8 @@ class BaseProfiler(BaseTrainer):
             "dataloader.get_batch": self.dataloader.get_batch.get_time()
         }
 
+
+
         input(time_dict)
+        self.pretty_print_stats(time_dict)
         
