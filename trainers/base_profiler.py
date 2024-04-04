@@ -62,6 +62,9 @@ class TimeWrapperModel:
     def state_dict(self):
         return self.model.state_dict()
     
+    def parameters(self):
+        return self.model.parameters()
+    
     
 class BaseProfiler(BaseTrainer):
     def train(self):
