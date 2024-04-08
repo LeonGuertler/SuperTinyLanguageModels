@@ -2,3 +2,4 @@ hydra-core
 tiktoken
 datasets
 wandb
+mteb

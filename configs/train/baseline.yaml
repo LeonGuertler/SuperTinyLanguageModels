@@ -1,37 +1,5 @@
-
-arch:
-  model: "baseline"
-  tokenizer: "gpt2"
-  context_window: 512
-  vocab_size: 50304
-  depth: 12
-  hidden_dim: 768
-  num_heads: 12
-  mlp_dim: 3072
-  dropout: 0.0
-  bias: False
-
-
-training:
-  dataset: "simple_en_wiki"
-  seed: 489
-  batch_size: 24
-  gradient_accumulation_steps: 20
-  max_iters: 100000
-  lr_decay_iters: 100000
-  warmup_iters: 1000
-  eval_interval: 5000
-  log_interval: 1
-  eval_iters: 200
-
-
-  optimizer:
-    type: "AdamW"
-    lr: 1e-4
-    weight_decay: 0.01
-    beta1: 0.9
-    beta2: 0.95
-    grad_clip: 1.0
-    decay_lr: True 
-    warmup_iters: 5000
-    min_lr: 1e-5
+defaults:
+  - _self_
+  - general: default
+  - model: baseline
+  - trainer: baseline

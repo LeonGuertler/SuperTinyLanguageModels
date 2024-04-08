@@ -23,7 +23,7 @@ class Block(nn.Module):
         self.attn = CausalSelfAttention(config)
         self.ln_2 = LayerNorm(config["arch"]["hidden_dim"], bias=config["arch"]["bias"])
         self.mlp = FFN(config)
-        self.confidence = nn.Linear(config["arch"]["hidden_dim"], 1, bias=False)
+        self.confidence = nn.Linear(config["arch"]["hidden_dim"], 1, bias=True)
         self.confidence_threshold = config["arch"]["confidence_threshold"]
 
     def forward(self, x, uncertainty_mask):
@@ -146,7 +146,6 @@ class ThinkingGPT(nn.Module):
             )
             # return the sum of the two losses
             loss += uncertainty_loss
-            print(loss, uncertainty_loss)
         else:
             # inference-time mini-optimization: only forward the lm_head on the very last position
             logits = self.lm_head(

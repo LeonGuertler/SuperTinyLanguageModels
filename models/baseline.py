@@ -1,3 +1,7 @@
+"""
+Baseline GPT model (a close copy of NanoGPT)
+"""
+
 import math
 import inspect
 from dataclasses import dataclass
@@ -8,174 +12,167 @@ from torch.nn import functional as F
 from torch.nn.parameter import Parameter
 
 # import the layers
-from models.layers import (
-    LayerNorm,
-    CausalSelfAttention,
-    FFN
-)
+from models.layers import LayerNorm, CausalSelfAttention, FFN
 
-from models.tokenizer import tokenizer
+from models.embedding import BaselineEmbedder
 
+from models.weight_init import gpt2_weights_init
+from models.utils import print_model_stats
 
 
 class Block(nn.Module):
+    """
+    A simple abstraction to combine the
+    LayerNorms, SelfAttention and FeedForward layers
+    """
 
-    def __init__(self, config):
+    def __init__(self, hidden_dim, ffn_dim, bias, num_heads, dropout):
         super().__init__()
-        self.ln_1 = LayerNorm(config['arch']['hidden_dim'], bias=config['arch']['bias'])
-        self.attn = CausalSelfAttention(config)
-        self.ln_2 = LayerNorm(config['arch']['hidden_dim'], bias=config['arch']['bias'])
-        self.mlp = FFN(config)
+        self.ln_1 = LayerNorm(hidden_dim, bias=bias)
+        self.attn = CausalSelfAttention(
+            hidden_dim=hidden_dim,
+            num_heads=num_heads,
+            bias=bias,
+            dropout=dropout,
+        )
+        self.ln_2 = LayerNorm(hidden_dim, bias=bias)
+        self.mlp = FFN(
+            hidden_dim=hidden_dim,
+            ffn_dim=ffn_dim,
+            bias=bias,
+            dropout=dropout,
+        )
 
-
-
-    def forward(self, x):
-        x = x + self.attn(self.ln_1(x))
+    def forward(self, x, attention_mask=None):
+        """
+        A simple, residual forward
+        pass through the GPT block.
+        Args:
+            x: the input tensor (b, s, h)
+        """
+        x = x + self.attn(self.ln_1(x), attention_mask)
         x = x + self.mlp(self.ln_2(x))
         return x
 
 
-class baseGPT(nn.Module):
-
-    def __init__(self, config):
+class NextTokenHead(nn.Module):
+    def __init__(self, hidden_dim, vocab_size):
         super().__init__()
-        assert config['arch']["vocab_size"] is not None
-        assert config['arch']["context_window"] is not None
-        self.config = config
-        self.tokenizer = tokenizer(
-            config=config
-        )
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.tokenizer.device = self.device
+        self.ln = LayerNorm(hidden_dim, bias=True)
+        self.linear = nn.Linear(hidden_dim, vocab_size, bias=False)
 
-        # prepare the dataset if necessary
-        self.tokenizer.prepare_dataset()
+    def forward(self, x):
+        x = self.ln(x)
+        logits = self.linear(x)
+        return logits
 
+
+class BaseGPT(nn.Module):
+
+    def __init__(self, cfg):
+        super().__init__()
+        assert cfg["vocab_size"] is not None
+        assert cfg["context_window"] is not None
+
+        self.cfg = cfg
 
         # construct the actual model
-        self.transformer = nn.ModuleDict(dict(
-            wte = nn.Embedding(config['arch']['vocab_size'], config['arch']['hidden_dim']),
-            wpe = nn.Embedding(config['arch']['context_window'], config['arch']['hidden_dim']),
-            drop = nn.Dropout(config['arch']['dropout']),
-            h = nn.ModuleList([Block(config) for _ in range(config['arch']['depth'])]),
-            ln_f = LayerNorm(config['arch']['hidden_dim'], bias=config['arch']['bias']),
-        ))
-        self.lm_head = nn.Linear(
-            config['arch']['hidden_dim'], 
-            config['arch']['vocab_size'], 
-            bias=False
+        self.embedder = BaselineEmbedder(
+            hidden_dim=cfg["hidden_dim"],
+            context_window=cfg["context_window"],
+            vocab_size=cfg["vocab_size"],
         )
-        # with weight tying when using torch.compile() some warnings get generated:
-        # "UserWarning: functional_call was passed multiple values for tied weights.
-        # This behavior is deprecated and will be an error in future versions"
-        # not 100% sure what this is, so far seems to be harmless. TODO investigate
-        self.transformer.wte.weight = self.lm_head.weight # https://paperswithcode.com/method/weight-tying
+        self.transformer = nn.ModuleDict(
+            dict(
+                drop=nn.Dropout(cfg["dropout"]),
+                h=nn.ModuleList(
+                    [
+                        Block(
+                            hidden_dim=cfg["hidden_dim"],
+                            ffn_dim=cfg["ffn_dim"],
+                            bias=cfg["bias"],
+                            num_heads=cfg["num_heads"],
+                            dropout=cfg["dropout"],
+                        )
+                        for _ in range(cfg["depth"])
+                    ]
+                ),
+            )
+        )
+
+        self.lm_head = NextTokenHead(
+            hidden_dim=cfg["hidden_dim"],
+            vocab_size=cfg["vocab_size"],
+        )
+
+        # check if vocab size is the same as the number of tokens
+        # assert (
+        #    self.embedder.tokenizer.max_token_value == cfg["vocab_size"]
+        # ), f"Vocab size ({cfg['vocab_size']}) must be the same as the number of tokens in the tokenizer ({self.embedder.tokenizer.max_token_value})"
+
+        # share the weights between the token embeddings and the final logit layer
+        # self.embedder.embedding.weight = (
+        #    self.lm_head.linear.weight
+        # ) # https://paperswithcode.com/method/weight-tying
 
         # init all weights
-        self.apply(self._init_weights)
-        # apply special scaled init to the residual projections, per GPT-2 paper
-        for pn, p in self.named_parameters():
-            if pn.endswith('c_proj.weight'):
-                torch.nn.init.normal_(p, mean=0.0, std=0.02/math.sqrt(2 * config['arch']['depth']))
+        self.apply(lambda module: gpt2_weights_init(module, self.cfg["depth"]))
 
         # report number of parameters
-        print("number of parameters: %.2fM" % (self.get_num_params()/1e6,))
+        print_model_stats(self)
 
+    def feature_extraction(self, token_ids):
+        """
+        Use the model to get the text features.
+        """
+        b, s = token_ids.size()
 
-    def get_num_params(self):
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+        # check that the sequence length is not longer than the context window
+        assert (
+            s <= self.cfg["context_window"]
+        ), f"Cannot forward sequence of length {s}, block size is only {self.cfg['context_window']}"
 
-    def _init_weights(self, module):
-        if isinstance(module, nn.Linear):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
-            if module.bias is not None:
-                torch.nn.init.zeros_(module.bias)
-        elif isinstance(module, nn.Embedding):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+        # embed and pos-encode the tokens
+        x = self.embedder.embed_tokens(token_ids)
 
-
-    def get_batch(self, split="train", device="cuda"):
-        return self.tokenizer.get_batch(split=split, device=device)
-
-    def forward(self, idx, targets=None):
-        device = idx.device
-        b, t = idx.size()
-        assert t <= self.config['arch']['context_window'], f"Cannot forward sequence of length {t}, block size is only {self.config['arch']['context_window']}"
-        pos = torch.arange(0, t, dtype=torch.long, device=device) # shape (t)
-
-        # forward the GPT model itself
-        tok_emb = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd)
-        pos_emb = self.transformer.wpe(pos) # position embeddings of shape (t, n_embd)
-        x = self.transformer.drop(tok_emb + pos_emb)
+        # forward through the GPT transformer
+        x = self.transformer.drop(x)
         for block in self.transformer.h:
             x = block(x)
-        x = self.transformer.ln_f(x)
 
-        if targets is not None:
-            # if we are given some desired targets also calculate the loss
-            logits = self.lm_head(x)
-            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)
-        else:
-            # inference-time mini-optimization: only forward the lm_head on the very last position
-            logits = self.lm_head(x[:, [-1], :]) # note: using list [-1] to preserve the time dim
-            loss = None
+        return x
 
-        return logits, loss
-
-
-    def configure_optimizers(self, weight_decay, learning_rate, betas, device_type):
-        # start with all of the candidate parameters
-        param_dict = {pn: p for pn, p in self.named_parameters()}
-        # filter out those that do not require grad
-        param_dict = {pn: p for pn, p in param_dict.items() if p.requires_grad}
-        # create optim groups. Any parameters that is 2D will be weight decayed, otherwise no.
-        # i.e. all weight tensors in matmuls + embeddings decay, all biases and layernorms don't.
-        decay_params = [p for n, p in param_dict.items() if p.dim() >= 2]
-        nodecay_params = [p for n, p in param_dict.items() if p.dim() < 2]
-        optim_groups = [
-            {'params': decay_params, 'weight_decay': weight_decay},
-            {'params': nodecay_params, 'weight_decay': 0.0}
-        ]
-        num_decay_params = sum(p.numel() for p in decay_params)
-        num_nodecay_params = sum(p.numel() for p in nodecay_params)
-        print(f"num decayed parameter tensors: {len(decay_params)}, with {num_decay_params:,} parameters")
-        print(f"num non-decayed parameter tensors: {len(nodecay_params)}, with {num_nodecay_params:,} parameters")
-        # Create AdamW optimizer and use the fused version if it is available
-        fused_available = 'fused' in inspect.signature(torch.optim.AdamW).parameters
-        use_fused = fused_available and device_type == 'cuda'
-        extra_args = dict(fused=True) if use_fused else dict()
-        optimizer = torch.optim.AdamW(optim_groups, lr=learning_rate, betas=betas, **extra_args)
-        print(f"using fused AdamW: {use_fused}")
-
-        return optimizer
-
-
-    @torch.no_grad()
-    def generate(self, input_text, max_new_tokens, temperature=1.0, top_k=None):
+    def forward(self, token_ids):
         """
-        Take a conditioning sequence of indices idx (LongTensor of shape (b,t)) and complete
-        the sequence max_new_tokens times, feeding the predictions back into the model each time.
-        Most likely you'll want to make sure to be in model.eval() mode of operation for this.
+        The default forward pass is used for training and accepts the
+        token_ids as input. When the model is in eval mode, only the
+        last token is passed into the NextTokenHead.
         """
-        idx = self.tokenizer_encode(input_text, device=self.device)
+        # extract the features
+        x = self.feature_extraction(token_ids)
 
-        for _ in range(max_new_tokens):
-            # if the sequence context is growing too long we must crop it at block_size
-            #input(idx)
-            idx_cond = idx if idx.size(1) <= self.config['arch']['context_window'] else idx[:, -self.config.block_size:]
-            # forward the model to get the logits for the index in the sequence
-            logits, _ = self(idx_cond)
-            # pluck the logits at the final step and scale by desired temperature
-            logits = logits[:, -1, :] / temperature
-            # optionally crop the logits to only the top k options
-            if top_k is not None:
-                v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
-                logits[logits < v[:, [-1]]] = -float('Inf')
-            # apply softmax to convert logits to (normalized) probabilities
-            probs = F.softmax(logits, dim=-1)
-            # sample from the distribution
-            idx_next = torch.multinomial(probs, num_samples=1)
-            # append sampled index to the running sequence and continue
-            idx = torch.cat((idx, idx_next), dim=1)
+        # forward the entire sequence through the lm_head
+        logits = self.lm_head(x)
+        return logits
 
-        return self.tokenizer.decode_tokens(idx[0].tolist())
+    def inference(self, text_string):
+        """
+        Similar to the forward pass, but takes in a string
+        (or batch of strings) and only return the logits
+        for the next token.
+        Args:
+            text_string: a string or list of strings
+        Returns:
+            logits for the next token
+        """
+        # fully encode the text string (or batch of text string)
+        x, attention_mask = self.embedder(text_string, pad_truncate=True)
+
+        # extract the features
+        x = self.transformer.drop(x)
+        for block in self.transformer.h:
+            x = block(x)
+
+        # forward only the last token through the lm_head
+        logits = self.lm_head(x[:, -1, :])
+        return logits

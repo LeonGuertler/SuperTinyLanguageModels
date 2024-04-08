@@ -1,1 +1,0 @@
-scp -P 13806 leon@0.tcp.eu.ngrok.io:/home/leon/Desktop/Research/tiny/tinyUniverse/arch_exps/tiny-baseline/outputs/2024-03-14/08-00-10/outputs/ckpt.pt /home/leon/Desktop/Research/A-star/create/SuperTinyLanguageModels/ckpt.pt
