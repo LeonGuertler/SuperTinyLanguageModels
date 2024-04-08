@@ -47,10 +47,10 @@ class StandardGenerator(nn.Module):
             probs = F.softmax(logits, dim=-1)
             # sample from the distribution
             idx_next = torch.multinomial(probs, num_samples=1)
-            new_char = self.model.embedder.tokenizer.decode([idx_next])
-            if new_char == self.model.embedder.tokenizer.eot_token:
-                print("detected", new_char)
+            if idx_next == self.model.embedder.tokenizer.eot_token:
                 break
+            new_char = self.model.embedder.tokenizer.decode([idx_next])
+
             input_string += new_char
         return input_string[len(input_text):]
 
