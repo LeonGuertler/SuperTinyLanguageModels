@@ -5,6 +5,9 @@ outputs
 checkpoints
 data/
 *.DS_store
+*.out
+sbatch.sh
+freshenv
 
 ### DEFAULTS FROM GITHUB ###
 __pycache__/

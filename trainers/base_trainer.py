@@ -146,7 +146,7 @@ class BaseTrainer:
                         }
                     )
             # save checkpoints
-            if not iter_num % self.cfg.trainer.training.checkpoint_interval:
+            if not iter_num % self.cfg.trainer.optimizer.checkpoint_interval:
                 self._save_model(iter_num)
 
 
@@ -154,9 +154,15 @@ class BaseTrainer:
             t1 = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval:
                 lossf = loss.item() * self.gradient_accumulation_steps
-                print(
-                    f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {t1-t0:.1f}s"
-                )
+                if self.use_wandb:
+                    wandb.log(
+                        {
+                            "iter": iter_num,
+                            "loss": lossf,
+                            "lr": lr,
+                            "time": t1 - t0,
+                        }
+                    )
         # save the final model
         self._save_model(iter_num)
 

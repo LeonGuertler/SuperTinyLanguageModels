@@ -18,16 +18,16 @@ class ModelWrapper:
         with self.ctx:
             with torch.no_grad():
                 outputs = [self.model.default_generate(prompt) for prompt in prompts]
+        predictions = []
         for output, option in zip(outputs, options):
             best, best_score = None, float("inf")
             for opt in option:
                 score = Levenshtein.distance(output, opt)
                 if score < best_score:
                     best, best_score = opt, score
-        outputs.append(best)
+            predictions.append(best)
+        return predictions
 
-        return outputs
-
-    def embed(self, _):
+    def encode(self, _):
         """Embed the input"""
         pass

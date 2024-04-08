@@ -3,3 +3,4 @@ tiktoken
 datasets
 wandb
 mteb
+Levenshtein

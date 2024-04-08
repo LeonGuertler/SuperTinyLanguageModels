@@ -21,7 +21,7 @@ optimizer:
   grad_clip: 1.0
   decay_lr: True
   warmup_iters: 5000
-  checkpoint_interval: 100000
+  checkpoint_interval: 10000
 
 scheduler:
   name: "cosine"

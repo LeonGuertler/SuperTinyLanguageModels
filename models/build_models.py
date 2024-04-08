@@ -23,8 +23,9 @@ def build_model(cfg=None, model_checkpoint=None):
     # check if model is loaded
     if model_checkpoint is not None:
         # load model with correct architecture
-        model = MODEL_CLASSES[model_checkpoint["config"]["arch"]["model"]](
-            cfg=model_checkpoint["config"]
+        # assume access to original config
+        model = MODEL_CLASSES[cfg["model"]](
+            cfg=cfg
         )
 
         # load model weights

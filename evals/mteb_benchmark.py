@@ -3,14 +3,7 @@ https://arxiv.org/abs/2210.07316"""
 
 import mteb
 
-from evals import benchmark
-
-"""Run the mteb benchmark to evaluate the model embeddings.
-https://arxiv.org/abs/2210.07316"""
-
-import mteb
-
-from evals import benchmark
+import benchmark
 
 
 class MTEBBenchmark(benchmark.Benchmark):
@@ -23,16 +16,8 @@ class MTEBBenchmark(benchmark.Benchmark):
     def execute(self):
         mteb.MTEB(
             tasks=["Banking77Classification", "RedditClustering", "SummEval"]
-        ).run(model=benchmark.FauxModel())
+        ).run(model=model)
         return {}
-
-
-if __name__ == "__main__":
-    mteb_model = mteb.MTEB(
-        tasks=["Banking77Classification", "RedditClustering", "SummEval"]
-    )
-    mteb_model.run(model=benchmark.FauxModel())
-
 
 if __name__ == "__main__":
     mteb_model = mteb.MTEB(

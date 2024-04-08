@@ -24,7 +24,7 @@ class StandardDataloader:
         super().__init__()
         self.cfg = cfg
         self.data_dir = data_dir
-        self.dataset_path = os.path.join(self.data_dir, self.cfg["model"]["tokenizer"])
+        self.dataset_path = os.path.join(self.data_dir, self.cfg["trainer"]["dataset"], self.cfg["model"]["tokenizer"])
 
         self.context_window = self.cfg["model"]["context_window"]
         self.batch_size = self.cfg["trainer"]["training"]["batch_size"]

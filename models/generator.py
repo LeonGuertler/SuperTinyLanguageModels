@@ -47,11 +47,12 @@ class StandardGenerator(nn.Module):
             probs = F.softmax(logits, dim=-1)
             # sample from the distribution
             idx_next = torch.multinomial(probs, num_samples=1)
-            print(idx_next)
             new_char = self.model.embedder.tokenizer.decode([idx_next])
             if new_char == self.model.embedder.tokenizer.eot_token:
+                print("detected", new_char)
                 break
             input_string += new_char
+        return input_string[len(input_text):]
 
     def forward(self, x):
         """Call the underlying model"""
