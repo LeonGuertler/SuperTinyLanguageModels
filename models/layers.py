@@ -55,7 +55,6 @@ class CausalSelfAttention(nn.Module):
         """
         Forward pass
         """
-        assert attention_mask is None, "Not implemented yet"
         B, S, H = (
             x.size()
         ) # batch, sequence, hidden
@@ -72,15 +71,17 @@ class CausalSelfAttention(nn.Module):
             1, 2
         )  # (B, nh, T, hs)
 
+        if attention_mask is None:
+            # use torch causal attention mask
+            attention_mask = torch.ones((S, S), device=x.device).triu(1).bool()
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         # flash attention
         y = torch.nn.functional.scaled_dot_product_attention(
             query=q,
             key=k,
             value=v,
-            attn_mask=None,
+            attn_mask=attention_mask,
             dropout_p=self.dropout if self.training else 0,
-            is_causal=True,
         )
         y = (
             y.transpose(1, 2).contiguous().view(B, S, H)
