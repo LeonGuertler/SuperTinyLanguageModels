@@ -223,8 +223,19 @@ class ProfilerGPT(nn.Module):
         torch.cuda.synchronize()
         time_dict["lm_head"] = start.elapsed_time(end)
 
-        input(time_dict)
-        return logits 
+        def pretty(d, indent=0):
+            for key, value in d.items():
+                print('\t' * indent + str(key))
+                if isinstance(value, dict):
+                    pretty(value, indent+1)
+                else:
+                    print('\t' * (indent+1) + str(value))
+
+        pretty(time_dict)
+        input()
+
+        #input(time_dict)
+        return logits
 
         
     def inference(self, text_string):
