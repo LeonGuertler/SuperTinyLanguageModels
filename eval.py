@@ -49,3 +49,6 @@ if __name__ == "__main__":
     # pylint: enable=no-value-for-parameter
 
     #outputs/2024-04-11/11-34-28/checkpoints/ckpt_9999.pt
+
+
+python3 generate.py ckpt_path="outputs/2024-04-11/11-34-28/checkpoints/ckpt_9999.pt"
