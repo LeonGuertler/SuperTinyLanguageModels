@@ -1,6 +1,6 @@
 """Generator Base Wrapper"""
 
-import models.baseline as baseline
+import models.architecture.baseline as baseline
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

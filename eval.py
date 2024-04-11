@@ -47,3 +47,5 @@ if __name__ == "__main__":
     # pylint: disable=no-value-for-parameter
     main()
     # pylint: enable=no-value-for-parameter
+
+    #outputs/2024-04-11/11-34-28/checkpoints/ckpt_9999.pt
