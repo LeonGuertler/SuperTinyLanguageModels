@@ -5,7 +5,7 @@ benchmarks:
   - "arc"
   - "hellaswag"
   - "mmlu"
-  - "mteb"
+  # - "mteb"
   - "nonsense"
   - "vitaminc"
   - "winograd"

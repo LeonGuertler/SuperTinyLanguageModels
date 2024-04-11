@@ -3,7 +3,7 @@ https://arxiv.org/abs/2210.07316"""
 
 import mteb
 
-import benchmark
+from evals import benchmark
 
 
 class MTEBBenchmark(benchmark.Benchmark):

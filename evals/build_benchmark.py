@@ -3,7 +3,7 @@
 import evals.arc as arc
 import evals.benchmark as benchmark
 import evals.hellaswag as hellaswag
-import evals.mteb_benchmark as mteb_benchmark
+# import evals.mteb_benchmark as mteb_benchmark
 import evals.mmlu as mmlu
 import evals.vitaminc as vitaminc
 import evals.nonsense as nonsense
@@ -18,8 +18,8 @@ def build_benchmark(benchmark_name, model) -> benchmark.Benchmark:
         return arc.ARC(name=benchmark_name, model=model)
     if benchmark_name == "hellaswag":
         return hellaswag.HellaSwag(name=benchmark_name, model=model)
-    if benchmark_name == "mteb":
-        return mteb_benchmark.MTEBBenchmark(name=benchmark_name, model=model)
+    # if benchmark_name == "mteb":
+        # return mteb_benchmark.MTEBBenchmark(name=benchmark_name, model=model)
     if benchmark_name == "mmlu":
         return mmlu.MMLUBenchmark(name=benchmark_name, model=model)
     if benchmark_name == "vitaminc":
