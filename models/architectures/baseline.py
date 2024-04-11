@@ -12,7 +12,7 @@ from torch.nn import functional as F
 from torch.nn.parameter import Parameter
 
 # import the layers
-from models.layers import LayerNorm, CausalSelfAttention, FFN
+from models.layers import LayerNorm, CausalSelfAttention, FFN, Block, NextTokenHead
 
 from models.embedding import BaselineEmbedder
 
@@ -51,33 +51,33 @@ class BaseGPT(nn.Module):
         # report number of parameters
         print_model_stats(self)
 
-    def build_embedder(self)
+    def build_embedder(self):
         return BaselineEmbedder(
-            hidden_dim=cfg["hidden_dim"],
-            context_window=cfg["context_window"],
-            vocab_size=cfg["vocab_size"],
+            hidden_dim=self.cfg["hidden_dim"],
+            context_window=self.cfg["context_window"],
+            vocab_size=self.cfg["vocab_size"],
         )
 
     def build_transformer(self):
         return nn.ModuleDict(
             dict(
-                drop=nn.Dropout(cfg["dropout"]),
+                drop=nn.Dropout(self.cfg["dropout"]),
                 h=nn.ModuleList(
                     [Block(
-                        hidden_dim=cfg["hidden_dim"], 
-                        ffn_dim=cfg["ffn_dim"], 
-                        bias=cfg["bias"], 
-                        num_heads=cfg["num_heads"], 
-                        dropout=cfg["dropout"],
-                    ) for _ in range(cfg["depth"])]
+                        hidden_dim=self.cfg["hidden_dim"], 
+                        ffn_dim=self.cfg["ffn_dim"], 
+                        bias=self.cfg["bias"], 
+                        num_heads=self.cfg["num_heads"], 
+                        dropout=self.cfg["dropout"],
+                    ) for _ in range(self.cfg["depth"])]
                 )
             )
         )
 
     def build_lm_head(self):
         return NextTokenHead(
-            hidden_dim=cfg["hidden_dim"],
-            vocab_size=cfg["vocab_size"],
+            hidden_dim=self.cfg["hidden_dim"],
+            vocab_size=self.cfg["vocab_size"],
         )
 
     def feature_extraction(self, token_ids):

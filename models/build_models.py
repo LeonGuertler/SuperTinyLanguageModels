@@ -5,12 +5,14 @@ from scratch or from checkpoints
 
 from models.architectures.baseline import BaseGPT
 from models.architectures.profiler import ProfilerGPT
+from models.architectures.shared_fnn_head import SharedFNNHead
 
 
 
 MODEL_CLASSES = {
     "baseline": BaseGPT,
     "profiler": ProfilerGPT,
+    "sharedfnn": SharedFNNHead,
 }
 
 
