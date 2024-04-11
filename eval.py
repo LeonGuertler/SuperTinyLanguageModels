@@ -15,7 +15,7 @@ from models.build_models import build_model
 from evals.load_evaluators import load_evaluator
 
 
-@hydra.main(config_path="configs/", config_name="eval")
+@hydra.main(config_path="configs/eval", config_name="baseline")
 def main(cfg):
     """ run the main eval loop """
 
