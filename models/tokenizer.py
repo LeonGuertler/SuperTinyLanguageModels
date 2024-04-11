@@ -196,8 +196,8 @@ def load_custom_bpe(bpe_name):
 
 
 TOKENIZER_DICT = {
-    "gpt2": tiktoken.get_encoding("gpt2"),
-    "bpe-4096": load_custom_bpe("tokenizers/bpe-4096.model")
+    "gpt2": lambda: tiktoken.get_encoding("gpt2"),
+    "bpe-4096": lambda: load_custom_bpe("tokenizers/bpe-4096.model")
 }
 
 def build_tokenizer(tokenizer_name):
