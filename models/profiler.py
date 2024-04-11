@@ -91,7 +91,7 @@ class Block(nn.Module):
         time_dict["mlp_residual"] = start_block.elapsed_time(end_block)
 
 
-        return x
+        return x, time_dict
     
 class NextTokenHead(nn.Module):
     def __init__(self, hidden_dim, vocab_size):
