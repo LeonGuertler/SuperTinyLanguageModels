@@ -105,9 +105,9 @@ class BaseGPT(nn.Module):
         #), f"Vocab size ({cfg['vocab_size']}) must be the same as the number of tokens in the tokenizer ({self.embedder.tokenizer.max_token_value})"
 
         # share the weights between the token embeddings and the final logit layer
-        #self.embedder.embedding.weight = (
-        #    self.lm_head.linear.weight
-        #) # https://paperswithcode.com/method/weight-tying
+        self.embedder.embedding.weight = (
+            self.lm_head.linear.weight
+        ) # https://paperswithcode.com/method/weight-tying
 
 
         # init all weights
