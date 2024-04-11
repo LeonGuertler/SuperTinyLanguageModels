@@ -68,6 +68,7 @@ class BaseGPT(nn.Module):
 
     def __init__(self, cfg):
         super().__init__()
+        input(cfg)
         assert cfg["vocab_size"] is not None
         assert cfg["context_window"] is not None
 
