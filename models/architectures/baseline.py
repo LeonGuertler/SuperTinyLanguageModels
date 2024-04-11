@@ -19,50 +19,6 @@ from models.embedding import BaselineEmbedder
 from models.weight_init import gpt2_weights_init
 from models.utils import print_model_stats
 
-class Block(nn.Module):
-    """
-    A simple abstraction to combine the 
-    LayerNorms, SelfAttention and FeedForward layers
-    """
-    def __init__(self, hidden_dim, ffn_dim, bias, num_heads, dropout):
-        super().__init__()
-        self.ln_1 = LayerNorm(hidden_dim, bias=bias)
-        self.attn = CausalSelfAttention(
-            hidden_dim=hidden_dim,
-            num_heads=num_heads,
-            bias=bias,
-            dropout=dropout,
-        )
-        self.ln_2 = LayerNorm(hidden_dim, bias=bias)
-        self.mlp = FFN(
-            hidden_dim=hidden_dim,
-            ffn_dim=ffn_dim,
-            bias=bias,
-            dropout=dropout,
-        )
-
-    def forward(self, x, attention_mask=None):
-        """
-        A simple, residual forward 
-        pass through the GPT block.
-        Args:
-            x: the input tensor (b, s, h)
-        """
-        x = x + self.attn(self.ln_1(x), attention_mask)
-        x = x + self.mlp(self.ln_2(x))
-        return x
-    
-class NextTokenHead(nn.Module):
-    def __init__(self, hidden_dim, vocab_size):
-        super().__init__()
-        self.ln = LayerNorm(hidden_dim, bias=True)
-        self.linear = nn.Linear(hidden_dim, vocab_size, bias=False)
-
-    def forward(self, x):
-        x = self.ln(x)
-        logits = self.linear(x)
-        return logits
-
 
 class BaseGPT(nn.Module):
 
@@ -74,31 +30,10 @@ class BaseGPT(nn.Module):
         self.cfg = cfg
 
         # construct the actual model
-        self.embedder =  BaselineEmbedder(
-            hidden_dim=cfg["hidden_dim"],
-            context_window=cfg["context_window"],
-            vocab_size=cfg["vocab_size"],
-        )
-        self.transformer = nn.ModuleDict(
-            dict(
-                drop=nn.Dropout(cfg["dropout"]),
-                h=nn.ModuleList(
-                    [Block(
-                        hidden_dim=cfg["hidden_dim"], 
-                        ffn_dim=cfg["ffn_dim"], 
-                        bias=cfg["bias"], 
-                        num_heads=cfg["num_heads"], 
-                        dropout=cfg["dropout"],
-                    ) for _ in range(cfg["depth"])]
-                )
-            )
-        )
-
-        self.lm_head = NextTokenHead(
-            hidden_dim=cfg["hidden_dim"],
-            vocab_size=cfg["vocab_size"],
-        )
-
+        # these can be overriden in the child class
+        self.embedder = self.build_embedder()
+        self.transformer = self.build_transformer()
+        self.lm_head = self.build_lm_head()
         # check if vocab size is the same as the number of tokens
         #assert (
         #    self.embedder.tokenizer.max_token_value == cfg["vocab_size"]
@@ -116,7 +51,34 @@ class BaseGPT(nn.Module):
         # report number of parameters
         print_model_stats(self)
 
+    def build_embedder(self)
+        return BaselineEmbedder(
+            hidden_dim=cfg["hidden_dim"],
+            context_window=cfg["context_window"],
+            vocab_size=cfg["vocab_size"],
+        )
 
+    def build_transformer(self):
+        return nn.ModuleDict(
+            dict(
+                drop=nn.Dropout(cfg["dropout"]),
+                h=nn.ModuleList(
+                    [Block(
+                        hidden_dim=cfg["hidden_dim"], 
+                        ffn_dim=cfg["ffn_dim"], 
+                        bias=cfg["bias"], 
+                        num_heads=cfg["num_heads"], 
+                        dropout=cfg["dropout"],
+                    ) for _ in range(cfg["depth"])]
+                )
+            )
+        )
+
+    def build_lm_head(self):
+        return NextTokenHead(
+            hidden_dim=cfg["hidden_dim"],
+            vocab_size=cfg["vocab_size"],
+        )
 
     def feature_extraction(self, token_ids):
         """

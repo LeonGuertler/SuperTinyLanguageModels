@@ -125,3 +125,46 @@ class FFN(nn.Module):
         return x
 
 
+class Block(nn.Module):
+    """
+    A simple abstraction to combine the 
+    LayerNorms, SelfAttention and FeedForward layers
+    """
+    def __init__(self, hidden_dim, ffn_dim, bias, num_heads, dropout):
+        super().__init__()
+        self.ln_1 = LayerNorm(hidden_dim, bias=bias)
+        self.attn = CausalSelfAttention(
+            hidden_dim=hidden_dim,
+            num_heads=num_heads,
+            bias=bias,
+            dropout=dropout,
+        )
+        self.ln_2 = LayerNorm(hidden_dim, bias=bias)
+        self.mlp = FFN(
+            hidden_dim=hidden_dim,
+            ffn_dim=ffn_dim,
+            bias=bias,
+            dropout=dropout,
+        )
+
+    def forward(self, x, attention_mask=None):
+        """
+        A simple, residual forward 
+        pass through the GPT block.
+        Args:
+            x: the input tensor (b, s, h)
+        """
+        x = x + self.attn(self.ln_1(x), attention_mask)
+        x = x + self.mlp(self.ln_2(x))
+        return x
+    
+class NextTokenHead(nn.Module):
+    def __init__(self, hidden_dim, vocab_size):
+        super().__init__()
+        self.ln = LayerNorm(hidden_dim, bias=True)
+        self.linear = nn.Linear(hidden_dim, vocab_size, bias=False)
+
+    def forward(self, x):
+        x = self.ln(x)
+        logits = self.linear(x)
+        return logits
