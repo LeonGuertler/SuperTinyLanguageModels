@@ -34,7 +34,7 @@ def build_model(cfg=None, model_checkpoint=None):
         # check for device, here cpu is ok
         device_name = "cuda" if torch.cuda.is_available() else "cpu"
         # load model weights
-        model.load_state_dict(model_checkpoint["model"], device_map=device_name)
+        model.load_state_dict(model_checkpoint["model"])#, device_map=device_name)
         model.eval()
 
         return model
