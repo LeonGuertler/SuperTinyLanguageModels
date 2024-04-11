@@ -3,13 +3,15 @@ A simplistic model builder for building models
 from scratch or from checkpoints
 """
 
-from models.baseline import BaseGPT
-from models.profiler import ProfilerGPT
+from models.architectures.baseline import BaseGPT
+from models.architectures.profiler import ProfilerGPT
+from models.architectures.gpt2_small import GPT2Small 
+
 
 
 MODEL_CLASSES = {
     "baseline": BaseGPT,
-    "profiler": ProfilerGPT
+    "profiler": ProfilerGPT,
 }
 
 
