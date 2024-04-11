@@ -25,7 +25,7 @@ def main(cfg):
 
     generator = StandardGenerator(
         model=model,
-        generate_cfg=cfg["generate_cfg"]
+        generate_cfg=cfg["generate_config"]
     )
 
     # generate the text
