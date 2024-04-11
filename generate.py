@@ -9,7 +9,7 @@ from models.generator import StandardGenerator
 from models.build_models import build_model
 
 
-@hydra.main(config_path="configs/generate", config_name="baselines")
+@hydra.main(config_path="configs/generate", config_name="baseline")
 def main(cfg):
     """ run the main eval loop """
 
