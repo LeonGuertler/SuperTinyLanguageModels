@@ -121,7 +121,7 @@ def test_baseline_embedder():
 """
 Test the model builder and baseline model
 """
-from models.baseline import BaseGPT
+from models.architectures.baseline import BaseGPT
 from models.build_models import build_model
 from models.utils import print_model_stats
 

@@ -1,0 +1,14 @@
+ckpt_path: "checkpoints/ckpt.pth"
+
+benchmarks:
+  - "arc"
+  - "hellaswag"
+  - "mmlu"
+  - "mteb"
+  - "nonsense"
+  - "vitaminc"
+  - "winograd"
+
+generate_config:
+  temperature: 0.8
+  top_k: 10

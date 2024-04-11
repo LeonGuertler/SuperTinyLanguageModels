@@ -4,10 +4,10 @@ training:
   trainer: "base_trainer"
   batch_size: 24
   gradient_accumulation_steps: 20
-  max_iters: 10000
-  lr_decay_iters: 10000
+  max_iters: 20000
+  lr_decay_iters: 20000
   warmup_iters: 1000
-  eval_interval: 2000
+  eval_interval: 5000
   log_interval: 1
   eval_iters: 200
   checkpoint_interval: 1e9

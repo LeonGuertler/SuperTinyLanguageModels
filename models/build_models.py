@@ -2,7 +2,7 @@
 A simplistic model builder for building models 
 from scratch or from checkpoints
 """
-
+import torch 
 from models.architectures.baseline import BaseGPT
 from models.architectures.profiler import ProfilerGPT
 
@@ -30,8 +30,10 @@ def build_model(cfg=None, model_checkpoint=None):
             cfg=model_checkpoint["config"]
         )
 
+        # check for device, here cpu is ok
+        device_name = "cuda" if torch.cuda.is_available() else "cpu"
         # load model weights
-        model.load_state_dict(model_checkpoint["model"])
+        model.load_state_dict(model_checkpoint["model"], device_map=device_name)
         model.eval()
 
         return model
@@ -41,3 +43,4 @@ def build_model(cfg=None, model_checkpoint=None):
         model = MODEL_CLASSES[cfg["model"]](cfg=cfg)
 
         return model
+
