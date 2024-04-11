@@ -105,7 +105,7 @@ class NextTokenHead(nn.Module):
         return logits
 
 
-class BaseGPT(nn.Module):
+class ProfilerGPT(nn.Module):
 
     def __init__(self, cfg):
         super().__init__()
