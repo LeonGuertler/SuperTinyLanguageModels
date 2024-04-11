@@ -20,13 +20,13 @@ def main(cfg):
     """ run the main eval loop """
 
     # set the checkpoint path to absolute path
-    cfg["checkpoint_path"] = hydra.utils.to_absolute_path(
-        cfg["checkpoint_path"]
+    cfg["ckpt_path"] = hydra.utils.to_absolute_path(
+        cfg["ckpt_path"]
     )
 
     # load checkpoint from the path
     model = build_model(
-        model_checkpoint=torch.load(cfg["checkpoint_path"])
+        model_checkpoint=torch.load(cfg["ckpt_path"])
     )
 
     # load the evaluator
