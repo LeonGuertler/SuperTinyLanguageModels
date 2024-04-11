@@ -19,6 +19,35 @@ from models.embedding import BaselineEmbedder
 from models.weight_init import gpt2_weights_init
 from models.utils import print_model_stats
 
+
+class DifferentiableTopKTHEmbedder(nn.Module):
+    """
+    Given the current sequence, find the top k learned embeddings that best describe the current objects
+    and return them. Relationship between objects how? Should be learned as well.
+    """
+    def __init__(
+        self,
+        embedding_size,
+        number_embeddings,
+        threshold,
+    ):
+        super().__init__()
+        self.embedding_size = embedding_size
+        self.number_embeddings = number_embeddings
+        self.threshold = threshold
+
+        # initialize the embeddings
+        self.embeddings = nn.Parameter(
+            torch.randn(self.number_embeddings, self.embedding_size)
+        )
+
+    def forward(self, x):
+        """
+        input is a sequence of tokens. Output should be a sequence of embeddings
+        """
+
+        
+
 class Block(nn.Module):
     """
     A simple abstraction to combine the 

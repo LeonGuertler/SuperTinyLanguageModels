@@ -1,0 +1,6 @@
+ckpt_path: "checkpoints/ckpt.pth"
+input_text: "The earth is the third planet from the sun."
+
+generate_config:
+  temperature: 0.8
+  top_k: 10

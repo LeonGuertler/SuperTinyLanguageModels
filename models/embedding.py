@@ -12,6 +12,9 @@ import tiktoken
 from models.positional_encoding import (
     LearnedPosEncoding
 )
+from models.tokenizer import (
+    build_tokenizer
+)
 
 
 
@@ -25,10 +28,13 @@ class BaselineEmbedder(torch.nn.Module):
             hidden_dim,
             context_window,
             vocab_size,
+            tokenizer_name
         ):
         super().__init__()
         # load the tokenizer
-        self.tokenizer = tiktoken.get_encoding("gpt2")
+        self.tokenizer = build_tokenizer(
+            tokenizer_name=tokenizer_name
+        ) #tiktoken.get_encoding("gpt2")
 
         # technically the gpt2 tokenizer has not pad token,
         # but when adjusting the attention_mask, this should

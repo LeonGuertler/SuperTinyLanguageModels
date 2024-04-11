@@ -8,6 +8,7 @@ from models.architectures.profiler import ProfilerGPT
 
 
 
+
 MODEL_CLASSES = {
     "baseline": BaseGPT,
     "profiler": ProfilerGPT,
