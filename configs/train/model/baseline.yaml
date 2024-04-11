@@ -1,7 +1,8 @@
 model: "baseline"
 tokenizer: "gpt2"
 context_window: 512
-vocab_size: 50304
+vocab_size: 50257
+vocab_size_old: 50304
 depth: 8
 hidden_dim: 512
 num_heads: 8

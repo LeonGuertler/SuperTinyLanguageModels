@@ -27,6 +27,7 @@ class BaseTrainer:
         self.scaler = None
         self.use_wandb = cfg.general.logging.wandb_log
         self.checkpoint_dir = cfg.general.paths.checkpoint_dir
+        
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
         self.ctx = self._setup_ctx()
