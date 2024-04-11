@@ -32,9 +32,10 @@ class BaselineEmbedder(torch.nn.Module):
         ):
         super().__init__()
         # load the tokenizer
-        self.tokenizer = build_tokenizer(
+        """self.tokenizer = build_tokenizer(
             tokenizer_name=tokenizer_name
-        ) #tiktoken.get_encoding("gpt2")
+        ) """
+        self.tokenizer = tiktoken.get_encoding("gpt2")
 
         # technically the gpt2 tokenizer has not pad token,
         # but when adjusting the attention_mask, this should
