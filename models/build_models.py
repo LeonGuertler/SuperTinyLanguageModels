@@ -5,7 +5,6 @@ from scratch or from checkpoints
 
 from models.architectures.baseline import BaseGPT
 from models.architectures.profiler import ProfilerGPT
-from models.architectures.gpt2_small import GPT2Small 
 
 
 
