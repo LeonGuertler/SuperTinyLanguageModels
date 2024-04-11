@@ -168,3 +168,40 @@ class NextTokenHead(nn.Module):
         x = self.ln(x)
         logits = self.linear(x)
         return logits
+
+class LoraLinear(nn.Module):
+    def __init__(self, in_features, out_features, bias=False, rank=32, alpha=1):
+        super(LoraLinear, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.rank = rank
+        self.alpha = alpha
+
+        # Original weight and bias
+        self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
+        if bias:
+            self.bias = nn.Parameter(torch.Tensor(out_features))
+        else:
+            self.register_parameter('bias', None)
+
+        # LORA specific parameters
+        self.A = nn.Parameter(torch.Tensor(out_features, rank))
+        self.B = nn.Parameter(torch.Tensor(rank, in_features))
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        nn.init.kaiming_uniform_(self.A, a=math.sqrt(5))
+        nn.init.kaiming_uniform_(self.B, a=math.sqrt(5))
+        if self.bias is not None:
+            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weight)
+            bound = 1 / math.sqrt(fan_in)
+            nn.init.uniform_(self.bias, -bound, bound)
+
+    def forward(self, input):
+        # LORA adaptation
+        lora_adaptation = self.alpha * (self.A @ self.B)
+        adapted_weight = self.weight + lora_adaptation
+
+        return nn.functional.linear(input, adapted_weight, self.bias)
