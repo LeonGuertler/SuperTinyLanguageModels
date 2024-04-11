@@ -4,10 +4,12 @@ from scratch or from checkpoints
 """
 
 from models.baseline import BaseGPT
+from models.profiler import ProfilerGPT
 
 
 MODEL_CLASSES = {
     "baseline": BaseGPT,
+    "profiler": ProfilerGPT
 }
 
 
