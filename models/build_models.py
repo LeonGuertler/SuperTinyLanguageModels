@@ -14,7 +14,7 @@ from models.architectures.shared_ffn_lora import SharedFNNLora
 MODEL_CLASSES = {
     "baseline": BaseGPT,
     "profiler": ProfilerGPT,
-    "sharedfnn": SharedFNN,
+    "sharedfnn": SharedFFN,
     "sharedfnnlora": SharedFNNLora,
 }
 
