@@ -27,7 +27,7 @@ from models.utils import print_model_stats
 
     
 
-class BaseGPT(nn.Module):
+class SharedFFN(nn.Module):
 
     def __init__(self, cfg):
         super().__init__()

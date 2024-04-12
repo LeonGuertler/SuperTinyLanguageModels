@@ -5,7 +5,7 @@ from scratch or from checkpoints
 import torch 
 from models.architectures.baseline import BaseGPT
 from models.architectures.profiler import ProfilerGPT
-from models.architectures.shared_fnn_head import SharedFNNHead
+from models.architectures.shared_fnn import SharedFFN
 from models.architectures.shared_fnn_lora import SharedFNNLora
 
 
@@ -14,7 +14,7 @@ from models.architectures.shared_fnn_lora import SharedFNNLora
 MODEL_CLASSES = {
     "baseline": BaseGPT,
     "profiler": ProfilerGPT,
-    "sharedfnn": SharedFNNHead,
+    "sharedfnn": SharedFNN,
     "sharedfnnlora": SharedFNNLora,
 }
 
