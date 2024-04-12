@@ -140,11 +140,11 @@ class SharedFNNLora(nn.Module):
         )
 
         # share ffn weights
-        for block in self.transformers.h:
-            block.mlp.c_fc.weight = self.transformers.h[0].mlp.c_fc.weight
-            block.mlp.c_fc.bias = self.transformers.h[0].mlp.c_fc.bias
-            block.mlp.c_proj.weight = self.transformers.h[0].mlp.c_proj.weight
-            block.mlp.c_proj.bias = self.transformers.h[0].mlp.c_proj.bias
+        for block in self.transformer.h:
+            block.mlp.c_fc.weight = self.transformer.h[0].mlp.c_fc.weight
+            block.mlp.c_fc.bias = self.transformer.h[0].mlp.c_fc.bias
+            block.mlp.c_proj.weight = self.transformer.h[0].mlp.c_proj.weight
+            block.mlp.c_proj.bias = self.transformer.h[0].mlp.c_proj.bias
 
         # check if vocab size is the same as the number of tokens
         #assert (
