@@ -27,44 +27,54 @@ from models.embedding import BaselineEmbedder
 from models.weight_init import gpt2_weights_init
 from models.utils import print_model_stats
 
+
+
 class LoraFNN(nn.Module):
     """
-    A simple Feed Forward Network block.
+    A simple Feed Forward Network block with lora channel
     """
-    def __init__(self, hidden_dim, ffn_dim, bias=False, dropout=0.0,
-        rank=32, lora_weighting=1
-        ):
+    def __init__(self, hidden_dim, ffn_dim, bias=False, dropout=0.0, rank=32, lora_weighting=1):
         super().__init__()
-        self.c_fc = LoraLinear(
+        self.c_fc = nn.Linear(
             hidden_dim,
             ffn_dim,
             bias=bias,
-            rank=rank,
-            alpha=lora_weighting
         )
 
         self.gelu = nn.GELU()
-        self.c_proj = LoraLinear(
+        self.c_proj = nn.Linear(
             ffn_dim,
             hidden_dim,
             bias=bias,
-            rank=rank,
-            alpha=lora_weighting
-
         )
         self.dropout = nn.Dropout(
             dropout
+        )
+
+        self.lora_weighting = lora_weighting
+        self.lora_lin_down = nn.Linear(
+            hidden_dim,
+            rank
+        )
+        self.lora_lin_up = nn.Linear(
+            rank,
+            hidden_dim
         )
 
     def forward(self, x):
         """
         Forward pass
         """
+        lx = self.lora_lin_down(x)
         x = self.c_fc(x)
+
         x = self.gelu(x)
+        lx = self.gelu(lx)
+
+        lx = self.lora_lin_up(lx)
         x = self.c_proj(x)
         x = self.dropout(x)
-        return x
+        return x + lx * self.lora_weighting
 
 class LoraBlock(nn.Module):
     """
