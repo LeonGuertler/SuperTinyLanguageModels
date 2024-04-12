@@ -1,10 +1,13 @@
-model: "baseline"
-tokenizer: "bpe-4096"
+model: "poolformer"
+tokenizer: "gpt2"
 context_window: 512
 vocab_size: 50257
+vocab_size_old: 50304
 depth: 8
 hidden_dim: 512
 num_heads: 8
 ffn_dim: 2048
 dropout: 0.1
 bias: False
+embedding_size: 1024
+number_embeddings: 2048

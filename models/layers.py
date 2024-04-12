@@ -125,3 +125,84 @@ class FFN(nn.Module):
         return x
 
 
+class Block(nn.Module):
+    """
+    A simple abstraction to combine the 
+    LayerNorms, SelfAttention and FeedForward layers
+    """
+    def __init__(self, hidden_dim, ffn_dim, bias, num_heads, dropout):
+        super().__init__()
+        self.ln_1 = LayerNorm(hidden_dim, bias=bias)
+        self.attn = CausalSelfAttention(
+            hidden_dim=hidden_dim,
+            num_heads=num_heads,
+            bias=bias,
+            dropout=dropout,
+        )
+        self.ln_2 = LayerNorm(hidden_dim, bias=bias)
+        self.mlp = FFN(
+            hidden_dim=hidden_dim,
+            ffn_dim=ffn_dim,
+            bias=bias,
+            dropout=dropout,
+        )
+
+    def forward(self, x, attention_mask=None):
+        """
+        A simple, residual forward 
+        pass through the GPT block.
+        Args:
+            x: the input tensor (b, s, h)
+        """
+        x = x + self.attn(self.ln_1(x), attention_mask)
+        x = x + self.mlp(self.ln_2(x))
+        return x
+    
+class NextTokenHead(nn.Module):
+    def __init__(self, hidden_dim, vocab_size):
+        super().__init__()
+        self.ln = LayerNorm(hidden_dim, bias=True)
+        self.linear = nn.Linear(hidden_dim, vocab_size, bias=False)
+
+    def forward(self, x):
+        x = self.ln(x)
+        logits = self.linear(x)
+        return logits
+    
+
+class LoraLinear(nn.Module):
+    def __init__(self, in_features, out_features, bias=False, rank=32, alpha=1):
+        super(LoraLinear, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.rank = rank
+        self.alpha = alpha
+
+        # Original weight and bias
+        self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
+        if bias:
+            self.bias = nn.Parameter(torch.Tensor(out_features))
+        else:
+            self.register_parameter('bias', None)
+
+        # LORA specific parameters
+        self.A = nn.Parameter(torch.Tensor(out_features, rank))
+        self.B = nn.Parameter(torch.Tensor(rank, in_features))
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        nn.init.kaiming_uniform_(self.A, a=math.sqrt(5))
+        nn.init.kaiming_uniform_(self.B, a=math.sqrt(5))
+        if self.bias is not None:
+            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weight)
+            bound = 1 / math.sqrt(fan_in)
+            nn.init.uniform_(self.bias, -bound, bound)
+
+    def forward(self, input):
+        # LORA adaptation
+        lora_adaptation = self.alpha * (self.A @ self.B)
+        adapted_weight = self.weight + lora_adaptation
+
+        return nn.functional.linear(input, adapted_weight, self.bias)

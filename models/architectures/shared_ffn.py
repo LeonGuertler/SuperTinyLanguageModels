@@ -63,6 +63,13 @@ class BaseGPT(nn.Module):
             vocab_size=cfg["vocab_size"],
         )
 
+        # share ffn weights
+        for block in self.transformers.h:
+            block.mlp.c_fc.weight = self.transformers.h[0].mlp.c_fc.weight
+            block.mlp.c_fc.bias = self.transformers.h[0].mlp.c_fc.bias
+            block.mlp.c_proj.weight = self.transformers.h[0].mlp.c_proj.weight
+            block.mlp.c_proj.bias = self.transformers.h[0].mlp.c_proj.bias
+
         # check if vocab size is the same as the number of tokens
         #assert (
         #    self.embedder.tokenizer.max_token_value == cfg["vocab_size"]

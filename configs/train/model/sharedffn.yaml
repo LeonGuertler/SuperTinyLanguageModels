@@ -1,5 +1,5 @@
-model: "baseline"
-tokenizer: "bpe-4096"
+model: "sharedfnn"
+tokenizer: "gpt2"
 context_window: 512
 vocab_size: 50257
 depth: 8

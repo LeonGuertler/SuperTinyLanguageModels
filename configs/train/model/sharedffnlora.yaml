@@ -1,5 +1,5 @@
-model: "baseline"
-tokenizer: "bpe-4096"
+model: "sharedfnnlora"
+tokenizer: "gpt2"
 context_window: 512
 vocab_size: 50257
 depth: 8
@@ -8,3 +8,5 @@ num_heads: 8
 ffn_dim: 2048
 dropout: 0.1
 bias: False
+rank: 32
+lora_weighting: 1
