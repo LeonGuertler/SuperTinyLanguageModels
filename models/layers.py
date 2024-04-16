@@ -20,11 +20,11 @@ class LayerNorm(nn.Module):
         return F.layer_norm(input, self.weight.shape, self.weight, self.bias, 1e-5)
 
 
-class CausalSelfAttention(nn.Module):
+class SelfAttention(nn.Module):
     """
-    Basic Causal Self-Attention module.
+    Basic Self-Attention module.
     """
-    def __init__(self, hidden_dim, num_heads, bias=False, dropout=0.0):
+    def __init__(self, hidden_dim, num_heads, bias=False, dropout=0.0, is_causal=False):
         super().__init__()
         assert hidden_dim % num_heads == 0
         # key, query, value projections for all heads, but in a batch
@@ -50,6 +50,7 @@ class CausalSelfAttention(nn.Module):
 
         # flash attention make GPU go brrrrr but support is only in PyTorch >= 2.0
         self.flash = hasattr(torch.nn.functional, "scaled_dot_product_attention")
+        self.is_causal = is_causal
 
     def forward(self, x, attention_mask=None):
         """
@@ -80,7 +81,7 @@ class CausalSelfAttention(nn.Module):
             value=v,
             attn_mask=None,
             dropout_p=self.dropout if self.training else 0,
-            is_causal=True,
+            is_causal=self.is_causal,
         )
         y = (
             y.transpose(1, 2).contiguous().view(B, S, H)
@@ -89,6 +90,67 @@ class CausalSelfAttention(nn.Module):
         # output projection
         y = self.dropout_layer(self.c_proj(y)) # is this really necessary?
     
+        return y
+    
+
+class CrossAttention(nn.Module):
+    """
+    Basic Cross-Attention module.
+    """
+    def __init__(self, hidden_dim, num_heads, bias=False, dropout=0.0):
+        super().__init__()
+        assert hidden_dim % num_heads == 0, "Hidden dimension must be divisible by the number of heads"
+
+        # key, query, value projections for all heads
+        self.q_proj = nn.Linear(hidden_dim, hidden_dim, bias=bias)
+        self.kv_proj = nn.Linear(hidden_dim, 2 * hidden_dim, bias=bias)
+
+        # output projection
+        self.c_proj = nn.Linear(hidden_dim, hidden_dim, bias=bias)
+
+        # regularization
+        self.dropout_layer = nn.Dropout(dropout)
+
+        self.hidden_dim = hidden_dim
+        self.num_heads = num_heads
+        self.dropout = dropout
+
+    def forward(self, query, key_value, attention_mask=None):
+        """
+        Forward pass
+        """
+        B, S, H = query.size()  # batch, query sequence length, hidden
+        _, T, _ = key_value.size()  # batch, key/value sequence length, hidden
+
+        # separate projection for query and combined projection for keys and values
+        q = self.q_proj(query)
+        k, v = self.kv_proj(key_value).split(self.hidden_dim, dim=2)
+
+        # reshape and permute the projections to bring the head to the front
+        q = q.view(B, S, self.num_heads, H // self.num_heads).transpose(1, 2)
+        k = k.view(B, T, self.num_heads, H // self.num_heads).transpose(1, 2)
+        v = v.view(B, T, self.num_heads, H // self.num_heads).transpose(1, 2)
+
+        # scale queries
+        scale = (H // self.num_heads) ** -0.5
+        q = q * scale
+
+        # attention mechanism (softmax(QK^T / sqrt(dk))V)
+        attn_scores = torch.matmul(q, k.transpose(-2, -1))
+        if attention_mask is not None:
+            attn_scores = attn_scores.masked_fill(attention_mask == 0, float('-inf'))
+        attn_probs = torch.nn.functional.softmax(attn_scores, dim=-1)
+        attn_probs = self.dropout_layer(attn_probs)
+
+        # weighted sum of values
+        y = torch.matmul(attn_probs, v)
+
+        # re-assemble all head outputs side by side
+        y = y.transpose(1, 2).contiguous().view(B, S, H)
+
+        # output projection
+        y = self.c_proj(y)
+
         return y
 
 
@@ -125,7 +187,7 @@ class FFN(nn.Module):
         return x
 
 
-class Block(nn.Module):
+class StandardBlock(nn.Module):
     """
     A simple abstraction to combine the 
     LayerNorms, SelfAttention and FeedForward layers
@@ -133,11 +195,12 @@ class Block(nn.Module):
     def __init__(self, hidden_dim, ffn_dim, bias, num_heads, dropout):
         super().__init__()
         self.ln_1 = LayerNorm(hidden_dim, bias=bias)
-        self.attn = CausalSelfAttention(
+        self.attn = SelfAttention(
             hidden_dim=hidden_dim,
             num_heads=num_heads,
             bias=bias,
             dropout=dropout,
+            is_causal=True
         )
         self.ln_2 = LayerNorm(hidden_dim, bias=bias)
         self.mlp = FFN(
@@ -164,6 +227,17 @@ class NextTokenHead(nn.Module):
         self.ln = LayerNorm(hidden_dim, bias=True)
         self.linear = nn.Linear(hidden_dim, vocab_size, bias=False)
 
+    def forward(self, x):
+        x = self.ln(x)
+        logits = self.linear(x)
+        return logits
+    
+class NextSequenceHead(nn.Module):
+    def __init__(self, hidden_dim, vocab_size):
+        super().__init__()
+        self.ln = LayerNorm(hidden_dim, bias=True)
+        self.linear = nn.Linear(hidden_dim, vocab_size, bias=False)
+    
     def forward(self, x):
         x = self.ln(x)
         logits = self.linear(x)

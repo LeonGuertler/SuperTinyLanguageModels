@@ -12,7 +12,7 @@ from torch.nn import functional as F
 from torch.nn.parameter import Parameter
 
 # import the layers
-from models.layers import LayerNorm, CausalSelfAttention, FFN
+from models.layers import LayerNorm, SelfAttention, FFN
 
 from models.embedding import BaselineEmbedder
 
@@ -29,7 +29,7 @@ class Block(nn.Module):
         self.ln_1 = LayerNorm(hidden_dim, bias=bias)
 
 
-        self.attn = CausalSelfAttention(
+        self.attn = SelfAttention(
             hidden_dim=hidden_dim,
             num_heads=num_heads,
             bias=bias,

@@ -14,9 +14,8 @@ from torch.nn.parameter import Parameter
 # import the layers
 from models.layers import (
     LayerNorm, 
-    CausalSelfAttention, 
     FFN, 
-    Block,
+    StandardBlock,
     NextTokenHead
 )
 
@@ -47,7 +46,7 @@ class SharedFFN(nn.Module):
             dict(
                 drop=nn.Dropout(cfg["dropout"]),
                 h=nn.ModuleList(
-                    [Block(
+                    [StandardBlock(
                         hidden_dim=cfg["hidden_dim"], 
                         ffn_dim=cfg["ffn_dim"], 
                         bias=cfg["bias"], 

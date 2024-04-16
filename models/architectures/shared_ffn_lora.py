@@ -17,7 +17,7 @@ from torch.nn.parameter import Parameter
 # import the layers
 from models.layers import (
     LayerNorm, 
-    CausalSelfAttention,
+    SelfAttention,
     LoraLinear,
     NextTokenHead
 )
@@ -84,11 +84,12 @@ class LoraBlock(nn.Module):
     def __init__(self, hidden_dim, ffn_dim, bias, num_heads, dropout, rank=32, lora_weighting=1):
         super().__init__()
         self.ln_1 = LayerNorm(hidden_dim, bias=bias)
-        self.attn = CausalSelfAttention(
+        self.attn = SelfAttention(
             hidden_dim=hidden_dim,
             num_heads=num_heads,
             bias=bias,
             dropout=dropout,
+            is_causal=True
         )
         self.ln_2 = LayerNorm(hidden_dim, bias=bias)
         self.mlp = LoraFNN(

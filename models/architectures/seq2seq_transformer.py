@@ -1,40 +1,37 @@
 """
-Baseline GPT model (a close copy of NanoGPT)
+A simple sequence to sequence model
 """
-
 import math
-import inspect
-from dataclasses import dataclass
-
-import torch
+import torch 
 import torch.nn as nn
-from torch.nn import functional as F
-from torch.nn.parameter import Parameter
 
-# import the layers
+
 from models.layers import (
-    LayerNorm, 
-    SelfAttention, 
-    FFN, 
-    StandardBlock,
-    NextTokenHead
+    LayerNorm,
+    SelfAttention,
+    CrossAttention,
+    FFN,
+    NextSequenceHead,
+    StandardBlock
 )
 
-from models.embedding import BaselineEmbedder
+from models.embedding import (
+    BaselineEmbedder
+)
+
 
 from models.weight_init import gpt2_weights_init
 from models.utils import print_model_stats
 
-    
 
-class BaseGPT(nn.Module):
 
+class Seq2SeqModel(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         assert cfg["vocab_size"] is not None
         assert cfg["context_window"] is not None
 
-        self.cfg = cfg
+        self.cfg = cfg 
 
         # construct the actual model
         self.embedder =  BaselineEmbedder(
@@ -43,6 +40,7 @@ class BaseGPT(nn.Module):
             vocab_size=cfg["vocab_size"],
             tokenizer_name=cfg["tokenizer"]
         )
+
         self.transformer = nn.ModuleDict(
             dict(
                 drop=nn.Dropout(cfg["dropout"]),
@@ -58,34 +56,28 @@ class BaseGPT(nn.Module):
             )
         )
 
-        self.lm_head = NextTokenHead(
+        self.lm_head = NextSequenceHead(
             hidden_dim=cfg["hidden_dim"],
-            vocab_size=cfg["vocab_size"],
+            vocab_size=cfg["vocab_size"]
         )
-
-        # check if vocab size is the same as the number of tokens
-        #assert (
-        #    self.embedder.tokenizer.max_token_value == cfg["vocab_size"]
-        #), f"Vocab size ({cfg['vocab_size']}) must be the same as the number of tokens in the tokenizer ({self.embedder.tokenizer.max_token_value})"
 
         # share the weights between the token embeddings and the final logit layer
         self.embedder.embedding.weight = (
             self.lm_head.linear.weight
         ) # https://paperswithcode.com/method/weight-tying
 
-
-        # init all weights
+        # init all weights using GPT_2 weight init
         self.apply(lambda module: gpt2_weights_init(module, self.cfg["depth"]))
 
         # report number of parameters
         print_model_stats(self)
 
-
-
+    
     def feature_extraction(self, token_ids):
         """
         Use the model to get the text features.
         """
+
         b, s = token_ids.size()
 
         # check that the sequence length is not longer than the context window
@@ -116,7 +108,6 @@ class BaseGPT(nn.Module):
         logits = self.lm_head(x)
         return logits 
 
-        
     def inference(self, text_string):
         """
         Similar to the forward pass, but takes in a string 
@@ -140,6 +131,3 @@ class BaseGPT(nn.Module):
         # forward only the last token through the lm_head
         logits = self.lm_head(x[:, -1, :])
         return logits
-
-        
-

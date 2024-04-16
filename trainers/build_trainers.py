@@ -8,7 +8,10 @@ from models.build_models import build_model
 # from trainers.standard_trainer import BaseTrainer
 from trainers.base_trainer import BaseTrainer
 from trainers.base_profiler import BaseProfiler
-from trainers.dataloader import StandardDataloader
+from trainers.dataloader import (
+    StandardDataloader,
+    Seq2SeqDataloader
+)
 from trainers.loss_fn import cross_entropy_loss_fn
 from trainers.optimizer import configure_nanoGPT_optimizer
 from trainers.scheduler import CosineScheduler
@@ -48,7 +51,10 @@ def build_scheduler(trainer_cfg):
     return SCHEDULER_DICT[trainer_cfg["scheduler"]["name"]](cfg=trainer_cfg)
 
 
-DATALODER_DICT = {"standard": StandardDataloader}
+DATALODER_DICT = {
+    "standard": StandardDataloader,
+    "seq2seq": Seq2SeqDataloader
+}
 
 
 def build_dataloader(cfg):
