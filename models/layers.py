@@ -7,7 +7,20 @@ import inspect
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from models.utils import apply_rotary_emb
 
+
+class RMSNorm(nn.Module):
+    """RMSNORM"""
+    def __init__(self, ndim, bias):
+        super().__init__()
+        self.weight = nn.Parameter(torch.ones(ndim))
+        self.bias = nn.Parameter(torch.zeros(ndim)) if bias else None
+
+    def forward(self, input):
+        return input / torch.sqrt(
+            torch.mean(input ** 2, dim=-1, keepdim=True) + 1e-8
+        ) * self.weight + 0 if self.bias is None else self.bias
 
 class LayerNorm(nn.Module):
     """LayerNorm but with an optional bias. PyTorch doesn't support simply bias=False"""
@@ -24,7 +37,7 @@ class SelfAttention(nn.Module):
     """
     Basic Self-Attention module.
     """
-    def __init__(self, hidden_dim, num_heads, bias=False, dropout=0.0, is_causal=False):
+    def __init__(self, hidden_dim, num_heads, bias=False, dropout=0.0, is_causal=False, apply_rope=False):
         super().__init__()
         assert hidden_dim % num_heads == 0
         # key, query, value projections for all heads, but in a batch
@@ -51,8 +64,9 @@ class SelfAttention(nn.Module):
         # flash attention make GPU go brrrrr but support is only in PyTorch >= 2.0
         self.flash = hasattr(torch.nn.functional, "scaled_dot_product_attention")
         self.is_causal = is_causal
+        self.apply_rope = apply_rope
 
-    def forward(self, x, attention_mask=None):
+    def forward(self, x, attention_mask=None, rope_freqs=None):
         """
         Forward pass
         """
@@ -63,6 +77,14 @@ class SelfAttention(nn.Module):
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
         q, k, v = self.c_attn(x).split(self.hidden_dim, dim=2)
+
+        # apply rotary embeddings
+        if self.apply_rope:
+            assert rope_freqs is not None, "rope_freqs must be provided"
+            q, k = apply_rotary_emb(q, k, rope_freqs)
+
+        # split heads
+
         k = k.view(B, S, self.num_heads, H // self.num_heads).transpose(
             1, 2
         )  # (B, nh, T, hs)
@@ -91,13 +113,12 @@ class SelfAttention(nn.Module):
         y = self.dropout_layer(self.c_proj(y)) # is this really necessary?
     
         return y
-    
 
 class CrossAttention(nn.Module):
     """
     Basic Cross-Attention module.
     """
-    def __init__(self, hidden_dim, num_heads, bias=False, dropout=0.0):
+    def __init__(self, hidden_dim, num_heads, bias=False, dropout=0.0, apply_rope=False):
         super().__init__()
         assert hidden_dim % num_heads == 0, "Hidden dimension must be divisible by the number of heads"
 
@@ -114,8 +135,9 @@ class CrossAttention(nn.Module):
         self.hidden_dim = hidden_dim
         self.num_heads = num_heads
         self.dropout = dropout
+        self.apply_rope = apply_rope
 
-    def forward(self, query, key_value, attention_mask=None):
+    def forward(self, query, key_value, attention_mask=None, rope_freqs=None):
         """
         Forward pass
         """
@@ -125,6 +147,11 @@ class CrossAttention(nn.Module):
         # separate projection for query and combined projection for keys and values
         q = self.q_proj(query)
         k, v = self.kv_proj(key_value).split(self.hidden_dim, dim=2)
+
+        # apply rotary embeddings
+        if self.apply_rope:
+            assert rope_freqs is not None, "rope_freqs must be provided"
+            q, k = apply_rotary_emb(q, k, rope_freqs)
 
         # reshape and permute the projections to bring the head to the front
         q = q.view(B, S, self.num_heads, H // self.num_heads).transpose(1, 2)
@@ -153,6 +180,29 @@ class CrossAttention(nn.Module):
 
         return y
 
+class SwiGLUFNN(nn.Module):
+    """SwiGLU from https://arxiv.org/pdf/2002.05202v1.pdf"""
+    def __init__(self, hidden_dim, ffn_dim, bias=False, dropout=0.0):
+        super().__init__()
+        self.c_fc_w = nn.Linear(hidden_dim, ffn_dim, bias=bias)
+        self.swish = nn.SiLU()
+        self.c_fc_v = nn.Linear(hidden_dim, ffn_dim, bias=bias)
+        self.gelu = nn.GELU()
+        self.c_proj = nn.Linear(ffn_dim, hidden_dim, bias=bias)
+        self.dropout = nn.Dropout(dropout)
+    
+    def forward(self,x):
+        """
+        Forward pass
+        """
+
+        w = self.c_fc_w(x)
+        w = self.swish(w)
+        v = self.c_fc_v(x)
+        wv = w * v # hadamard product
+        out = self.c_proj(wv)
+        out = self.dropout(out)
+        return out
 
 class FFN(nn.Module):
     """
@@ -220,6 +270,41 @@ class StandardBlock(nn.Module):
         x = x + self.attn(self.ln_1(x), attention_mask)
         x = x + self.mlp(self.ln_2(x))
         return x
+
+class ModernBlock(nn.Module):
+    """Uses RMSNorm, SwiGLUFNN, RoPE..."""
+    def __init__(self, hidden_dim, ffn_dim, bias, num_heads, dropout=0.0, apply_rope=True):
+        super().__init__()
+
+        self.ln_1 = RMSNorm(hidden_dim, bias=bias)
+        self.attn = SelfAttention(
+            hidden_dim=hidden_dim,
+            num_heads=num_heads,
+            bias=bias,
+            dropout=dropout,
+            is_causal=True,
+            apply_rope=apply_rope
+        )
+        self.ln_2 = RMSNorm(hidden_dim, bias=bias)
+        self.mlp = SwiGLUFNN(
+            hidden_dim=hidden_dim,
+            ffn_dim=ffn_dim,
+            bias=bias,
+            dropout=dropout,
+        )
+
+    def forward(self, x, attention_mask=None, rope_freqs=None):
+        """
+        A simple, residual forward 
+        pass through the GPT block.
+        Args:
+            x: the input tensor (b, s, h)
+        """
+        x = x + self.attn(self.ln_1(x), attention_mask, rope_freqs)
+        x = x + self.mlp(self.ln_2(x))
+        return x
+
+
     
 class NextTokenHead(nn.Module):
     def __init__(self, hidden_dim, vocab_size):

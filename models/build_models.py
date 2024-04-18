@@ -8,6 +8,7 @@ from models.architectures.profiler import ProfilerGPT
 from models.architectures.shared_ffn import SharedFFN
 from models.architectures.shared_ffn_lora import SharedFNNLora
 from models.architectures.seq2seq_transformer import Seq2SeqModel
+from models.architectures.mod_baseline import ModernGPT
 
 
 
@@ -16,7 +17,8 @@ MODEL_CLASSES = {
     "profiler": ProfilerGPT,
     "sharedfnn": SharedFFN,
     "sharedfnnlora": SharedFNNLora,
-    "seq2seq_baseline": Seq2SeqModel
+    "seq2seq_baseline": Seq2SeqModel,
+    "modern_baseline": ModernGPT
 }
 
 

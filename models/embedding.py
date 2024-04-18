@@ -16,8 +16,24 @@ from models.tokenizer import (
     build_tokenizer
 )
 
-
-
+def build_positional_encoder(positional_encoder_type, hidden_dim, context_window):
+    """
+    Build the positional encoder
+    Args:
+        positional_encoder_type: the type of positional encoder to use
+        hidden_dim: the hidden dimension of the model
+        context_window: the context window of the model
+    Returns:
+        the positional encoder
+    """
+    if positional_encoder_type == "learned":
+        return LearnedPosEncoding(
+            hidden_dim=hidden_dim,
+            context_window=context_window
+        )
+    elif positional_encoder_type == "rope":
+        return None
+    raise ValueError(f"Positional encoder type {positional_encoder_type} not recognized")
 
 class BaselineEmbedder(torch.nn.Module):
     """
@@ -28,7 +44,8 @@ class BaselineEmbedder(torch.nn.Module):
             hidden_dim,
             context_window,
             vocab_size,
-            tokenizer_name
+            tokenizer_name,
+            positional_encoder_type="learned"
         ):
         super().__init__()
         # load the tokenizer
@@ -49,7 +66,8 @@ class BaselineEmbedder(torch.nn.Module):
             num_embeddings=vocab_size,
             embedding_dim=hidden_dim
         )
-        self.positional_encoding = LearnedPosEncoding(
+        self.positional_encoding = build_positional_encoder(
+            positional_encoder_type=positional_encoder_type,
             hidden_dim=hidden_dim,
             context_window=context_window
         )
@@ -145,6 +163,8 @@ class BaselineEmbedder(torch.nn.Module):
             the token embeddings
         """
         token_embeddings = self.embedding(token_ids)
+        if self.positional_encoding is None:
+            return token_embeddings
         pos_embeddings = self.positional_encoding(token_ids)
         return token_embeddings + pos_embeddings
     
