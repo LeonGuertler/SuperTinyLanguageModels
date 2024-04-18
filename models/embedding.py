@@ -2,19 +2,12 @@
 The embedding models are supposed to take care of the transformation
 from text input to a sequence of tokens that can be fed into the model.
 """
-import torch
-import torch.nn as nn
 
 import numpy as np
-
 import tiktoken
+import torch
+from models.positional_encoding import LearnedPosEncoding
 
-from models.positional_encoding import (
-    LearnedPosEncoding
-)
-from models.tokenizer import (
-    build_tokenizer
-)
 
 def build_positional_encoder(positional_encoder_type, hidden_dim, context_window):
     """
@@ -27,26 +20,27 @@ def build_positional_encoder(positional_encoder_type, hidden_dim, context_window
         the positional encoder
     """
     if positional_encoder_type == "learned":
-        return LearnedPosEncoding(
-            hidden_dim=hidden_dim,
-            context_window=context_window
-        )
+        return LearnedPosEncoding(hidden_dim=hidden_dim, context_window=context_window)
     elif positional_encoder_type == "rope":
         return None
-    raise ValueError(f"Positional encoder type {positional_encoder_type} not recognized")
+    raise ValueError(
+        f"Positional encoder type {positional_encoder_type} not recognized"
+    )
+
 
 class BaselineEmbedder(torch.nn.Module):
     """
     Baseline tokenizer + embedder, using GPT2 tokenizer and embeddings.
     """
+
     def __init__(
-            self,
-            hidden_dim,
-            context_window,
-            vocab_size,
-            tokenizer_name,
-            positional_encoder_type="learned"
-        ):
+        self,
+        hidden_dim,
+        context_window,
+        vocab_size,
+        tokenizer_name,
+        positional_encoder_type="learned",
+    ):
         super().__init__()
         # load the tokenizer
         """self.tokenizer = build_tokenizer(
@@ -56,26 +50,24 @@ class BaselineEmbedder(torch.nn.Module):
 
         # technically the gpt2 tokenizer has not pad token,
         # but when adjusting the attention_mask, this should
-        # not matter 
+        # not matter
         self.pad_token = 1
 
         self.context_window = context_window
 
         # initialize embedding weights
         self.embedding = torch.nn.Embedding(
-            num_embeddings=vocab_size,
-            embedding_dim=hidden_dim
+            num_embeddings=vocab_size, embedding_dim=hidden_dim
         )
         self.positional_encoding = build_positional_encoder(
             positional_encoder_type=positional_encoder_type,
             hidden_dim=hidden_dim,
-            context_window=context_window
+            context_window=context_window,
         )
-
 
     def forward(self, text_batch, pad_truncate=True):
         """
-        Convert a batch of strings into a batch 
+        Convert a batch of strings into a batch
         of sequences of embeddings.
         Args:
             text_batch: a batch of strings
@@ -84,13 +76,11 @@ class BaselineEmbedder(torch.nn.Module):
         """
         # tokenize the text
         token_ids_batch, attention_mask = self.tokenize_text(
-            text_batch=text_batch,
-            pad_truncate=pad_truncate
+            text_batch=text_batch, pad_truncate=pad_truncate
         )
-        
+
         # embed and positional encode the tokens
         return self.embed_tokens(token_ids_batch), attention_mask
-    
 
     def tokenize_text(self, text_batch, pad_truncate=False):
         """
@@ -117,20 +107,23 @@ class BaselineEmbedder(torch.nn.Module):
             # and are shorter than the context window
             seq_len = len(token_ids[0])
             for ids in token_ids:
-                assert len(ids) == seq_len, "All token sequences must have the same length"
-                assert len(ids) <= self.context_window, f"Cannot forward sequence of length {len(ids)}, block size is only {self.context_window}"
-
+                assert (
+                    len(ids) == seq_len
+                ), "All token sequences must have the same length"
+                assert (
+                    len(ids) <= self.context_window
+                ), f"Cannot forward sequence of length {len(ids)}, block size is only {self.context_window}"
 
             # convert to tensore and init attention_mask as None
             token_ids = torch.tensor(token_ids, dtype=torch.long)
             attention_mask = None
-        
+
         return token_ids, attention_mask
-    
+
     def _pad_token_batch(self, token_ids):
         """
         Pad the token ids to the length of the longest
-        sequence in the batch and return the attention mask 
+        sequence in the batch and return the attention mask
         Args:
             token_ids: a batch of lists of token ids
         Returns:
@@ -138,14 +131,11 @@ class BaselineEmbedder(torch.nn.Module):
             attention_mask: a batch of attention masks
         """
         sequence_length = np.minimum(
-            max([len(ids) for ids in token_ids]),
-            self.context_window
+            max([len(ids) for ids in token_ids]), self.context_window
         )
-        attention_mask = torch.ones(
-            len(token_ids), sequence_length
-        )
+        attention_mask = torch.ones(len(token_ids), sequence_length)
         for i, ids in enumerate(token_ids):
-            attention_mask[i, len(ids):] = 0
+            attention_mask[i, len(ids) :] = 0
             # pad where necessary
             token_ids[i] += [self.pad_token] * (sequence_length - len(ids))
             # truncate where necessary
@@ -167,7 +157,7 @@ class BaselineEmbedder(torch.nn.Module):
             return token_embeddings
         pos_embeddings = self.positional_encoding(token_ids)
         return token_embeddings + pos_embeddings
-    
+
     def preprocess_text(self, text):
         """
         Before training, give the option to preprocess
@@ -189,9 +179,5 @@ class BaselineEmbedder(torch.nn.Module):
         """
         if isinstance(token_ids, list):
             return self.tokenizer.decode_batch(token_ids)
-            #return [self.tokenizer.decode(token_ids) for token_ids in token_ids] # TODO
+            # return [self.tokenizer.decode(token_ids) for token_ids in token_ids] # TODO
         return self.tokenizer.decode(token_ids)
-    
-
-
- 

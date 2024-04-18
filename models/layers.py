@@ -1,29 +1,37 @@
 """
 A collection of basic model building blocks.
 """
+
 import math
-import inspect
 
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
 from models.utils import apply_rotary_emb
+from torch.nn import functional as F
 
 
 class RMSNorm(nn.Module):
     """RMSNORM"""
+
     def __init__(self, ndim, bias):
         super().__init__()
         self.weight = nn.Parameter(torch.ones(ndim))
         self.bias = nn.Parameter(torch.zeros(ndim)) if bias else None
 
     def forward(self, input):
-        return input / torch.sqrt(
-            torch.mean(input ** 2, dim=-1, keepdim=True) + 1e-8
-        ) * self.weight + 0 if self.bias is None else self.bias
+        return (
+            input
+            / torch.sqrt(torch.mean(input**2, dim=-1, keepdim=True) + 1e-8)
+            * self.weight
+            + 0
+            if self.bias is None
+            else self.bias
+        )
+
 
 class LayerNorm(nn.Module):
     """LayerNorm but with an optional bias. PyTorch doesn't support simply bias=False"""
+
     def __init__(self, ndim, bias):
         super().__init__()
         self.weight = nn.Parameter(torch.ones(ndim))
@@ -37,7 +45,16 @@ class SelfAttention(nn.Module):
     """
     Basic Self-Attention module.
     """
-    def __init__(self, hidden_dim, num_heads, bias=False, dropout=0.0, is_causal=False, apply_rope=False):
+
+    def __init__(
+        self,
+        hidden_dim,
+        num_heads,
+        bias=False,
+        dropout=0.0,
+        is_causal=False,
+        apply_rope=False,
+    ):
         super().__init__()
         assert hidden_dim % num_heads == 0
         # key, query, value projections for all heads, but in a batch
@@ -71,9 +88,7 @@ class SelfAttention(nn.Module):
         Forward pass
         """
         assert attention_mask is None, "Not implemented yet"
-        B, S, H = (
-            x.size()
-        ) # batch, sequence, hidden
+        B, S, H = x.size()  # batch, sequence, hidden
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
         q, k, v = self.c_attn(x).split(self.hidden_dim, dim=2)
@@ -110,17 +125,23 @@ class SelfAttention(nn.Module):
         )  # re-assemble all head outputs side by side
 
         # output projection
-        y = self.dropout_layer(self.c_proj(y)) # is this really necessary?
-    
+        y = self.dropout_layer(self.c_proj(y))  # is this really necessary?
+
         return y
+
 
 class CrossAttention(nn.Module):
     """
     Basic Cross-Attention module.
     """
-    def __init__(self, hidden_dim, num_heads, bias=False, dropout=0.0, apply_rope=False):
+
+    def __init__(
+        self, hidden_dim, num_heads, bias=False, dropout=0.0, apply_rope=False
+    ):
         super().__init__()
-        assert hidden_dim % num_heads == 0, "Hidden dimension must be divisible by the number of heads"
+        assert (
+            hidden_dim % num_heads == 0
+        ), "Hidden dimension must be divisible by the number of heads"
 
         # key, query, value projections for all heads
         self.q_proj = nn.Linear(hidden_dim, hidden_dim, bias=bias)
@@ -165,7 +186,7 @@ class CrossAttention(nn.Module):
         # attention mechanism (softmax(QK^T / sqrt(dk))V)
         attn_scores = torch.matmul(q, k.transpose(-2, -1))
         if attention_mask is not None:
-            attn_scores = attn_scores.masked_fill(attention_mask == 0, float('-inf'))
+            attn_scores = attn_scores.masked_fill(attention_mask == 0, float("-inf"))
         attn_probs = torch.nn.functional.softmax(attn_scores, dim=-1)
         attn_probs = self.dropout_layer(attn_probs)
 
@@ -180,8 +201,10 @@ class CrossAttention(nn.Module):
 
         return y
 
+
 class SwiGLUFNN(nn.Module):
     """SwiGLU from https://arxiv.org/pdf/2002.05202v1.pdf"""
+
     def __init__(self, hidden_dim, ffn_dim, bias=False, dropout=0.0):
         super().__init__()
         self.c_fc_w = nn.Linear(hidden_dim, ffn_dim, bias=bias)
@@ -190,8 +213,8 @@ class SwiGLUFNN(nn.Module):
         self.gelu = nn.GELU()
         self.c_proj = nn.Linear(ffn_dim, hidden_dim, bias=bias)
         self.dropout = nn.Dropout(dropout)
-    
-    def forward(self,x):
+
+    def forward(self, x):
         """
         Forward pass
         """
@@ -199,15 +222,17 @@ class SwiGLUFNN(nn.Module):
         w = self.c_fc_w(x)
         w = self.swish(w)
         v = self.c_fc_v(x)
-        wv = w * v # hadamard product
+        wv = w * v  # hadamard product
         out = self.c_proj(wv)
         out = self.dropout(out)
         return out
+
 
 class FFN(nn.Module):
     """
     A simple Feed Forward Network block.
     """
+
     def __init__(self, hidden_dim, ffn_dim, bias=False, dropout=0.0):
         super().__init__()
         self.c_fc = nn.Linear(
@@ -222,9 +247,7 @@ class FFN(nn.Module):
             hidden_dim,
             bias=bias,
         )
-        self.dropout = nn.Dropout(
-            dropout
-        )
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         """
@@ -239,9 +262,10 @@ class FFN(nn.Module):
 
 class StandardBlock(nn.Module):
     """
-    A simple abstraction to combine the 
+    A simple abstraction to combine the
     LayerNorms, SelfAttention and FeedForward layers
     """
+
     def __init__(self, hidden_dim, ffn_dim, bias, num_heads, dropout):
         super().__init__()
         self.ln_1 = LayerNorm(hidden_dim, bias=bias)
@@ -250,7 +274,7 @@ class StandardBlock(nn.Module):
             num_heads=num_heads,
             bias=bias,
             dropout=dropout,
-            is_causal=True
+            is_causal=True,
         )
         self.ln_2 = LayerNorm(hidden_dim, bias=bias)
         self.mlp = FFN(
@@ -262,7 +286,7 @@ class StandardBlock(nn.Module):
 
     def forward(self, x, attention_mask=None):
         """
-        A simple, residual forward 
+        A simple, residual forward
         pass through the GPT block.
         Args:
             x: the input tensor (b, s, h)
@@ -271,9 +295,13 @@ class StandardBlock(nn.Module):
         x = x + self.mlp(self.ln_2(x))
         return x
 
+
 class ModernBlock(nn.Module):
     """Uses RMSNorm, SwiGLUFNN, RoPE..."""
-    def __init__(self, hidden_dim, ffn_dim, bias, num_heads, dropout=0.0, apply_rope=True):
+
+    def __init__(
+        self, hidden_dim, ffn_dim, bias, num_heads, dropout=0.0, apply_rope=True
+    ):
         super().__init__()
 
         self.ln_1 = RMSNorm(hidden_dim, bias=bias)
@@ -283,7 +311,7 @@ class ModernBlock(nn.Module):
             bias=bias,
             dropout=dropout,
             is_causal=True,
-            apply_rope=apply_rope
+            apply_rope=apply_rope,
         )
         self.ln_2 = RMSNorm(hidden_dim, bias=bias)
         self.mlp = SwiGLUFNN(
@@ -295,7 +323,7 @@ class ModernBlock(nn.Module):
 
     def forward(self, x, attention_mask=None, rope_freqs=None):
         """
-        A simple, residual forward 
+        A simple, residual forward
         pass through the GPT block.
         Args:
             x: the input tensor (b, s, h)
@@ -305,7 +333,6 @@ class ModernBlock(nn.Module):
         return x
 
 
-    
 class NextTokenHead(nn.Module):
     def __init__(self, hidden_dim, vocab_size):
         super().__init__()
@@ -316,18 +343,19 @@ class NextTokenHead(nn.Module):
         x = self.ln(x)
         logits = self.linear(x)
         return logits
-    
+
+
 class NextSequenceHead(nn.Module):
     def __init__(self, hidden_dim, vocab_size):
         super().__init__()
         self.ln = LayerNorm(hidden_dim, bias=True)
         self.linear = nn.Linear(hidden_dim, vocab_size, bias=False)
-    
+
     def forward(self, x):
         x = self.ln(x)
         logits = self.linear(x)
         return logits
-    
+
 
 class LoraLinear(nn.Module):
     def __init__(self, in_features, out_features, bias=False, rank=32, alpha=1):
@@ -342,7 +370,7 @@ class LoraLinear(nn.Module):
         if bias:
             self.bias = nn.Parameter(torch.Tensor(out_features))
         else:
-            self.register_parameter('bias', None)
+            self.register_parameter("bias", None)
 
         # LORA specific parameters
         self.A = nn.Parameter(torch.Tensor(out_features, rank))
