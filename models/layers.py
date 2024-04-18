@@ -11,17 +11,18 @@ from torch.nn import functional as F
 
 
 class RMSNorm(nn.Module):
-    """RMSNORM"""
+    """Computes the RMSNorm described in https://arxiv.org/abs/1910.07467"""
 
     def __init__(self, ndim, bias):
         super().__init__()
         self.weight = nn.Parameter(torch.ones(ndim))
         self.bias = nn.Parameter(torch.zeros(ndim)) if bias else None
 
-    def forward(self, input):
+    def forward(self, input_x):
+        """Computes $\frac{x}{\sqrt{\frac{1}{n} \sum x^2}}$"""
         return (
-            input
-            / torch.sqrt(torch.mean(input**2, dim=-1, keepdim=True) + 1e-8)
+            input_x
+            / torch.sqrt(torch.mean(input_x**2, dim=-1, keepdim=True) + 1e-8)
             * self.weight
             + 0
             if self.bias is None
@@ -37,8 +38,9 @@ class LayerNorm(nn.Module):
         self.weight = nn.Parameter(torch.ones(ndim))
         self.bias = nn.Parameter(torch.zeros(ndim)) if bias else None
 
-    def forward(self, input):
-        return F.layer_norm(input, self.weight.shape, self.weight, self.bias, 1e-5)
+    def forward(self, input_x):
+        """Computes LayerNorm"""
+        return F.layer_norm(input_x, self.weight.shape, self.weight, self.bias, 1e-5)
 
 
 class SelfAttention(nn.Module):
