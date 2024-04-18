@@ -212,7 +212,6 @@ class SwiGLUFNN(nn.Module):
         self.c_fc_w = nn.Linear(hidden_dim, ffn_dim, bias=bias)
         self.swish = nn.SiLU()
         self.c_fc_v = nn.Linear(hidden_dim, ffn_dim, bias=bias)
-        self.gelu = nn.GELU()
         self.c_proj = nn.Linear(ffn_dim, hidden_dim, bias=bias)
         self.dropout = nn.Dropout(dropout)
 
