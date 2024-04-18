@@ -1,11 +1,11 @@
-model: "baseline"
+model: "modern_baseline"
 tokenizer: "bpe-4096"
 context_window: 512
 vocab_size: 50257
 depth: 8
 hidden_dim: 512
 num_heads: 8
-ffn_dim: 2048
-dropout: 0.1
+ffn_dim: 1024 # half to maintain param count
+dropout: 0.0
 bias: False
-positional_encoder: "learned"
+positional_encoder: "rope"

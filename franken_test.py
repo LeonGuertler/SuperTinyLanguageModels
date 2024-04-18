@@ -12,7 +12,7 @@ Test the individual layers. Specifically:
     - CausalSelfAttention
     - FFN
 """
-from models.layers import FFN, CausalSelfAttention, LayerNorm
+from models.layers import FFN, SelfAttention, LayerNorm, RMSNorm
 
 
 def test_layer_norm():
@@ -31,13 +31,29 @@ def test_layer_norm():
     # check the output shape
     assert output.shape == x.shape
 
+def test_RMSNorm():
+    """
+    Test the RMSNorm module.
+    """
+    # create a layer norm module
+    ln = RMSNorm(10, bias=True)
+
+    # create a random tensor
+    x = torch.randn(128, 10)
+
+    # forward pass
+    output = ln(x)
+
+    # check the output shape
+    assert output.shape == x.shape
+
 
 def test_causal_self_attention():
     """
     Test the CausalSelfAttention module.
     """
     # create a causal self attention module
-    csa = CausalSelfAttention(hidden_dim=10, num_heads=2, bias=True, dropout=0.1)
+    csa = SelfAttention(hidden_dim=10, num_heads=2, bias=True, dropout=0.1)
 
     # create a random tensor
     x = torch.randn(10, 10, 10)
