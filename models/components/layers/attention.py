@@ -93,11 +93,11 @@ def apply_rotary_emb(xq, xk, freqs_cis):
     return xq_out.type_as(xq), xk_out.type_as(xk)
 
 def compute_freqs_cis(seq_len, head_dim):
-    # This is a basic example of how freqs_cis could be computed
-    freqs = torch.arange(seq_len, dtype=torch.float32)
-    inv_freq = 1.0 / (10000 ** (torch.arange(0, head_dim, 2, dtype=torch.float32) / head_dim))
-    freqs_cis = torch.outer(freqs, inv_freq)
-    return torch.stack((torch.sin(freqs_cis), torch.cos(freqs_cis)), dim=-1)
+    freqs = 1.0 / (10_000 ** (torch.arange(0, head_dim, 2)[: (head_dim // 2)].float() / head_dim))
+    t = torch.arange(seq_len*2, device=freqs.device, dtype=torch.float32)
+    freqs = torch.outer(t, freqs)
+    freqs_cis = torch.polar(torch.ones_like(freqs), freqs)  # complex64
+    return freqs_cis
 
 
 class RoPESelfAttention(nn.Module):
@@ -143,7 +143,7 @@ class RoPESelfAttention(nn.Module):
         )
 
         self.freqs_cis = compute_freqs_cis(
-            seq_len=1000,
+            seq_len=context_window,
             head_dim=self.head_dim
         )
 

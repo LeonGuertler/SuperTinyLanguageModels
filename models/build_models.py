@@ -3,7 +3,8 @@ Contains the functions to build the actual model.
 """
 
 from models.core_models import (
-    StandardTransformer
+    StandardTransformer,
+    ModernTransformer
 )
 
 from models.autoregressive_model_shell import (
@@ -42,7 +43,8 @@ def build_model(cfg=None, checkpoint=None):
 
 
 CORE_MODEL_DICT = {
-    "baseline": StandardTransformer
+    "baseline": StandardTransformer,
+    "modern": ModernTransformer
 }
 def build_core_model(cfg):
     """

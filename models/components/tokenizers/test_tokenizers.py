@@ -8,7 +8,7 @@ from models.components.tokenizers.GPT2TokenizerWrapper import GPT2Tokenizer
 from models.components.tokenizers.BytePairEncoding import BPETokenizer
 
 # test the GPT2tokenizer
-test_string = "This is a test string."
+test_string = "This is a test string. <|endoftext|>"
 
 
 def test_gpt2_tokenizer():
