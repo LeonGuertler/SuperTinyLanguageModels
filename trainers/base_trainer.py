@@ -81,7 +81,7 @@ class BaseTrainer:
             for i in range(eval_iters):
                 x, y = self.dataloader.get_batch(split)
                 with self.ctx:
-                    output = model(x)
+                    output, loss = model(x)
                     losses[i] = self.loss_fn(output, y)
             out[split] = losses.mean().item()
         model.train()
