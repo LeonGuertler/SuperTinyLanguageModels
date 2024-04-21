@@ -116,6 +116,11 @@ class CustomBPE:
         """
         TODO
         """
+        # create folder if necessary
+        folder_path = model_file.split("/")[:-1]
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
         # write the model: to be used in load() later
         with open(model_file, 'w') as f:
             # write the version, pattern and merges, that's all that's needed
@@ -128,7 +133,7 @@ class CustomBPE:
             for idx1, idx2 in self.merges:
                 f.write(f"{idx1} {idx2}\n")
         # write the vocab: for the human to look at
-        vocab_file = file_prefix.replace(".model", ".vocab")
+        vocab_file = model_file.replace(".model", ".vocab")
         inverted_merges = {idx: pair for pair, idx in self.merges.items()}
         with open(vocab_file, "w", encoding="utf-8") as f:
             for idx, token in self.vocab.items():
