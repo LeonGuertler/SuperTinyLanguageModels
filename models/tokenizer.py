@@ -222,7 +222,7 @@ def load_custom_bpe(vocab_size):
 
 TOKENIZER_DICT = {
     "gpt2": lambda vocab_size: tiktoken.get_encoding("gpt2"),
-    "bpe-4096": lambda vocab_size: load_custom_bpe(vocab_size=vocab_size)
+    "bpe": lambda vocab_size: load_custom_bpe(vocab_size=vocab_size)
 }
 
 def build_tokenizer(tokenizer_name, vocab_size=None):
