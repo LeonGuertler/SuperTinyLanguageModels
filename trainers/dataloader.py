@@ -89,7 +89,7 @@ class StandardDataloader:
         print(split_dataset.keys())
 
         def process(example):
-            ids = tokenizer.encode_ordinary(example["text"])
+            ids = tokenizer.encode(example["text"])
             ids.append(tokenizer.eot_token)
             return {"ids": ids, "len": len(ids)}
 

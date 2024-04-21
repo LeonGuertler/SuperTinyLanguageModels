@@ -1,0 +1,8 @@
+core_model_type: "baseline"
+hidden_dim: 512
+depth: 8
+num_heads: 8
+ffn_dim: 2048
+ffn_activation: "gelu"
+dropout: 0.1
+bias: False

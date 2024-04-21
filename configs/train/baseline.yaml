@@ -1,5 +1,7 @@
 defaults:
   - _self_
   - general: default
-  - model: baseline
+  - model:
+      - model_shell: autoregressive
+      - model_core: standard
   - trainer: baseline
