@@ -14,19 +14,19 @@ from models.components.layers import (
 )
 
 class StandardTransformer(nn.Module):
-    def __init__(self, model_cfg):
+    def __init__(self, cfg):
         """
         Initialize the standard transformer model 
         similar to gpt-2
         """
         super().__init__()
         
-        self.core_model_cfg = model_cfg["core_model"]
+        self.core_model_cfg = cfg["core_model"]
 
         # build positional encoding
         self.pos_encoder = LearnedPosEncoding(
-            hidden_dim=model_cfg["core_model"]["hidden_dim"], 
-            context_window=model_cfg["model_shell"]["context_window"]
+            hidden_dim=cfg["core_model"]["hidden_dim"], 
+            context_window=cfg["model_shell"]["context_window"]
         )
 
         # build the transformer

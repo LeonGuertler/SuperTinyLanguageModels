@@ -19,32 +19,32 @@ from models.utils import (
 class AutoregressiveModelShell(nn.Module):
     def __init__(
             self,
-            model_cfg,
+            cfg,
             core_model,
         ):
         super().__init__()
 
         # move to class
-        self.model_cfg = model_cfg
+        self.cfg = cfg
         self.core_model = core_model
 
         # build the tokenizer 
         self.tokenizer = build_tokenizer(
-            tokenizer_type=self.model_cfg["model_shell"]["tokenizer"],
-            vocab_size=self.model_cfg["model_shell"]["vocab_size"],
-            dataset_name=self.model_cfg["model_shell"]["tokenizer_dataset_name"],
+            tokenizer_type=self.cfg["model_shell"]["tokenizer"],
+            vocab_size=self.cfg["model_shell"]["vocab_size"],
+            dataset_name=self.cfg["model_shell"]["tokenizer_dataset_name"],
         )
 
         # build the embedder 
         self.token_embedder = nn.Embedding(
-            num_embeddings=self.model_cfg["model_shell"]["vocab_size"],
-            embedding_dim=self.model_cfg["core_model"]["hidden_dim"],
+            num_embeddings=self.cfg["model_shell"]["vocab_size"],
+            embedding_dim=self.cfg["core_model"]["hidden_dim"],
         )
 
         # build the language model head
         self.lm_head = NextTokenHead(
-            hidden_dim=self.model_cfg["core_model"]["hidden_dim"],
-            vocab_size=self.model_cfg["model_shell"]["vocab_size"],
+            hidden_dim=self.cfg["core_model"]["hidden_dim"],
+            vocab_size=self.cfg["model_shell"]["vocab_size"],
         )
 
         # share the weights between the token embeddings and the final logit layer
@@ -68,8 +68,8 @@ class AutoregressiveModelShell(nn.Module):
 
         # check that the sequence length is not longer than the context window
         assert (
-            s <= self.model_cfg["model_shell"]["context_window"]
-        ), f"Cannot forward sequence of length {s}, block size is only {self.model_cfg['model_shell']['context_window']}"
+            s <= self.cfg["model_shell"]["context_window"]
+        ), f"Cannot forward sequence of length {s}, block size is only {self.cfg['model_shell']['context_window']}"
 
 
         # embed token_ids
@@ -104,8 +104,8 @@ class AutoregressiveModelShell(nn.Module):
 
         # check that the sequence length is not longer than the context window
         assert (
-            s <= self.model_cfg["model_shell"]["context_window"]
-        ), f"Cannot forward sequence of length {s}, block size is only {self.model_cfg['model_shell']['context_window']}"
+            s <= self.cfg["model_shell"]["context_window"]
+        ), f"Cannot forward sequence of length {s}, block size is only {self.cfg['model_shell']['context_window']}"
 
 
         # embed token_ids

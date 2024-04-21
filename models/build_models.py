@@ -44,16 +44,16 @@ def build_model(cfg=None, checkpoint=None):
 CORE_MODEL_DICT = {
     "baseline": StandardTransformer
 }
-def build_core_model(model_cfg):
+def build_core_model(cfg):
     """
     Given the core model config, build it.
     Args:
-        model_cfg: model_cfg
+        cfg: cfg
     Returns:
         core_model: core_model_instance
     """
-    return CORE_MODEL_DICT[model_cfg['core_model']['core_model_type']](
-        model_cfg=model_cfg
+    return CORE_MODEL_DICT[cfg['core_model']['core_model_type']](
+        cfg=cfg
     )
 
 
@@ -61,18 +61,18 @@ MODEL_SHELL_DICT = {
     "autoregressive": AutoregressiveModelShell
 }
 
-def build_shell(model_cfg, core_model):
+def build_shell(cfg, core_model):
     """
     Given the model shell config, build it.
     Args:
-        model_cfg: model_cfg
+        cfg: cfg
         tokenizer: tokenizer_instance
         core_model: core_model_instance
     Returns:
         model_shell: model_shell_instance
     """
-    return MODEL_SHELL_DICT[model_cfg["model_shell"]['shell_type']](
-        model_cfg=model_cfg,
+    return MODEL_SHELL_DICT[cfg["model_shell"]['shell_type']](
+        cfg=cfg,
         core_model=core_model,
     )
 
@@ -86,12 +86,12 @@ def initialize_model(cfg):
         model: model instance
     """
     # build the core model
-    core_model = build_core_model(cfg['model'])
+    core_model = build_core_model(cfg)
 
 
     # build the model shell
     model = build_shell(
-        model_cfg=cfg['model'],
+        cfg=cfg,
         core_model=core_model,
     )
 

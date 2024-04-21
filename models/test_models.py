@@ -8,7 +8,6 @@ import torch
 from models.build_models import build_model
 
 sample_cfg = {
-    "model": {
         "model_shell": {
             "shell_type": "autoregressive",
             "tokenizer": "bpe",
@@ -27,7 +26,6 @@ sample_cfg = {
             "dropout": 0.1,
             "bias": False,
         },
-    },
     "trainer": {
         "dataset": "debug",
 
