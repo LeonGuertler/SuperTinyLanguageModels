@@ -69,7 +69,7 @@ class BaseTrainer:
         Preprocess the data
         """
         print("Preprocessing the training data")
-        self.dataloader.prepare_data(tokenizer=self.model.embedder.tokenizer)
+        self.dataloader.prepare_data(tokenizer=self.model.tokenizer)
 
     @torch.no_grad()
     def estimate_loss(self, model, eval_iters=1000):
