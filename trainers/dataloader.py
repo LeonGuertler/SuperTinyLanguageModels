@@ -27,11 +27,11 @@ class StandardDataloader:
         self.dataset_path = os.path.join(
             self.data_dir, 
             self.cfg["trainer"]["dataset"],
-            self.cfg["model"]["tokenizer"],
+            self.cfg["model_shell"]["tokenizer"],
             self.cfg["trainer"]["dataloader"]["name"]
         )
 
-        self.context_window = self.cfg["model"]["context_window"]
+        self.context_window = self.cfg["model_shell"]["context_window"]
         self.batch_size = self.cfg["trainer"]["training"]["batch_size"]
         self.device = self.cfg["general"]["device"]
 
@@ -139,9 +139,9 @@ class Seq2SeqDataloader:
         super().__init__()
         self.cfg = cfg
         self.data_dir = data_dir
-        self.dataset_path = os.path.join(self.data_dir, self.cfg["model"]["tokenizer"])
+        self.dataset_path = os.path.join(self.data_dir, self.cfg["model_shell"]["tokenizer"])
 
-        self.context_window = self.cfg["model"]["context_window"]
+        self.context_window = self.cfg["model_shell"]["context_window"]
         self.batch_size = self.cfg["trainer"]["training"]["batch_size"]
         self.device = self.cfg["general"]["device"]
 

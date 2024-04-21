@@ -4,16 +4,20 @@ Init to simplify imports.
 import torch 
 import torch.nn as nn
 
-from models.components.layers.activations import (
-    build_activation
-)
 
 from models.components.layers.normalization import (
-    LayerNorm
+    LayerNorm,
+    RMSNorm
 )
 
 from models.components.layers.attention import (
     CausalSelfAttention,
+    RoPESelfAttention
+)
+
+from models.components.layers.feedforward import (
+    FFN,
+    LLama3FFN
 )
 
 class BaseTransformerBlock(nn.Module):
@@ -51,36 +55,43 @@ class BaseTransformerBlock(nn.Module):
         return x
     
 
-class FFN(nn.Module):
+class Llama3TransformerBlock(nn.Module):
     """
-    A simple Feed Forward Network block.
+    A simple abstraction to combine the 
+    RMSNorm, SelfAttention (RoPE) and LLama3FFNblock
     """
-    def __init__(self, hidden_dim, ffn_dim, bias=False, dropout=0.0, ffn_activation:str="gelu"):
+    def __init__(self, hidden_dim, ffn_dim, num_heads, dropout, context_window):
         super().__init__()
-        self.c_fc = nn.Linear(
-            hidden_dim,
-            ffn_dim,
-            bias=bias,
+        self.num_heads = num_heads 
+        self.hidden_dim = hidden_dim 
+
+        self.attn = RoPESelfAttention(
+            hidden_dim=hidden_dim,
+            num_heads=num_heads,
+            context_window=context_window,
+            dropout=dropout,
         )
 
-        self.gelu = build_activation(
-            activation_name=ffn_activation
+        self.ffn = LLama3FFN(
+            hidden_dim=hidden_dim,
+            ffn_dim=ffn_dim
         )
-        self.c_proj = nn.Linear(
-            ffn_dim,
+
+        self.attn_norm = RMSNorm(
             hidden_dim,
-            bias=bias,
         )
-        self.dropout = nn.Dropout(
-            dropout
+        self.ffn_norm = RMSNorm(
+            hidden_dim,
         )
+
 
     def forward(self, x):
         """
-        Forward pass
+        A simple, residual forward 
+        pass through the GPT block.
+        Args:
+            x: the input tensor (b, s, h)
         """
-        x = self.c_fc(x)
-        x = self.gelu(x)
-        x = self.c_proj(x)
-        x = self.dropout(x)
+        x = x + self.attn(self.attn_norm(x)) # freqs_cis?
+        x = x + self.ffn(self.ffn_norm(x))
         return x

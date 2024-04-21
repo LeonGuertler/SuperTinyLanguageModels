@@ -17,7 +17,7 @@ sample_cfg = {
             
         },
         "core_model": {
-            "core_model_type": "baseline",
+            "core_model_type": "modern",
             "hidden_dim": 512,
             "depth": 2,
             "num_heads": 8,
