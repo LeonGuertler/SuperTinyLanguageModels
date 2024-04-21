@@ -4,7 +4,7 @@ Collection of tokenizers.
 
 
 
-import tiktoken 
+import tiktoken  
 import os 
 
 import unicodedata
@@ -12,14 +12,15 @@ import unicodedata
 from models.utils import (
     replace_control_characters,
     get_stats,
-    merge,
+    multi_merge,
     render_token
 )
 
 from trainers.utils import load_data
+from heapq import nlargest
 
-
-
+# based on https://colab.research.google.com/drive/1S4TbDqHWdLH_uwQfU9EpNWA_n81aCa2D?usp=sharing#scrollTo=KkFXOwHccfu7
+# and the karpathy minbpe
 class CustomBPE:
     def __init__(self):
         self.merges = {}
@@ -28,30 +29,43 @@ class CustomBPE:
         self.vocab = self._build_vocab()
 
     def train(self, text, vocab_size, verbose=True):
-        num_merges = vocab_size - 256
 
         # input text preprocessing 
         text_bytes = text.encode("utf-8")
+        text_bytes = [*map(int, text_bytes)]
         ids = list(text_bytes)
+        current_vocab_size = 256
+        num_merges = vocab_size - current_vocab_size
+        max_clutch_size = 64
 
         # iteratively merge the most frequent pair
-        merges = {} 
-        vocab = {idx: bytes([idx]) for idx in range(256)}
-        for i in range(num_merges):
-            # count up the number of times every consecutive pair appears
-            stats = get_stats(ids)
-            # find the pair with the highest count
-            pair = max(stats, key=stats.get)
-            # mint a new token: assign it the next available id
-            idx = 256 + i
-            # replace all occurences of pair in ids with idx
-            ids = merge(ids, pair, idx)
-            # store the merge
-            merges[pair] = idx
-            vocab[idx] = vocab[pair[0]] + vocab[pair[1]]
+        merges = {}  # (int, int) -> int 
 
-            if verbose:
-                print(f"merge {i+1}/{num_merges}: {pair} -> {idx} ({vocab[idx]}) had {stats[pair]} occurrences")
+        while num_merges > 0:
+            stats = get_stats(ids)
+            top_pairs = nlargest(
+                min(max_clutch_size, num_merges),
+                stats,
+                key=stats.get
+            )
+            pairs_to_merge = {}
+            first_seen = set()
+            second_seen = set()
+            for pair in top_pairs:
+                if pair[0] in second_seen or pair[1] in first_seen:
+                    first_seen.add(pair[0])
+                    second_seen.add(pair[1])
+                    continue # skip this pair but keep looking for mergeable top_pairs
+                first_seen.add(pair[0])
+                second_seen.add(pair[1])
+                pairs_to_merge[pair] = current_vocab_size
+                current_vocab_size += 1
+                num_merges -= 1
+            ids = multi_merge(ids, pairs_to_merge)
+            merges.update(pairs_to_merge)
+            input(merges)
+
+
 
         # save class variables
         self.merges = merges # used in encode()
