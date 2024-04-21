@@ -37,7 +37,7 @@ class BaseTrainer:
 
     def _setup_logging(self):
         # set run name
-        run_name = f"{self.cfg.model.model}_{self.cfg.trainer.dataset}_{self.cfg.model.tokenizer}"
+        run_name = f"{self.cfg.core_model.core_model_type}_{self.cfg.model_shell.shell_type}_{self.cfg.trainer.dataset}_{self.cfg.model_shell.tokenizer}_{self.cfg.model_shell.vocab_size}"
         wandb.init(
             project=self.cfg.general.logging.wandb_project,
             config=OmegaConf.to_container(self.cfg),
@@ -92,8 +92,10 @@ class BaseTrainer:
         for _ in range(self.gradient_accumulation_steps):
             x, y = self.dataloader.get_batch("train")
             with self.ctx:
-                output = self.model(x)
+                output, aux_loss = self.model(x)
                 loss = self.loss_fn(output, y)
+                if aux_loss is not None:
+                    loss += aux_loss
                 loss = loss / self.gradient_accumulation_steps
             self.scaler.scale(loss).backward()
         grad_clip = self.cfg.trainer.optimizer.grad_clip

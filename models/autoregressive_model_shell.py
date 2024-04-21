@@ -76,12 +76,16 @@ class AutoregressiveModelShell(nn.Module):
         x = self.token_embedder(token_ids)
 
         # forward through the core model
-        x = self.core_model(x)
+        x_return = self.core_model(x)
+        if isinstance(x, tuple):
+            x, loss = x_return
+        else:
+            x, loss = x_return, None
 
         # get logits
         logits = self.lm_head(x)
 
-        return logits
+        return logits, loss
         
     def inference(self, text_string):
         """

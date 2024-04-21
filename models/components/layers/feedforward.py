@@ -9,6 +9,9 @@ from models.components.layers.activations import (
     build_activation
 )
 
+from models.components.layers.moe import (
+    MoE
+)
 
 class FFN(nn.Module):
     """
@@ -74,3 +77,28 @@ class LLama3FFN(nn.Module):
 
 
 
+class JetMoEFFN(nn.Module):
+    """
+    Implementation based on: https://github.com/myshell-ai/JetMoE/blob/main/jetmoe/modeling_jetmoe.py
+    """
+    def __init__(
+        self,
+        hidden_dim,
+        ffn_dim,
+        num_experts,
+        top_k,
+        bias
+    ):
+        super().__init__()
+        self.mlp = MoE(
+            hidden_dim=hidden_dim,
+            ffn_dim=ffn_dim,
+            num_experts=num_experts,
+            top_k=top_k,
+            bias=bias,
+        )
+
+    def forward(self, x):
+        """ Foward pass """
+        x_mlp, mlp_aux_loss = self.mlp(x)
+        return x_mlp, mlp_aux_loss

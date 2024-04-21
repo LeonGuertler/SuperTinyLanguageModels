@@ -20,6 +20,10 @@ from models.components.layers.feedforward import (
     LLama3FFN
 )
 
+from models.comopnents.layers.moe import (
+    MoE
+)
+
 class BaseTransformerBlock(nn.Module):
     """
     A simple abstraction to combine the 
@@ -95,3 +99,55 @@ class Llama3TransformerBlock(nn.Module):
         x = x + self.attn(self.attn_norm(x)) # freqs_cis?
         x = x + self.ffn(self.ffn_norm(x))
         return x
+    
+
+class JetFFNMoEBlock(nn.Module):
+    """
+    A MoE block based on JetMoE, but 
+    with standard causal attention.
+    """
+    def __init__(
+        self, 
+        hidden_dim, 
+        ffn_dim, 
+        num_heads, 
+        dropout, 
+        context_window, 
+        num_experts, 
+        top_k
+    ):
+        super().__init__()
+        self.attn = RoPESelfAttention(
+            hidden_dim=hidden_dim,
+            num_heads=num_heads,
+            context_window=context_window,
+            dropout=dropout,
+        )
+
+        self.ffn = MoE(
+            hidden_dim=hidden_dim,
+            ffn_dim=ffn_dim,
+            num_experts=num_experts,
+            top_k=top_k
+            bias=False
+        )
+
+        self.attn_norm = RMSNorm(
+            hidden_dim,
+        )
+        self.ffn_norm = RMSNorm(
+            hidden_dim,
+        )
+
+
+    def forward(self, x):
+        """
+        A simple, residual forward 
+        pass through the GPT block.
+        Args:
+            x: the input tensor (b, s, h)
+        """
+        x = x + self.attn(self.attn_norm(x)) # freqs_cis?
+        h, moe_aux_loss = self.ffn(self.ffn_norm(x))
+        x = x + h
+        return x, moe_aux_loss

@@ -20,5 +20,7 @@ def build_activation(activation_name:str):
         return nn.Tanh()
     elif activation_name.lower() == "Sigmoid".lower():
         return nn.Sigmoid()
+    elif activation_name.lower() == "silu".lower():
+        return nn.SiLU()
     else:
         raise NotImplementedError(f"Activation function {activation_name} not implemented.")
