@@ -13,7 +13,7 @@ from models.components.layers import (
     Llama3TransformerBlock
 )
 
-class ModernTransformer(nn.Module):
+class ModernFFNSharingTransformer(nn.Module):
     def __init__(self, cfg):
         """
         Initialize a Llama-3 style transformer model
