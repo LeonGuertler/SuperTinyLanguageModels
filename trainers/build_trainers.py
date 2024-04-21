@@ -90,6 +90,7 @@ def build_trainer(cfg):
 
     # build model
     model_dict = cfg["model"]
+    input(model_dict)
     model = build_model(
         cfg=model_dict,
     )
