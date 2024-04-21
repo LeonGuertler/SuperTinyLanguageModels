@@ -8,13 +8,16 @@ import tiktoken
 import os 
 from tqdm import tqdm
 
+import hydra
+
 import unicodedata
 
 from models.utils import (
     replace_control_characters,
     get_stats,
     multi_merge,
-    render_token
+    render_token,
+    merge
 )
 
 from trainers.utils import load_data
@@ -64,7 +67,7 @@ class CustomBPE:
                     current_vocab_size += 1
                     num_merges -= 1
                     pbar.update(1) 
-                    
+
                 ids = multi_merge(ids, pairs_to_merge)
                 merges.update(pairs_to_merge)
                 input(merges)
@@ -73,7 +76,8 @@ class CustomBPE:
 
         # save class variables
         self.merges = merges # used in encode()
-        self.vocab = vocab   # used in decode()
+        self.vocab = self._build_vocab()  # used in decode()
+        #self.vocab = vocab   # used in decode()
 
     def decode(self, ids):
         # given ids (list of integers), return Python string
@@ -187,14 +191,23 @@ class CustomBPE:
 
 
 
-def load_custom_bpe(bpe_name):
+def load_custom_bpe(vocab_size):
     """
     Load a custom BPE tokenizer
     """
+
+    bpe_name = f"bpe-{vocab_size}.model"
+    bpe_path = hydra.utils.to_absolute_path(
+        os.path.join(
+            "tokenizers",
+            bpe_name
+        )
+    )
+
     # check if exists
-    if os.path.exists(bpe_name):
+    if os.path.exists(bpe_path):
         bpe = CustomBPE()
-        bpe.load(bpe_name)
+        bpe.load(bpe_path)
         return bpe
     else:
         # create and train with necessary prints
@@ -207,19 +220,19 @@ def load_custom_bpe(bpe_name):
         bpe = CustomBPE()
         bpe.train(
             text,
-            vocab_size=int(bpe_name.split("-")[-1].split(".")[0]),
+            vocab_size=vocab_size,
             verbose=True
         )
-        bpe.save(bpe_name)
+        bpe.save(bpe_path)
 
 
 TOKENIZER_DICT = {
-    "gpt2": lambda: tiktoken.get_encoding("gpt2"),
-    "bpe-4096": lambda: load_custom_bpe("tokenizers/bpe-4096.model")
+    "gpt2": lambda vocab_size: tiktoken.get_encoding("gpt2"),
+    "bpe-4096": lambda vocab_size: load_custom_bpe(vocab_size=vocab_size)
 }
 
-def build_tokenizer(tokenizer_name):
+def build_tokenizer(tokenizer_name, tokenizer_folder, vocab_size=None):
     """
     Get the tokenizer from the dictionary
     """
-    return TOKENIZER_DICT[tokenizer_name]()
+    return TOKENIZER_DICT[tokenizer_name](vocab_size=vocab_size)

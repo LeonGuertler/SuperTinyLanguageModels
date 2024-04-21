@@ -4,7 +4,6 @@ from text input to a sequence of tokens that can be fed into the model.
 """
 import torch
 import torch.nn as nn
-
 import numpy as np
 
 import tiktoken
@@ -28,12 +27,13 @@ class BaselineEmbedder(torch.nn.Module):
             hidden_dim,
             context_window,
             vocab_size,
-            tokenizer_name
+            tokenizer_name,
         ):
         super().__init__()
         # load the tokenizer
         self.tokenizer = build_tokenizer(
-            tokenizer_name=tokenizer_name
+            tokenizer_name=tokenizer_name,
+            vocab_size=vocab_size
         ) 
         #self.tokenizer = tiktoken.get_encoding("gpt2")
 

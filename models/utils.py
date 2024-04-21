@@ -62,6 +62,15 @@ def multi_merge(ids, pairs):
         newids.append(ids[-1])
     return newids
 
+def merge(ids, pair, idx):
+    skip = False
+    newids = [(idx if (ids[i] == pair[0] and ids[i+1] == pair[1] and (skip := True)) else ids[i])
+              for i in range(len(ids) - 1)
+              if not skip or (skip := False)]
+    if not skip:   # if the last pair was not replaced, append the last token
+        newids.append(ids[-1])
+    return newids
+
 # first two helper functions...
 def replace_control_characters(s: str) -> str:
     # we don't want to print control characters

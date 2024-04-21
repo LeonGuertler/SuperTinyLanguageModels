@@ -16,7 +16,6 @@ def main(cfg):
     cfg["general"]["paths"]["data_path"] = hydra.utils.to_absolute_path(
         cfg["general"]["paths"]["data_path"]
     )
-
     # create necessary folder structure
     create_folder_structure(path_config=cfg["general"]["paths"])
 
