@@ -112,12 +112,12 @@ class CustomBPE:
             vocab[idx] = special.encode("utf-8")
         return vocab
     
-    def save(self, model_file):
+    def save(self, model_file, bpe_name):
         """
         TODO
         """
         # create folder if necessary
-        folder_path = model_file.split("/")[:-1]
+        folder_path = model_file.replace(bpe_name, "")
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 
@@ -222,7 +222,7 @@ def load_custom_bpe(vocab_size):
             vocab_size=vocab_size,
             verbose=True
         )
-        bpe.save(bpe_path)
+        bpe.save(bpe_path, bpe_name)
 
 
 TOKENIZER_DICT = {
