@@ -128,7 +128,7 @@ class JetFFNMoEBlock(nn.Module):
             hidden_dim=hidden_dim,
             ffn_dim=ffn_dim,
             num_experts=num_experts,
-            top_k=top_k
+            top_k=top_k,
             bias=False
         )
 
