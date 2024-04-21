@@ -219,6 +219,4 @@ def build_tokenizer(tokenizer_name):
     """
     Get the tokenizer from the dictionary
     """
-    input(tokenizer_name)
-    input(TOKENIZER_DICT[tokenizer_name])
-    return TOKENIZER_DICT[tokenizer_name]
+    return TOKENIZER_DICT[tokenizer_name]()
