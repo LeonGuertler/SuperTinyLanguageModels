@@ -41,7 +41,7 @@ class BPETokenizer:
             # load the stored tokenizer 
             self._load()
 
-        self.eot_token = self.vocab[self.special_tokens["<|endoftext|>"]]
+        self.eot_token = self.special_tokens["<|endoftext|>"]
 
     def encode(self, text):
         """

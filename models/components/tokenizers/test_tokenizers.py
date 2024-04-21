@@ -29,4 +29,7 @@ def test_bpe_tokenizer():
     tokens = tokenizer.encode(test_string)
     decoded = tokenizer.decode(tokens)
     assert decoded == test_string
+
+    print(tokenizer.special_tokens["<|endoftext|>"])
+    tokenizer.vocab[tokenizer.special_tokens["<|endoftext|>"]]
     
