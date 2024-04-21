@@ -6,6 +6,8 @@ import torch
 import pandas as pd
 from collections import Counter, defaultdict
 
+import unicodedata
+
 
 def print_model_stats(model):
     """
