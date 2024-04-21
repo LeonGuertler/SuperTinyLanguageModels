@@ -1,5 +1,5 @@
 shell_type: "autoregressive"
 tokenizer: "bpe"
 tokenizer_dataset_name: "simple_en_wiki"
-vocab_size: 512
+vocab_size: 8192
 context_window: 512
