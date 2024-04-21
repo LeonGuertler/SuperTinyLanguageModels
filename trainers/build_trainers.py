@@ -89,9 +89,8 @@ def build_trainer(cfg):
     """
 
     # build model
-    model_dict = cfg["model"]
     model = build_model(
-        cfg=model_dict,
+        cfg=cfg,
     )
 
     # push model to device
