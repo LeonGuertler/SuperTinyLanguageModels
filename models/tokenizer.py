@@ -164,9 +164,6 @@ class CustomBPE:
         idx = 256
         with open(model_file, 'r', encoding="utf-8") as f:
             # read the version
-            version = f.readline().strip()
-            assert version == "minbpe v1"
-            # read the pattern
             self.pattern = f.readline().strip()
             # read the special tokens
             num_special = int(f.readline().strip())
