@@ -4,7 +4,8 @@ Contains the functions to build the actual model.
 
 from models.core_models import (
     StandardTransformer,
-    ModernTransformer
+    ModernTransformer,
+    ModernFFNSharingTransformer
 )
 
 from models.autoregressive_model_shell import (
@@ -44,7 +45,8 @@ def build_model(cfg=None, checkpoint=None):
 
 CORE_MODEL_DICT = {
     "baseline": StandardTransformer,
-    "modern": ModernTransformer
+    "modern": ModernTransformer,
+    "modern_ffn_sharing": ModernFFNSharingTransformer
 }
 def build_core_model(cfg):
     """
