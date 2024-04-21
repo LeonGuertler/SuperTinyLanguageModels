@@ -20,7 +20,7 @@ from models.components.layers.feedforward import (
     LLama3FFN
 )
 
-from models.comopnents.layers.moe import (
+from models.components.layers.moe import (
     MoE
 )
 
