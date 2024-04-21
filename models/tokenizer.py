@@ -6,6 +6,7 @@ Collection of tokenizers.
 
 import tiktoken  
 import os 
+from tqdm import tqdm
 
 import unicodedata
 
@@ -41,29 +42,32 @@ class CustomBPE:
         # iteratively merge the most frequent pair
         merges = {}  # (int, int) -> int 
 
-        while num_merges > 0:
-            stats = get_stats(ids)
-            top_pairs = nlargest(
-                min(max_clutch_size, num_merges),
-                stats,
-                key=stats.get
-            )
-            pairs_to_merge = {}
-            first_seen = set()
-            second_seen = set()
-            for pair in top_pairs:
-                if pair[0] in second_seen or pair[1] in first_seen:
+        with tqdm(total=num_merges, desc="Training BPE", disable=not verbose) as pbar:
+            while num_merges > 0:
+                stats = get_stats(ids)
+                top_pairs = nlargest(
+                    min(max_clutch_size, num_merges),
+                    stats,
+                    key=stats.get
+                )
+                pairs_to_merge = {}
+                first_seen = set()
+                second_seen = set()
+                for pair in top_pairs:
+                    if pair[0] in second_seen or pair[1] in first_seen:
+                        first_seen.add(pair[0])
+                        second_seen.add(pair[1])
+                        continue # skip this pair but keep looking for mergeable top_pairs
                     first_seen.add(pair[0])
                     second_seen.add(pair[1])
-                    continue # skip this pair but keep looking for mergeable top_pairs
-                first_seen.add(pair[0])
-                second_seen.add(pair[1])
-                pairs_to_merge[pair] = current_vocab_size
-                current_vocab_size += 1
-                num_merges -= 1
-            ids = multi_merge(ids, pairs_to_merge)
-            merges.update(pairs_to_merge)
-            input(merges)
+                    pairs_to_merge[pair] = current_vocab_size
+                    current_vocab_size += 1
+                    num_merges -= 1
+                    pbar.update(1) 
+                    
+                ids = multi_merge(ids, pairs_to_merge)
+                merges.update(pairs_to_merge)
+                input(merges)
 
 
 
@@ -187,7 +191,6 @@ def load_custom_bpe(bpe_name):
     """
     Load a custom BPE tokenizer
     """
-    input('loading bpe')
     # check if exists
     if os.path.exists(bpe_name):
         bpe = CustomBPE()

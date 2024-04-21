@@ -1,7 +1,7 @@
 model: "baseline"
 tokenizer: "bpe-4096"
 context_window: 512
-vocab_size: 50257
+vocab_size: 8192
 depth: 8
 hidden_dim: 512
 num_heads: 8
