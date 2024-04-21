@@ -70,7 +70,6 @@ class CustomBPE:
 
                 ids = multi_merge(ids, pairs_to_merge)
                 merges.update(pairs_to_merge)
-                input(merges)
 
 
 
@@ -113,18 +112,13 @@ class CustomBPE:
             vocab[idx] = special.encode("utf-8")
         return vocab
     
-    def save(self, file_prefix):
+    def save(self, model_file):
         """
-        Saves two files: file_prefix.vocab and file_prefix.model
-        This is inspired (but not equivalent to!) sentencepiece's model saving:
-        - model file is the critical one, intended for load()
-        - vocab file is just a pretty printed version for human inspection only
+        TODO
         """
         # write the model: to be used in load() later
-        model_file = file_prefix + ".model"
         with open(model_file, 'w') as f:
             # write the version, pattern and merges, that's all that's needed
-            f.write("minbpe v1\n")
             f.write(f"{self.pattern}\n")
             # write the special tokens, first the number of them, then each one
             f.write(f"{len(self.special_tokens)}\n")
@@ -134,7 +128,7 @@ class CustomBPE:
             for idx1, idx2 in self.merges:
                 f.write(f"{idx1} {idx2}\n")
         # write the vocab: for the human to look at
-        vocab_file = file_prefix + ".vocab"
+        vocab_file = file_prefix.replace(".model", ".vocab")
         inverted_merges = {idx: pair for pair, idx in self.merges.items()}
         with open(vocab_file, "w", encoding="utf-8") as f:
             for idx, token in self.vocab.items():
