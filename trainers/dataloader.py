@@ -139,7 +139,10 @@ class Seq2SeqDataloader:
         super().__init__()
         self.cfg = cfg
         self.data_dir = data_dir
-        self.dataset_path = os.path.join(self.data_dir, self.cfg["model_shell"]["tokenizer"])
+        self.dataset_path = os.path.join(
+            self.data_dir, 
+            f'{self.cfg["model_shell"]["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
+        )
 
         self.context_window = self.cfg["model_shell"]["context_window"]
         self.batch_size = self.cfg["trainer"]["training"]["batch_size"]
