@@ -2,6 +2,7 @@
 Utils functions and classes for MoE layers.
 """
 import torch 
+import torch.nn as nn
 import torch.nn.functional as F 
 
 @torch.jit.script
