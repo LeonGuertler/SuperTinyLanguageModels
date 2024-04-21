@@ -225,7 +225,7 @@ TOKENIZER_DICT = {
     "bpe-4096": lambda vocab_size: load_custom_bpe(vocab_size=vocab_size)
 }
 
-def build_tokenizer(tokenizer_name, tokenizer_folder, vocab_size=None):
+def build_tokenizer(tokenizer_name, vocab_size=None):
     """
     Get the tokenizer from the dictionary
     """
