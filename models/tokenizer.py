@@ -187,6 +187,7 @@ def load_custom_bpe(bpe_name):
     """
     Load a custom BPE tokenizer
     """
+    input('loading bpe')
     # check if exists
     if os.path.exists(bpe_name):
         bpe = CustomBPE()
