@@ -145,7 +145,7 @@ class RoPESelfAttention(nn.Module):
         self.freqs_cis = compute_freqs_cis(
             seq_len=context_window,
             head_dim=self.head_dim
-        )
+        ).to(torch.device("cuda"))
 
     def forward(self, x):
         """
