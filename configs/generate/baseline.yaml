@@ -5,3 +5,4 @@ generate_config:
   temperature: 0.8
   top_k: 10
   max_new_tokens: 100
+outputs/2024-04-22/17-43-41/checkpoints/ckpt_1999.pt

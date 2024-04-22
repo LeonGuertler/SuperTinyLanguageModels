@@ -156,7 +156,7 @@ class BaseTrainer:
             loss = self._run_step()
             t1 = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval:
-                lossf = loss.item() * self.gradient_accumulation_steps
+                lossf = loss.item() * self.gradient_accumulation_steps # TODO double check 
                 print(
                     f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {t1-t0:.1f}s"
                 )

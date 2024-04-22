@@ -87,7 +87,7 @@ class AutoregressiveModelShell(nn.Module):
 
         return logits, loss
         
-    def inference(self, text_string):
+    def inference(self, text_string, output_tokens):
         """
         Similar to the forward pass, but takes in a string 
         (or batch of strings) and only return the logits 
@@ -101,8 +101,11 @@ class AutoregressiveModelShell(nn.Module):
         # tokenize string
         token_ids = self.tokenizer.encode(text_string)
 
+        # add the output tokens
+        token_ids += output_tokens
+
         # convert to tensor
-        token_ids = torch.tensor(token_ids).unsqueeze(0)
+        token_ids = torch.tensor(token_ids).unsqueeze(0).to("cuda")
 
         b, s = token_ids.size()
 

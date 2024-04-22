@@ -28,8 +28,10 @@ def test_bpe_tokenizer():
     tokenizer = BPETokenizer(vocab_size=512, dataset_name="debug")
     tokens = tokenizer.encode(test_string)
     decoded = tokenizer.decode(tokens)
+    print(tokens)
+    print(decoded)
     assert decoded == test_string
 
     print(tokenizer.special_tokens["<|endoftext|>"])
-    tokenizer.vocab[tokenizer.special_tokens["<|endoftext|>"]]
+    #tokenizer.vocab[tokenizer.special_tokens["<|endoftext|>"]]
     

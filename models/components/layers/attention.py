@@ -152,6 +152,8 @@ class RoPESelfAttention(nn.Module):
         Forward pass
         """
         B, S, H = x.shape 
+
+        mask = torch.triu(torch.ones(S, S), 1).to(x.device)
         xq, xk, xv = self.wq(x), self.wk(x), self.wv(x)
 
         # Reshape to (B, S, num_heads, head_dim)
@@ -168,6 +170,8 @@ class RoPESelfAttention(nn.Module):
         xv = xv.transpose(1, 2)
 
         scores = torch.matmul(xq, xk.transpose(2, 3)) / math.sqrt(self.head_dim)
+        scores = scores.masked_fill(mask == 1, float("-inf"))
+        
 
         scores = F.softmax(scores.float(), dim=-1).type_as(xq)
         output = torch.matmul(scores, xv)
