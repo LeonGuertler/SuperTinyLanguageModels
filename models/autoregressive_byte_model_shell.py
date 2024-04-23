@@ -203,9 +203,11 @@ class ByteLevelProcessor(nn.Module):
                 token_string = self.pooling_tokenizer.decode([token_id])
                 # encode into character ids
                 byte_ids = self.byte_tokenizer.encode(token_string)
+                # convert to tensor
+                byte_ids = torch.tensor(byte_ids).unsqueeze(0)
                 input(byte_ids)
                 # embed
-                x = self.token_embedder(byte_ids).unsqueeze(0)
+                x = self.token_embedder(byte_ids)#.unsqueeze(0)
 
                 # process tokens
                 x = self.transformer[0](x)
