@@ -13,7 +13,15 @@ class CausalSelfAttention(nn.Module):
     Basic Self-Attention module.
     """
 
-    def __init__(self, hidden_dim, num_heads, bias=False, dropout=0.0):
+    def __init__(
+        self,
+        hidden_dim,
+        num_heads,
+        bias=False,
+        dropout=0.0,
+        use_rope=False,
+        max_context_window=512,
+    ):
         super().__init__()
         assert hidden_dim % num_heads == 0
         # key, query, value projections for all heads, but in a batch
@@ -36,6 +44,11 @@ class CausalSelfAttention(nn.Module):
         self.hidden_dim = hidden_dim
         self.num_heads = num_heads
         self.dropout = dropout
+        if use_rope:
+            assert max_context_window % 2 == 0
+            self.freqs_cis = compute_freqs_cis(
+                seq_len=max_context_window, head_dim=self.head_dim
+            ).to(torch.device("cuda"))
 
     def forward(self, x, attention_mask=None):
         """
@@ -55,6 +68,9 @@ class CausalSelfAttention(nn.Module):
         v = v.view(B, S, self.num_heads, H // self.num_heads).transpose(
             1, 2
         )  # (B, nh, T, hs)
+
+        if self.use_rope:
+            q, k = apply_rotary_emb(q, k, freqs_cis=self.freqs_cis[:S])
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         # flash attention
@@ -172,7 +188,7 @@ class RoPESelfAttention(nn.Module):
 
 
 def build_attention(
-    attention_name: str,
+    use_rope: bool,
     hidden_dim: int,
     num_heads: int,
     dropout: float,
@@ -181,19 +197,12 @@ def build_attention(
     """
     Build an attention layer
     """
-    if attention_name == "causal":
-        return CausalSelfAttention(
-            hidden_dim=hidden_dim,
-            num_heads=num_heads,
-            dropout=dropout,
-            **kwargs,
-        )
-    elif attention_name == "rope":
-        return RoPESelfAttention(
-            hidden_dim=hidden_dim,
-            num_heads=num_heads,
-            dropout=dropout,
-            **kwargs,
-        )
+    return CausalSelfAttention(
+        hidden_dim=hidden_dim,
+        num_heads=num_heads,
+        dropout=dropout,
+        use_rope=use_rope,
+        **kwargs,
+    )
     else:
         raise NotImplementedError(f"Attention type {attention_name} not implemented")
