@@ -25,7 +25,7 @@ class BPETokenizer:
             "<|endoftext|>": vocab_size-1,
         }
 
-        assert self.vocab_size > 256+len(self.special_tokens), "Vocab size too small! Must be > 256+len(special_tokens))"
+        assert self.vocab_size >= 256+len(self.special_tokens), "Vocab size too small! Must be > 256+len(special_tokens))"
 
 
         if not utils.check_if_tokenizer_exists(
