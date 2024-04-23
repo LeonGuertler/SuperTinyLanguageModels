@@ -9,7 +9,8 @@ from models.core_models import (
 )
 
 from models.autoregressive_model_shell import (
-    AutoregressiveModelShell
+    AutoregressiveModelShell,
+    AutoregressiveByteModelShell
 )
 
 
@@ -62,7 +63,9 @@ def build_core_model(cfg):
 
 
 MODEL_SHELL_DICT = {
-    "autoregressive": AutoregressiveModelShell
+    "autoregressive": AutoregressiveModelShell,
+    "autoregressive_byte": AutoregressiveByteModelShell,
+
 }
 
 def build_shell(cfg, core_model):
