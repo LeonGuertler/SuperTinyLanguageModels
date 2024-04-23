@@ -8,7 +8,7 @@ import torch.nn as nn
 
 from models.components.layers.normalization import build_normalization
 
-from models.components.layers.attention import CausalSelfAttention, RoPESelfAttention
+from models.components.layers.attention import CausalSelfAttention
 
 from models.components.layers.feedforward import FFN, SWIGluFFN
 
