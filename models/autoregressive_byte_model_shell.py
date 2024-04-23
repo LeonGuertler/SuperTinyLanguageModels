@@ -210,6 +210,7 @@ class ByteLevelProcessor(nn.Module):
                 x = self.token_embedder(byte_ids)#.unsqueeze(0)
 
                 # process tokens
+                print(x.size())
                 x = self.transformer[0](x)
                 x = self.up_proj(x)
                 x = self.transformer[1](x)
