@@ -27,7 +27,7 @@ class StandardDataloader:
         self.dataset_path = os.path.join(
             self.data_dir, 
             self.cfg["trainer"]["dataset"],
-            self.cfg["model_shell"]["tokenizer"],
+            f'{self.cfg["model_shell"]["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
             self.cfg["trainer"]["dataloader"]["name"]
         )
 
