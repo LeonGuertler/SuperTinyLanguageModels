@@ -11,7 +11,7 @@ from models.core_models import (
 from models.autoregressive_model_shell import (
     AutoregressiveModelShell
 )
-from model.autoregressive_byte_model_shell import (
+from models.autoregressive_byte_model_shell import (
     AutoregressiveByteModelShell
 )
 
