@@ -56,11 +56,8 @@ class SWIGluFFN(nn.Module):
         self,
         hidden_dim,
         ffn_dim,
-        multiple_of=256,
     ):
         super().__init__()
-        ffn_dim = int(2 * ffn_dim / 3)
-        ffn_dim = multiple_of * ((ffn_dim + multiple_of - 1) // multiple_of)
 
         self.lin_1 = nn.Linear(hidden_dim, ffn_dim, bias=False)
         self.lin_2 = nn.Linear(ffn_dim, hidden_dim, bias=False)
@@ -92,3 +89,21 @@ class JetMoEFFN(nn.Module):
         """Foward pass"""
         x_mlp, mlp_aux_loss = self.mlp(x)
         return x_mlp, mlp_aux_loss
+
+
+def build_ffn(ffn_type: str, **kwargs):
+    """
+    Build the FFN block based on the name
+    Options:
+        - ffn
+        - swiglu
+        - jetmoe
+    """
+    if ffn_type == "ffn":
+        return FFN(**kwargs)
+    elif ffn_type == "swiglu":
+        return SWIGluFFN(**kwargs)
+    elif ffn_type == "jetmoe":
+        return JetMoEFFN(**kwargs)
+    else:
+        raise ValueError(f"Unknown FFN block: {ffn_type}")

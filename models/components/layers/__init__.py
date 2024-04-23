@@ -10,7 +10,7 @@ from models.components.layers.normalization import build_normalization
 
 from models.components.layers.attention import CausalSelfAttention, RoPESelfAttention
 
-from models.components.layers.feedforward import FFN, ModernFFN
+from models.components.layers.feedforward import FFN, SWIGluFFN
 
 from models.components.layers.moe import MoE
 
@@ -94,7 +94,7 @@ class ModernTransformerBlock(nn.Module):
             dropout=dropout,
         )
 
-        self.ffn = ModernFFN(hidden_dim=hidden_dim, ffn_dim=ffn_dim)
+        self.ffn = SWIGluFFN(hidden_dim=hidden_dim, ffn_dim=ffn_dim)
 
         self.attn_norm = build_normalization(
             normalization,
@@ -149,10 +149,12 @@ class JetFFNMoEBlock(nn.Module):
             bias=False,
         )
 
-        self.attn_norm = RMSNorm(
+        self.attn_norm = build_normalization(
+            "rmsnorm",
             hidden_dim,
         )
-        self.ffn_norm = RMSNorm(
+        self.ffn_norm = build_normalization(
+            "rmsnorm",
             hidden_dim,
         )
 

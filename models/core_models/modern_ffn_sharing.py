@@ -2,7 +2,6 @@
 Llama-3 like transformer.
 """
 
-import torch
 import torch.nn as nn
 
 from models.components.positional_encoding import LearnedPosEncoding
