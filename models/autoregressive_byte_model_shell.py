@@ -88,7 +88,7 @@ class AutoregressiveByteModelShell(nn.Module):
 
 
         # embed token_ids
-        x = self.token_embedder(token_ids)
+        #x = self.token_embedder(token_ids)
 
         # process to sub-word tokens
         x = self.byte_token_processor(x)
