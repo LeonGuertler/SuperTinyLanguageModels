@@ -27,11 +27,6 @@ class ModernTransformer(nn.Module):
         self.core_model_cfg = cfg["core_model"]
         self.context_window = cfg["model_shell"]["context_window"]
 
-        # build positional encoding
-        self.pos_encoder = LearnedPosEncoding(
-            hidden_dim=cfg["core_model"]["hidden_dim"], 
-            context_window=self.context_window
-        )
 
         # build the transformer
         self.transformer = nn.ModuleDict(
@@ -54,7 +49,6 @@ class ModernTransformer(nn.Module):
         Pass an input through the model
         """
         # positional encoding
-        x = x + self.pos_encoder(x)
 
         x = self.transformer.drop(x)
         for block in self.transformer.h:
