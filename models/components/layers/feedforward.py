@@ -1,23 +1,22 @@
 """
 A collection of different FFN blocks
 """
-import torch 
-import torch.nn as nn 
+
+import torch.nn as nn
 import torch.nn.functional as F
 
-from models.components.layers.activations import (
-    build_activation
-)
+from models.components.layers.activations import build_activation
+from models.components.layers.moe import MoE
 
-from models.components.layers.moe import (
-    MoE
-)
 
 class FFN(nn.Module):
     """
     A simple Feed Forward Network block.
     """
-    def __init__(self, hidden_dim, ffn_dim, bias=False, dropout=0.0, ffn_activation:str="gelu"):
+
+    def __init__(
+        self, hidden_dim, ffn_dim, bias=False, dropout=0.0, ffn_activation: str = "gelu"
+    ):
         super().__init__()
         self.c_fc = nn.Linear(
             hidden_dim,
@@ -25,17 +24,13 @@ class FFN(nn.Module):
             bias=bias,
         )
 
-        self.gelu = build_activation(
-            activation_name=ffn_activation
-        )
+        self.gelu = build_activation(activation_name=ffn_activation)
         self.c_proj = nn.Linear(
             ffn_dim,
             hidden_dim,
             bias=bias,
         )
-        self.dropout = nn.Dropout(
-            dropout
-        )
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         """
@@ -46,13 +41,17 @@ class FFN(nn.Module):
         x = self.c_proj(x)
         x = self.dropout(x)
         return x
-    
 
-class LLama3FFN(nn.Module):
+
+class SWIGluFFN(nn.Module):
     """
     Implementation based on:
     https://github.com/meta-llama/llama3/blob/main/llama/model.py
+    originally from https://arxiv.org/abs/2002.05202
+
+    N.B. does not support dropout #TODO it should?
     """
+
     def __init__(
         self,
         hidden_dim,
@@ -61,7 +60,7 @@ class LLama3FFN(nn.Module):
     ):
         super().__init__()
         ffn_dim = int(2 * ffn_dim / 3)
-        ffn_dim = multiple_of * ((ffn_dim + multiple_of -1) // multiple_of)
+        ffn_dim = multiple_of * ((ffn_dim + multiple_of - 1) // multiple_of)
 
         self.lin_1 = nn.Linear(hidden_dim, ffn_dim, bias=False)
         self.lin_2 = nn.Linear(ffn_dim, hidden_dim, bias=False)
@@ -71,24 +70,15 @@ class LLama3FFN(nn.Module):
         """
         Forward pass
         """
-        return self.lin_2(
-            F.silu(self.lin_1(x)) * self.lin_3(x)
-        )
-
+        return self.lin_2(F.silu(self.lin_1(x)) * self.lin_3(x))
 
 
 class JetMoEFFN(nn.Module):
     """
     Implementation based on: https://github.com/myshell-ai/JetMoE/blob/main/jetmoe/modeling_jetmoe.py
     """
-    def __init__(
-        self,
-        hidden_dim,
-        ffn_dim,
-        num_experts,
-        top_k,
-        bias
-    ):
+
+    def __init__(self, hidden_dim, ffn_dim, num_experts, top_k, bias):
         super().__init__()
         self.mlp = MoE(
             hidden_dim=hidden_dim,
@@ -99,6 +89,6 @@ class JetMoEFFN(nn.Module):
         )
 
     def forward(self, x):
-        """ Foward pass """
+        """Foward pass"""
         x_mlp, mlp_aux_loss = self.mlp(x)
         return x_mlp, mlp_aux_loss
