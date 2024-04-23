@@ -181,18 +181,23 @@ class ByteLevelProcessor(nn.Module):
         self.up_proj = nn.Linear(embedding_dim, hidden_dim, bias=False)
 
 
-    def forward(self, batch_of_token_list):
+    def forward(self, batch_of_pooled_token_ids):
         """
         A batch of lists of tensors (token ids)
         """
         return_batch = torch.zeros(
-            (len(batch_of_token_list), len(batch_of_token_list[0]), self.hidden_dim),
+            (batch_of_pooled_token_ids.size(0), batch_of_pooled_token_ids.size(1), self.hidden_dim),
             device=self.device
         )
-        for i,token_batch in enumerate(batch_of_token_list):
-            for ii,token_ids in enumerate(token_batch):
-                # embed tokens
-                x = self.token_embedder(token_ids)
+        for i, token_batch in enumerate(batch_of_pooled_token_ids):
+            # iterate over actual ids
+            for ii, token_id in enumerate(token_batch):
+                # decode into string
+                token_string = self.tokenizer.decode([token_id])
+                # encode into character ids
+                byte_ids = self.byte_tokenizer.encode(token_string)
+                # embed
+                x = self.token_embedder(byte_ids).unsqueeze(0)
 
                 # process tokens
                 x = self.transformer[0](x)

@@ -237,7 +237,13 @@ class Seq2SeqDataloader:
 
 
 
+# Function to serialize a list of IDs into a string
+def serialize_ids(ids_list):
+    return ','.join(map(str, ids_list))
 
+# Function to deserialize a string back into a list of IDs
+def deserialize_ids(serialized_str):
+    return list(map(int, serialized_str.split(',')))
 
 class BytePoolingDataloader:
     """
@@ -354,7 +360,7 @@ class BytePoolingDataloader:
             arr_len = np.sum(dset["len"], dtype=np.uint64)
             filename = os.path.join(self.dataset_path, f"{split}.bin")
             dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
-            arr = np.memmap(filename, dtype=dtype, mode="w+", shape=(arr_len,))
+            arr = np.memmap(filename, dtype='S', mode="w+", shape=(arr_len,))
             total_batches = 1024
 
             idx = 0

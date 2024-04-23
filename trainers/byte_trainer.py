@@ -71,8 +71,7 @@ class ByteTrainer:
         print("Preprocessing the training data")
 
         self.dataloader.prepare_data(
-            byte_tokenizer=self.model.byte_tokenizer,
-            pooling_tokenizer=self.model.pooling_tokenizer
+            tokenizer=self.model.pooling_tokenizer,
         )
 
     @torch.no_grad()
