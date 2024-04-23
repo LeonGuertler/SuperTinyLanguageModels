@@ -193,7 +193,7 @@ class ByteLevelProcessor(nn.Module):
             # iterate over actual ids
             for ii, token_id in enumerate(token_batch):
                 # decode into string
-                token_string = self.tokenizer.decode([token_id])
+                token_string = self.pooling_tokenizer.decode([token_id])
                 # encode into character ids
                 byte_ids = self.byte_tokenizer.encode(token_string)
                 # embed
