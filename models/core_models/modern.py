@@ -28,14 +28,13 @@ class ModernTransformer(nn.Module):
         # build the transformer
         self.transformer = nn.ModuleDict(
             dict(
-                drop=nn.Dropout(self.core_model_cfg["dropout"]),
+                drop=nn.Dropout(),
                 h=nn.ModuleList(
                     [
                         ModernTransformerBlock(
                             hidden_dim=self.core_model_cfg["hidden_dim"],
                             ffn_dim=self.core_model_cfg["ffn_dim"],
                             num_heads=self.core_model_cfg["num_heads"],
-                            dropout=self.core_model_cfg["dropout"],
                             context_window=self.context_window,
                         )
                         for _ in range(self.core_model_cfg["depth"])

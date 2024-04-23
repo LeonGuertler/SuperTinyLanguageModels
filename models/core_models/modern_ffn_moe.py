@@ -23,14 +23,13 @@ class ModernTransformerFFNMoE(nn.Module):
         # build the transformer
         self.transformer = nn.ModuleDict(
             dict(
-                drop=nn.Dropout(self.core_model_cfg["dropout"]),
+                drop=nn.Dropout(),
                 h=nn.ModuleList(
                     [
                         JetFFNMoEBlock(
                             hidden_dim=self.core_model_cfg["hidden_dim"],
                             ffn_dim=self.core_model_cfg["ffn_dim"],
                             num_heads=self.core_model_cfg["num_heads"],
-                            dropout=self.core_model_cfg["dropout"],
                             context_window=self.context_window,
                             num_experts=self.core_model_cfg["num_experts"],
                             top_k=self.core_model_cfg["top_k"],

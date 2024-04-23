@@ -15,7 +15,7 @@ class FFN(nn.Module):
     """
 
     def __init__(
-        self, hidden_dim, ffn_dim, bias=False, dropout=0.0, ffn_activation: str = "gelu"
+        self, hidden_dim, ffn_dim, bias=False, ffn_activation: str = "gelu"
     ):
         super().__init__()
         self.c_fc = nn.Linear(
@@ -30,7 +30,7 @@ class FFN(nn.Module):
             hidden_dim,
             bias=bias,
         )
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = nn.Dropout()
 
     def forward(self, x):
         """

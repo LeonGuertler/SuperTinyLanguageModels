@@ -27,7 +27,6 @@ class GenericTransformerBlock(nn.Module):
         ffn_dim,
         bias,
         num_heads,
-        dropout=0.0,
         normalization="layernorm",
         attn_type="causal",
         ffn_activation=None,
@@ -43,7 +42,6 @@ class GenericTransformerBlock(nn.Module):
             hidden_dim=hidden_dim,
             num_heads=num_heads,
             bias=bias,
-            dropout=dropout,
         )
         self.norm_2 = build_normalization(
             normalization,
@@ -55,7 +53,6 @@ class GenericTransformerBlock(nn.Module):
             hidden_dim=hidden_dim,
             ffn_dim=ffn_dim,
             bias=bias,
-            dropout=dropout,
             ffn_activation=ffn_activation,
         )
 
@@ -97,7 +94,7 @@ class GenericTransformer(nn.Module):
         # build the transformer
         self.transformer = nn.ModuleDict(
             dict(
-                drop=nn.Dropout(self.core_model_cfg["dropout"]),
+                drop=nn.Dropout(),
                 h=nn.ModuleList(
                     [
                         GenericTransformerBlock(
@@ -107,7 +104,6 @@ class GenericTransformer(nn.Module):
                             ffn_activation=self.core_model_cfg["ffn_activation"],
                             num_heads=self.core_model_cfg["num_heads"],
                             bias=self.core_model_cfg["bias"],
-                            dropout=self.core_model_cfg["dropout"],
                             normalization=self.core_model_cfg["normalization"],
                             attn_type=self.core_model_cfg["attn_type"],
                         )
@@ -125,6 +121,6 @@ class GenericTransformer(nn.Module):
             x = x + self.pos_encoder(x)
         x = self.transformer.drop(x)
         for block in self.transformer.h:
-            x, _ = block(x)
+            x = block(x)
 
         return x

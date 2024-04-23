@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 
-from models.components.layers.normalization import build_normalization
+from models.components.layers.normalization import build_normalization, LayerNorm, RMSNorm
 
 from models.components.layers.attention import CausalSelfAttention
 
@@ -28,7 +28,6 @@ class BaseTransformerBlock(nn.Module):
         ffn_activation,
         bias,
         num_heads,
-        dropout,
         normalization="layernorm",
     ):
         super().__init__()
@@ -41,7 +40,6 @@ class BaseTransformerBlock(nn.Module):
             hidden_dim=hidden_dim,
             num_heads=num_heads,
             bias=bias,
-            dropout=dropout,
         )
         self.norm_2 = build_normalization(
             normalization,
@@ -52,7 +50,6 @@ class BaseTransformerBlock(nn.Module):
             hidden_dim=hidden_dim,
             ffn_dim=ffn_dim,
             bias=bias,
-            dropout=dropout,
             ffn_activation=ffn_activation,
         )
 
@@ -79,7 +76,6 @@ class ModernTransformerBlock(nn.Module):
         hidden_dim,
         ffn_dim,
         num_heads,
-        dropout,
         context_window,
         normalization="rmsnorm",
     ):
@@ -91,7 +87,6 @@ class ModernTransformerBlock(nn.Module):
             hidden_dim=hidden_dim,
             num_heads=num_heads,
             context_window=context_window,
-            dropout=dropout,
         )
 
         self.ffn = SWIGluFFN(hidden_dim=hidden_dim, ffn_dim=ffn_dim)
@@ -128,7 +123,6 @@ class JetFFNMoEBlock(nn.Module):
         hidden_dim,
         ffn_dim,
         num_heads,
-        dropout,
         context_window,
         num_experts,
         top_k,
@@ -138,7 +132,6 @@ class JetFFNMoEBlock(nn.Module):
             hidden_dim=hidden_dim,
             num_heads=num_heads,
             context_window=context_window,
-            dropout=dropout,
         )
 
         self.ffn = MoE(

@@ -27,7 +27,7 @@ class StandardTransformer(nn.Module):
         # build the transformer
         self.transformer = nn.ModuleDict(
             dict(
-                drop=nn.Dropout(self.core_model_cfg["dropout"]),
+                drop=nn.Dropout(),
                 h=nn.ModuleList(
                     [
                         BaseTransformerBlock(
@@ -36,7 +36,6 @@ class StandardTransformer(nn.Module):
                             ffn_activation=self.core_model_cfg["ffn_activation"],
                             bias=self.core_model_cfg["bias"],
                             num_heads=self.core_model_cfg["num_heads"],
-                            dropout=self.core_model_cfg["dropout"],
                         )
                         for _ in range(self.core_model_cfg["depth"])
                     ]

@@ -14,10 +14,11 @@ class BaseTrainer:
     Uses subcomponents: optimizer, scheduler,
     model, dataloader, loss functions, logger"""
 
-    def __init__(self, cfg, model, optimizer, scheduler, dataloader, loss_fn) -> None:
+    def __init__(self, cfg, model, optimizer, dataloader, loss_fn, lr_scheduler=None, dropout_scheduler=None) -> None:
         self.model = model
         self.optimizer = optimizer
-        self.scheduler = scheduler
+        self.lr_scheduler = lr_scheduler
+        self.dropout_scheduler = dropout_scheduler
         self.dataloader = dataloader
         self.loss_fn = loss_fn
         self.cfg = cfg
@@ -132,7 +133,11 @@ class BaseTrainer:
         """Run the training loop"""
         for iter_num in range(self.cfg.trainer.training.max_iters):
             t0 = time.time()
-            lr = self.scheduler.step(self.optimizer, iter_num)
+            if self.lr_scheduler is not None:
+                lr = self.lr_scheduler.step(self.optimizer, iter_num)
+            else:
+                lr = self.optimizer.param_groups[0]["lr"]
+            dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
             if not iter_num % self.cfg.trainer.training.eval_interval:
                 losses = self.estimate_loss(self.model)
