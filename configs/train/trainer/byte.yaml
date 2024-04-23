@@ -27,7 +27,7 @@ scheduler:
   name: "cosine"
 
 dataloader:
-  name: "standard"
+  name: "byte_pooling_dataloader"
 
 loss_fn:
   name: "cross_entropy"
