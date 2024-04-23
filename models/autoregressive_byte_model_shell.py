@@ -32,14 +32,14 @@ class AutoregressiveByteModelShell(nn.Module):
 
         # build the tokenizer 
         self.byte_tokenizer = build_tokenizer(
-            tokenizer_type=self.cfg["model_shell"]["tokenizer"],
-            vocab_size=self.cfg["model_shell"]["vocab_size"],
+            tokenizer_type=self.cfg["model_shell"]["pooling_tokenizer"],
+            vocab_size=self.cfg["model_shell"]["pooling_vocab_size"],
             dataset_name=self.cfg["model_shell"]["tokenizer_dataset_name"],
         )
 
         self.pooling_tokenizer = build_tokenizer(
-            tokenizer_type=self.cfg["model_shell"]["pooling_tokenizer"],
-            vocab_size=self.cfg["model_shell"]["pooling_vocab_size"],
+            tokenizer_type=self.cfg["model_shell"]["tokenizer"],
+            vocab_size=self.cfg["model_shell"]["vocab_size"],
             dataset_name=self.cfg["model_shell"]["tokenizer_dataset_name"],
         )
 
