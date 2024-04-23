@@ -25,12 +25,12 @@ class GenericTransformerBlock(nn.Module):
         hidden_dim,
         ffn_type,
         ffn_dim,
-        ffn_activation,
         bias,
         num_heads,
-        dropout,
+        dropout=0.0,
         normalization="layernorm",
         attn_type="causal",
+        ffn_activation=None,
     ):
         super().__init__()
         self.norm_1 = build_normalization(
@@ -39,7 +39,7 @@ class GenericTransformerBlock(nn.Module):
             bias=bias,
         )
         self.attn = build_attention(
-            attention_name=attn_type,
+            use_rope=(attn_type == "rope"),
             hidden_dim=hidden_dim,
             num_heads=num_heads,
             bias=bias,

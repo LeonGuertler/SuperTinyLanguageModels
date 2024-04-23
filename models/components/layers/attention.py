@@ -2,7 +2,6 @@
 A collection of attention layers.
 """
 
-import math
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -125,66 +124,66 @@ def compute_freqs_cis(seq_len, head_dim):
     return freqs_cis
 
 
-class RoPESelfAttention(nn.Module):
-    """
-    Self-Attention module with Rotary Positional Encoding and caching.
-    Paper: https://arxiv.org/abs/2104.09864
-    Implementation based on: https://github.com/meta-llama/llama3/blob/main/llama/model.py
-    """
+# class RoPESelfAttention(nn.Module):
+#     """
+#     Self-Attention module with Rotary Positional Encoding and caching.
+#     Paper: https://arxiv.org/abs/2104.09864
+#     Implementation based on: https://github.com/meta-llama/llama3/blob/main/llama/model.py
+#     """
 
-    # TODO: this shouldn't have the same number of Q,K,V heads
-    def __init__(self, hidden_dim, num_heads, context_window, dropout=0.0, **_):
-        super().__init__()
-        assert hidden_dim % num_heads == 0, "hidden_dim must be divisible by num_heads"
+#     # TODO: this shouldn't have the same number of Q,K,V heads
+#     def __init__(self, hidden_dim, num_heads, context_window, dropout=0.0, **_):
+#         super().__init__()
+#         assert hidden_dim % num_heads == 0, "hidden_dim must be divisible by num_heads"
 
-        self.hidden_dim = hidden_dim
-        self.num_heads = num_heads
-        self.head_dim = hidden_dim // num_heads
-        self.dropout = dropout
+#         self.hidden_dim = hidden_dim
+#         self.num_heads = num_heads
+#         self.head_dim = hidden_dim // num_heads
+#         self.dropout = dropout
 
-        # Key, query, value projections for all heads, but in a batch
-        self.wq = nn.Linear(hidden_dim, self.num_heads * self.head_dim, bias=False)
+#         # Key, query, value projections for all heads, but in a batch
+#         self.wq = nn.Linear(hidden_dim, self.num_heads * self.head_dim, bias=False)
 
-        self.wk = nn.Linear(hidden_dim, self.num_heads * self.head_dim, bias=False)
+#         self.wk = nn.Linear(hidden_dim, self.num_heads * self.head_dim, bias=False)
 
-        self.wv = nn.Linear(hidden_dim, self.num_heads * self.head_dim, bias=False)
+#         self.wv = nn.Linear(hidden_dim, self.num_heads * self.head_dim, bias=False)
 
-        # Output projection
-        self.wo = nn.Linear(self.num_heads * self.head_dim, hidden_dim, bias=False)
+#         # Output projection
+#         self.wo = nn.Linear(self.num_heads * self.head_dim, hidden_dim, bias=False)
 
-        self.freqs_cis = compute_freqs_cis(
-            seq_len=context_window, head_dim=self.head_dim
-        ).to(torch.device("cuda"))
+#         self.freqs_cis = compute_freqs_cis(
+#             seq_len=context_window, head_dim=self.head_dim
+#         ).to(torch.device("cuda"))
 
-    def forward(self, x):
-        """
-        Forward pass
-        """
-        B, S, _ = x.shape
+#     def forward(self, x):
+#         """
+#         Forward pass
+#         """
+#         B, S, _ = x.shape
 
-        mask = torch.triu(torch.ones(S, S), 1).to(x.device)
-        xq, xk, xv = self.wq(x), self.wk(x), self.wv(x)
+#         mask = torch.triu(torch.ones(S, S), 1).to(x.device)
+#         xq, xk, xv = self.wq(x), self.wk(x), self.wv(x)
 
-        # Reshape to (B, S, num_heads, head_dim)
-        xq = xq.view(B, S, self.num_heads, self.head_dim)
-        xk = xk.view(B, S, self.num_heads, self.head_dim)
-        xv = xv.view(B, S, self.num_heads, self.head_dim)
+#         # Reshape to (B, S, num_heads, head_dim)
+#         xq = xq.view(B, S, self.num_heads, self.head_dim)
+#         xk = xk.view(B, S, self.num_heads, self.head_dim)
+#         xv = xv.view(B, S, self.num_heads, self.head_dim)
 
-        xq, xk = apply_rotary_emb(xq, xk, freqs_cis=self.freqs_cis[:S])
+#         xq, xk = apply_rotary_emb(xq, xk, freqs_cis=self.freqs_cis[:S])
 
-        # TODO: when implementing GQA, add the repeat function for kv here
+#         # TODO: when implementing GQA, add the repeat function for kv here
 
-        xq = xq.transpose(1, 2)
-        xk = xk.transpose(1, 2)
-        xv = xv.transpose(1, 2)
+#         xq = xq.transpose(1, 2)
+#         xk = xk.transpose(1, 2)
+#         xv = xv.transpose(1, 2)
 
-        scores = torch.matmul(xq, xk.transpose(2, 3)) / math.sqrt(self.head_dim)
-        scores = scores.masked_fill(mask == 1, float("-inf"))
+#         scores = torch.matmul(xq, xk.transpose(2, 3)) / math.sqrt(self.head_dim)
+#         scores = scores.masked_fill(mask == 1, float("-inf"))
 
-        scores = F.softmax(scores.float(), dim=-1).type_as(xq)
-        output = torch.matmul(scores, xv)
-        output = output.transpose(1, 2).contiguous().view(B, S, -1)
-        return self.wo(output)
+#         scores = F.softmax(scores.float(), dim=-1).type_as(xq)
+#         output = torch.matmul(scores, xv)
+#         output = output.transpose(1, 2).contiguous().view(B, S, -1)
+#         return self.wo(output)
 
 
 def build_attention(
@@ -204,5 +203,3 @@ def build_attention(
         use_rope=use_rope,
         **kwargs,
     )
-    else:
-        raise NotImplementedError(f"Attention type {attention_name} not implemented")
