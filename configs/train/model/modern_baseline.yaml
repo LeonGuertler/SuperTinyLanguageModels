@@ -5,7 +5,7 @@ vocab_size: 50257
 depth: 8
 hidden_dim: 512
 num_heads: 8
-ffn_dim: 1024 # half to maintain param count
-dropout: 0.0
+ffn_dim: 1536 # half to maintain param count
+dropout: 0.1
 bias: False
 positional_encoder: "rope"
