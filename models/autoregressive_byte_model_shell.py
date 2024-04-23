@@ -54,6 +54,7 @@ class AutoregressiveByteModelShell(nn.Module):
             hidden_dim=self.cfg["core_model"]["hidden_dim"],
             pooling_tokenizer=self.pooling_tokenizer,
             byte_tokenizer=self.byte_tokenizer,
+            token_embedder=self.token_embedder
         )
 
         # build the language model head
@@ -134,7 +135,7 @@ class AutoregressiveByteModelShell(nn.Module):
 
 
         # embed token_ids
-        x = self.token_embedder(token_ids)
+        #x = self.token_embedder(token_ids)
 
         # forward through the core model
         x = self.core_model(x)
@@ -156,12 +157,13 @@ class ByteLevelProcessor(nn.Module):
     Inputs are batches of lists of token blocks 
     in the gpt2 tokenizer boundaries.
     """
-    def __init__(self, embedding_dim, hidden_dim, pooling_tokenizer, byte_tokenizer):
+    def __init__(self, embedding_dim, hidden_dim, pooling_tokenizer, byte_tokenizer, token_embedder):
         super().__init__() 
         self.embedding_dim = embedding_dim
         self.hidden_dim = hidden_dim
         self.pooling_tokenizer = pooling_tokenizer
         self.byte_tokenizer = byte_tokenizer
+        self.token_embedder = token_embedder
         self.transformer = nn.ModuleList(
             [
                 BidirectionalTransformerBlock(
