@@ -4,7 +4,6 @@ A collection of attention layers.
 
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
 
 
 class CausalSelfAttention(nn.Module):
@@ -57,8 +56,8 @@ class CausalSelfAttention(nn.Module):
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
         q, k, v = self.c_attn(x).split(self.hidden_dim, dim=2)
-        k = k.view(B, S, self.num_heads, H // self.num_heads) # (B, T, nh, hs)
-        q = q.view(B, S, self.num_heads, H // self.num_heads) # (B, T, nh, hs)
+        k = k.view(B, S, self.num_heads, H // self.num_heads)  # (B, T, nh, hs)
+        q = q.view(B, S, self.num_heads, H // self.num_heads)  # (B, T, nh, hs)
         v = v.view(B, S, self.num_heads, H // self.num_heads).transpose(
             1, 2
         )  # (B, nh, T, hs)
