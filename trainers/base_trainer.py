@@ -170,6 +170,8 @@ class BaseTrainer:
                             "val/loss": losses["val"],
                             "lr": lr,
                             "dropout": dropout,
+                            "train/perplexity": perplexities["train"],
+                            "val/perplexity": perplexities["val"],
                         }
                     )
             # save checkpoints
@@ -185,6 +187,15 @@ class BaseTrainer:
                 print(
                     f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {t1-t0:.1f}s"
                 )
+                if self.use_wandb:
+                    wandb.log(
+                        {
+                            "iter": iter_num,
+                            "loss": lossf,
+                            "lr": lr,
+                            "dropout": dropout,
+                        }
+                    )
         # save the final model
         self._save_model(iter_num)
 
