@@ -7,28 +7,27 @@ import time
 import torch
 import wandb
 from omegaconf import OmegaConf
+from torch.profiler import ProfilerActivity, profile, record_function
+
 from trainers import utils
 from trainers.base_trainer import BaseTrainer
 
-import time
-import torch
-from torch.profiler import profile, ProfilerActivity, record_function
 
 class TimeWrapper:
     def __init__(self, func):
         self.func = func
         self.time_tracker = []
-    
+
     def __call__(self, *args, **kwargs):
         t0 = time.time()
         out = self.func(*args, **kwargs)
         t1 = time.time()
         self.time_tracker.append(t1 - t0)
         return out
-    
+
     def get_time(self):
         return self.time_tracker
-    
+
 
 """class TimeWrapperModel:
     def __init__(self, model):
@@ -74,31 +73,37 @@ class TimeWrapperModel:
         self.layer_time_memory_stats = []
 
     def __call__(self, *args, **kwargs):
-        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
-                     record_shapes=True, profile_memory=True, with_stack=True) as prof:
+        with profile(
+            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+            record_shapes=True,
+            profile_memory=True,
+            with_stack=True,
+        ) as prof:
             t0 = time.time()
             out = self.model(*args, **kwargs)
             t1 = time.time()
-        
+
         if self.model.training:
             self.time_tracker_train.append(t1 - t0)
         else:
             self.time_tracker_eval.append(t1 - t0)
-        
+
         self._parse_profiler(prof)
-        
+
         return out
-    
+
     def _parse_profiler(self, profiler):
         # Parse the profiler output to store layer-wise time and memory usage
         for event in profiler.key_averages(group_by_input_shape=True):
-            self.layer_time_memory_stats.append({
-                "layer": event.key,
-                "cpu_time_total": event.cpu_time_total,
-                "cuda_time_total": event.cuda_time_total,
-                "cpu_memory_usage": event.cpu_memory_usage,
-                "cuda_memory_usage": event.cuda_memory_usage
-            })
+            self.layer_time_memory_stats.append(
+                {
+                    "layer": event.key,
+                    "cpu_time_total": event.cpu_time_total,
+                    "cuda_time_total": event.cuda_time_total,
+                    "cpu_memory_usage": event.cpu_memory_usage,
+                    "cuda_memory_usage": event.cuda_memory_usage,
+                }
+            )
 
     def get_layer_time_memory_stats(self):
         return self.layer_time_memory_stats
@@ -108,39 +113,43 @@ class TimeWrapperModel:
 
     def train(self):
         self.model.train()
-    
+
     def get_time_train(self):
-        return self.time_tracker_train 
+        return self.time_tracker_train
 
     def get_time_eval(self):
         return self.time_tracker_eval
-    
+
     def state_dict(self):
         return self.model.state_dict()
-    
+
     def parameters(self):
         return self.model.parameters()
-    
 
-    
+
 class BaseProfiler(BaseTrainer):
     def pretty_print_stats(self, time_dict):
         # Header for the table
-        print(f"{'Component':<25} {'Calls':<10} {'Total Time (s)':<15} {'Average Time (ms)':<20}")
+        print(
+            f"{'Component':<25} {'Calls':<10} {'Total Time (s)':<15} {'Average Time (ms)':<20}"
+        )
         print("-" * 70)
-        
+
         # Loop through each component and print its stats
         for component, times in time_dict.items():
             total_time = sum(times)
-            avg_time = (total_time / len(times)) * 1000  # Converting to milliseconds for readability
-            print(f"{component:<25} {len(times):<10} {total_time:<15.3f} {avg_time:<20.3f}")
-    
+            avg_time = (
+                total_time / len(times)
+            ) * 1000  # Converting to milliseconds for readability
+            print(
+                f"{component:<25} {len(times):<10} {total_time:<15.3f} {avg_time:<20.3f}"
+            )
 
     def train(self):
         # first wrap all relevant functions
 
         # wrap the estimate_loss function
-        self.estimate_loss = TimeWrapper(self.estimate_loss)
+        self.estimate_performance = TimeWrapper(self.estimate_performance)
 
         # wrap the _run_step function
         self._run_step = TimeWrapper(self._run_step)
@@ -160,28 +169,24 @@ class BaseProfiler(BaseTrainer):
         # wrap the get_batch function
         self.dataloader.get_batch = TimeWrapper(self.dataloader.get_batch)
 
-
         # Start profiling
         # run training loop
         self.run_training_loop()
 
         # get the time for each function
         time_dict = {
-            "estimate_loss": self.estimate_loss.get_time(),
+            "estimate_loss": self.estimate_performance.get_time(),
             "_run_step": self._run_step.get_time(),
             "_save_model": self._save_model.get_time(),
             "model_train_pass": self.model.get_time_train(),
             "model_eval_pass": self.model.get_time_eval(),
             "optimizer.step": self.optimizer.step.get_time(),
             "scheduler.step": self.scheduler.step.get_time(),
-            "dataloader.get_batch": self.dataloader.get_batch.get_time()
+            "dataloader.get_batch": self.dataloader.get_batch.get_time(),
         }
 
-
-
-        #input(time_dict)
+        # input(time_dict)
         self.pretty_print_stats(time_dict)
-
 
         def structure_layer_stats(layer_stats):
             """
@@ -189,13 +194,13 @@ class BaseProfiler(BaseTrainer):
             """
             structured_data = {}
             for stat in layer_stats:
-                path = stat['layer'].split('/')
+                path = stat["layer"].split("/")
                 current_level = structured_data
                 for part in path:
                     if part not in current_level:
-                        current_level[part] = {'_stats': [], 'children': {}}
-                    current_level = current_level[part]['children']
-                current_level['_stats'].append(stat)
+                        current_level[part] = {"_stats": [], "children": {}}
+                    current_level = current_level[part]["children"]
+                current_level["_stats"].append(stat)
             return structured_data
 
         def print_layer_stats(structured_data, indent=0):
@@ -203,17 +208,28 @@ class BaseProfiler(BaseTrainer):
             Recursively print the structured layer statistics with indentation.
             """
             for layer, data in structured_data.items():
-                if layer == '_stats':
+                if layer == "_stats":
                     continue  # Skip printing the stats directly; they are printed when accessing their parent
-                avg_cpu_time = sum(d['cpu_time_total'] for d in data['_stats']) / len(data['_stats'])
-                avg_cuda_time = sum(d['cuda_time_total'] for d in data['_stats']) / len(data['_stats'])
-                avg_cpu_memory = sum(d['cpu_memory_usage'] for d in data['_stats']) / len(data['_stats'])
-                avg_cuda_memory = sum(d['cuda_memory_usage'] for d in data['_stats']) / len(data['_stats'])
-                print(f"{' ' * indent}{layer}: CPU Time: {avg_cpu_time:.3f}ms, CUDA Time: {avg_cuda_time:.3f}ms, CPU Memory: {avg_cpu_memory}B, CUDA Memory: {avg_cuda_memory}B")
-                print_layer_stats(data['children'], indent + 4)
+                avg_cpu_time = sum(d["cpu_time_total"] for d in data["_stats"]) / len(
+                    data["_stats"]
+                )
+                avg_cuda_time = sum(d["cuda_time_total"] for d in data["_stats"]) / len(
+                    data["_stats"]
+                )
+                avg_cpu_memory = sum(
+                    d["cpu_memory_usage"] for d in data["_stats"]
+                ) / len(data["_stats"])
+                avg_cuda_memory = sum(
+                    d["cuda_memory_usage"] for d in data["_stats"]
+                ) / len(data["_stats"])
+                print(
+                    f"{' ' * indent}{layer}: CPU Time: {avg_cpu_time:.3f}ms, CUDA Time: {avg_cuda_time:.3f}ms, CPU Memory: {avg_cpu_memory}B, CUDA Memory: {avg_cuda_memory}B"
+                )
+                print_layer_stats(data["children"], indent + 4)
 
         # Example usage:
-        layer_stats = self.model.get_layer_time_memory_stats()  # Assuming this returns your collected stats
+        layer_stats = (
+            self.model.get_layer_time_memory_stats()
+        )  # Assuming this returns your collected stats
         structured_stats = structure_layer_stats(layer_stats)
         print_layer_stats(structured_stats)
-                
