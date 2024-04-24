@@ -56,6 +56,7 @@ class SWIGluFFN(nn.Module):
         self,
         hidden_dim,
         ffn_dim,
+        **_
     ):
         super().__init__()
 
