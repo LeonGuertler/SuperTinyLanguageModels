@@ -6,7 +6,11 @@ import torch
 import torch.nn as nn
 
 
-from models.components.layers.normalization import build_normalization, LayerNorm, RMSNorm
+from models.components.layers.normalization import (
+    build_normalization,
+    LayerNorm,
+    RMSNorm,
+)
 
 from models.components.layers.attention import CausalSelfAttention
 
@@ -83,10 +87,11 @@ class ModernTransformerBlock(nn.Module):
         self.num_heads = num_heads
         self.hidden_dim = hidden_dim
 
-        self.attn = RoPESelfAttention(
+        self.attn = CausalSelfAttention(
             hidden_dim=hidden_dim,
             num_heads=num_heads,
-            context_window=context_window,
+            max_context_window=context_window,
+            use_rope=True,
         )
 
         self.ffn = SWIGluFFN(hidden_dim=hidden_dim, ffn_dim=ffn_dim)
@@ -128,10 +133,11 @@ class JetFFNMoEBlock(nn.Module):
         top_k,
     ):
         super().__init__()
-        self.attn = RoPESelfAttention(
+        self.attn = CausalSelfAttention(
             hidden_dim=hidden_dim,
             num_heads=num_heads,
-            context_window=context_window,
+            max_context_window=context_window,
+            use_rope=True,
         )
 
         self.ffn = MoE(
