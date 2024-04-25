@@ -218,7 +218,7 @@ class ByteLevelProcessor(nn.Module):
                 print(batched_seq.size())
 
                 # get boundaries
-                boundaries.append((o, o + len(byte_ids)))
+                boundaries.append((o, o + x.size(0)))
                 o += len(byte_ids)
 
                 batched_seq[boundaries[-1][0]:boundaries[-1][1]] = x
@@ -233,8 +233,11 @@ class ByteLevelProcessor(nn.Module):
             x = self.transformer[1](x)
 
             # mean pool tokens
-            x = x.mean(dim=-2)
-            return_batch[i] = x
+            # pool according to boundaries
+            for ii, boundary in enumerate(boundaries):
+                return_batch[i, ii] = batched_seq[boundary[0]:boundary[1]].mean(dim=-2)
+            #x = x.mean(dim=-2)
+            #return_batch[i] = x
 
         print(return_batch)
         input(return_batch.size())
