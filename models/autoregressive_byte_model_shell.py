@@ -198,7 +198,7 @@ class ByteLevelProcessor(nn.Module):
         for i, token_batch in enumerate(batch_of_pooled_token_ids):
             # iterate over actual ids
             batched_seq = torch.zeros(
-                (len(token_batch), self.embedding_dim),
+                (len(token_batch)*8, self.embedding_dim),
             )
             boundaries = []
             o = 0
