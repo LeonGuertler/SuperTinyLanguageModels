@@ -204,17 +204,17 @@ class ByteLevelProcessor(nn.Module):
             o = 0"""
             for ii, token_id in enumerate(token_batch):
                 # decode into string
-                print(token_id)
+                #print(token_id)
                 token_string = self.pooling_tokenizer.decode([token_id])
                 # encode into character ids
-                print(token_string)
+                #print(token_string)
                 byte_ids = self.byte_tokenizer.encode(token_string)
                 # convert to tensor
                 byte_ids = torch.tensor(byte_ids).to('cuda')
-                input(byte_ids)
+                #input(byte_ids)
                 # embed
                 x = self.token_embedder(byte_ids).unsqueeze(0)
-                print(x.size())
+                #print(x.size())
                 #print(batched_seq.size())
 
                 # get boundaries
@@ -228,7 +228,7 @@ class ByteLevelProcessor(nn.Module):
 
 
                 # process tokens
-                print(x.size())
+                #print(x.size())
                 x = self.transformer[0](x)
                 x = self.up_proj(x)
                 x = self.transformer[1](x)
@@ -238,7 +238,7 @@ class ByteLevelProcessor(nn.Module):
                 #for ii, boundary in enumerate(boundaries):
                 #    return_batch[i, ii] = batched_seq[boundary[0]:boundary[1]].mean(dim=-2)
                 x = x.mean(dim=-2)
-                return_batch[i] = x
+                return_batch[i, ii] = x
 
         print(return_batch)
         input(return_batch.size())
