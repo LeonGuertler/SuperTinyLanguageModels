@@ -86,7 +86,10 @@ class ByteTrainer:
             for i in range(eval_iters):
                 x, y = self.dataloader.get_batch(split)
                 with self.ctx:
+                    print(y.size())
                     output, loss = model(x)
+                    print(output.size())
+                    input(loss)
                     losses[i] = self.loss_fn(output, y)
             out[split] = losses.mean().item()
         model.train()
