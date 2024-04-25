@@ -193,7 +193,7 @@ class ByteLevelProcessor(nn.Module):
         """
         return_batch = torch.zeros(
             (batch_of_pooled_token_ids.size(0), batch_of_pooled_token_ids.size(1), self.hidden_dim),
-            #device=self.device
+            device=torch.device("cuda")#self.device
         )
         for i, token_batch in enumerate(batch_of_pooled_token_ids):
             # iterate over actual ids
