@@ -34,6 +34,8 @@ class BaseTrainer:
         if self.use_wandb:
             self._setup_logging()
 
+        self.model.to("cuda")
+
 
     def _setup_logging(self):
         # set run name
