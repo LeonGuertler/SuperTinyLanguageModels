@@ -46,7 +46,7 @@ class AutoregressiveByteModelShell(nn.Module):
         # build the embedder 
         self.token_embedder = nn.Embedding(
             num_embeddings=self.cfg["model_shell"]["vocab_size"],
-            embedding_dim=self.cfg["model_shell"]["embedding_dim"],
+            embedding_dim=256, #self.cfg["model_shell"]["embedding_dim"],
         )
 
         self.byte_token_processor = ByteLevelProcessor(
