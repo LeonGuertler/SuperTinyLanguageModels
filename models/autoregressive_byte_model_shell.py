@@ -212,6 +212,8 @@ class ByteLevelProcessor(nn.Module):
                 input(byte_ids)
                 # embed
                 x = self.token_embedder(byte_ids)#.unsqueeze(0)
+                print(x.size())
+                print(batched_seq.size())
 
                 batched_seq[ii] = x
 
