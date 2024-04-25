@@ -60,7 +60,7 @@ class AutoregressiveByteModelShell(nn.Module):
         # build the language model head
         self.lm_head = NextTokenHead(
             hidden_dim=self.cfg["core_model"]["hidden_dim"],
-            vocab_size=self.cfg["model_shell"]["pooling_vocab_size"],
+            vocab_size=self.cfg["model_shell"]["vocab_size"],
         )
 
         # share the weights between the token embeddings and the final logit layer
