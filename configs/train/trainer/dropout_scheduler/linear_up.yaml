@@ -1,0 +1,5 @@
+name: "linear"
+start_dropout_p: 0.0
+end_dropout_p: 0.1
+start_iter: 0
+end_iter: 100

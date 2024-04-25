@@ -14,10 +14,20 @@ class BaseTrainer:
     Uses subcomponents: optimizer, scheduler,
     model, dataloader, loss functions, logger"""
 
-    def __init__(self, cfg, model, optimizer, scheduler, dataloader, loss_fn) -> None:
+    def __init__(
+        self,
+        cfg,
+        model,
+        optimizer,
+        dataloader,
+        loss_fn,
+        lr_scheduler=None,
+        dropout_scheduler=None,
+    ) -> None:
         self.model = model
         self.optimizer = optimizer
-        self.scheduler = scheduler
+        self.lr_scheduler = lr_scheduler
+        self.dropout_scheduler = dropout_scheduler
         self.dataloader = dataloader
         self.loss_fn = loss_fn
         self.cfg = cfg
@@ -27,15 +37,12 @@ class BaseTrainer:
         self.scaler = None
         self.use_wandb = cfg.general.logging.wandb_log
         self.checkpoint_dir = cfg.general.paths.checkpoint_dir
-        
+
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
         self.ctx = self._setup_ctx()
         if self.use_wandb:
             self._setup_logging()
-
-        self.model.to("cuda")
-
 
     def _setup_logging(self):
         # set run name
@@ -47,7 +54,6 @@ class BaseTrainer:
         )
         wandb.init(project=self.cfg.general.logging.wandb_project)
         print("wand_b_initted")
-
 
     def _setup_ctx(self):
         """Get the context manager"""
@@ -74,20 +80,29 @@ class BaseTrainer:
         self.dataloader.prepare_data(tokenizer=self.model.tokenizer)
 
     @torch.no_grad()
-    def estimate_loss(self, model, eval_iters=1000):
+    def estimate_performance(self, model, tokenizer, eval_iters=1000):
         """Estimate the loss"""
-        out = {}
+        loss = {}
+        perplexity = {}
         model.eval()
         for split in ["train", "val"]:
             losses = torch.zeros(eval_iters)
+            perplexities = torch.zeros(eval_iters)
             for i in range(eval_iters):
                 x, y = self.dataloader.get_batch(split)
+                decoded_xs = [tokenizer.decode(x[i].tolist()) for i in range(x.size(0))]
+                token_lengths = [x.size(1) for _ in range(x.size(0))]
+                char_lengths = [len(decoded_x) for decoded_x in decoded_xs]
                 with self.ctx:
-                    output, loss = model(x)
+                    output, _ = model(x)
                     losses[i] = self.loss_fn(output, y)
-            out[split] = losses.mean().item()
+                    perplexities[i] = torch.exp(
+                        losses[i] * sum(token_lengths) / sum(char_lengths)
+                    )
+            loss[split] = losses.mean().item()
+            perplexity[split] = perplexities.mean().item()
         model.train()
-        return out
+        return loss, perplexity
 
     def _run_step(self):
         """Run a single step of training"""
@@ -112,7 +127,7 @@ class BaseTrainer:
 
         self.optimizer.zero_grad(set_to_none=True)
         return loss
-    
+
     def _save_model(self, iter_num=0):
         """
         store the current model checkpoint.
@@ -125,21 +140,27 @@ class BaseTrainer:
         }
         checkpoint_path = f"{self.checkpoint_dir}/ckpt_{iter_num}.pt"
         print(f"saving checkpoint to {checkpoint_path}")
-        torch.save(
-            checkpoint, 
-            checkpoint_path
-        )
+        torch.save(checkpoint, checkpoint_path)
 
     def run_training_loop(self):
         """Run the training loop"""
         for iter_num in range(self.cfg.trainer.training.max_iters):
             t0 = time.time()
-            lr = self.scheduler.step(self.optimizer, iter_num)
+            if self.lr_scheduler is not None:
+                lr = self.lr_scheduler.step(self.optimizer, iter_num)
+            else:
+                lr = self.optimizer.param_groups[0]["lr"]
+            dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
             if not iter_num % self.cfg.trainer.training.eval_interval:
-                losses = self.estimate_loss(self.model)
+                losses, perplexities = self.estimate_performance(
+                    self.model, tokenizer=self.model.tokenizer
+                )
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}"
+                )
+                print(
+                    f"step {iter_num}: train perplexity {perplexities['train']:.4f}, val perplexity {perplexities['val']:.4f}"
                 )
                 if self.use_wandb:
                     wandb.log(
@@ -148,20 +169,33 @@ class BaseTrainer:
                             "train/loss": losses["train"],
                             "val/loss": losses["val"],
                             "lr": lr,
+                            "dropout": dropout,
+                            "train/perplexity": perplexities["train"],
+                            "val/perplexity": perplexities["val"],
                         }
                     )
             # save checkpoints
             if not iter_num % self.cfg.trainer.training.checkpoint_interval:
                 self._save_model(iter_num)
 
-
             loss = self._run_step()
             t1 = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval:
-                lossf = loss.item() * self.gradient_accumulation_steps # TODO double check 
+                lossf = (
+                    loss.item() * self.gradient_accumulation_steps
+                )  # TODO double check
                 print(
                     f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {t1-t0:.1f}s"
                 )
+                if self.use_wandb:
+                    wandb.log(
+                        {
+                            "iter": iter_num,
+                            "loss": lossf,
+                            "lr": lr,
+                            "dropout": dropout,
+                        }
+                    )
         # save the final model
         self._save_model(iter_num)
 
@@ -169,5 +203,3 @@ class BaseTrainer:
         """Train the model"""
         utils.set_seed(seed)
         self.run_training_loop()
-
-

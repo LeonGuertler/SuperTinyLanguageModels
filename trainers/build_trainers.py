@@ -16,7 +16,7 @@ from trainers.dataloader import (
 )
 from trainers.loss_fn import cross_entropy_loss_fn
 from trainers.optimizer import configure_nanoGPT_optimizer
-from trainers.scheduler import CosineScheduler
+from trainers.scheduler import CosineLRScheduler, LRScheduler, DropoutScheduler, LinearDropoutScheduler
 
 OPTIMIZER_DICT = {
     "nanoGPTadamW": lambda model, cfg: configure_nanoGPT_optimizer(
@@ -32,25 +32,43 @@ def build_optimizer(model, optimizer_config):
     """
     Given the optimizer config, build the optimizer
     """
-    print(optimizer_config["name"])
     return OPTIMIZER_DICT[optimizer_config["name"]](model=model, cfg=optimizer_config)
 
 
 SCHEDULER_DICT = {
-    "cosine": lambda cfg: CosineScheduler(
+    "cosine": lambda cfg: CosineLRScheduler(
         warmup_iters=cfg["training"]["warmup_iters"],
         decay_iters=cfg["training"]["lr_decay_iters"],
         lr=cfg["optimizer"]["lr"],
         min_lr=cfg["optimizer"]["min_lr"],
+    ),
+    "constant": lambda cfg: LRScheduler(
+        lr=cfg["optimizer"]["lr"],
     )
 }
 
 
-def build_scheduler(trainer_cfg):
+def build_lr_scheduler(trainer_cfg):
     """
     Given the trainer config, build the LR scheduler.build_model
     """
-    return SCHEDULER_DICT[trainer_cfg["scheduler"]["name"]](cfg=trainer_cfg)
+    return SCHEDULER_DICT[trainer_cfg["lr_scheduler"]["name"]](cfg=trainer_cfg)
+
+
+def build_dropout_scheduler(trainer_cfg):
+    """
+    Given the trainer config, build the dropout scheduler.
+    """
+    if trainer_cfg["dropout_scheduler"]["name"] == "constant":
+        return DropoutScheduler(trainer_cfg["dropout_scheduler"]["dropout"])
+
+    if trainer_cfg["dropout_scheduler"]["name"] == "linear":
+        return LinearDropoutScheduler(
+            start_dropout_p=trainer_cfg["dropout_scheduler"]["start_dropout_p"],
+            end_dropout_p=trainer_cfg["dropout_scheduler"]["end_dropout_p"],
+            start_iter=trainer_cfg["dropout_scheduler"]["start_iter"],
+            end_iter=trainer_cfg["dropout_scheduler"]["end_iter"],
+        )
 
 
 DATALODER_DICT = {
@@ -106,7 +124,10 @@ def build_trainer(cfg):
     )
 
     # build LR scheduler
-    scheduler = build_scheduler(trainer_cfg=cfg["trainer"])
+    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg["trainer"])
+
+    # build dropout scheduler
+    dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg["trainer"])
 
     # build dataloder
     dataloader = build_dataloader(cfg=cfg)
@@ -120,7 +141,8 @@ def build_trainer(cfg):
         cfg=cfg,
         model=model,
         optimizer=optimizer,
-        scheduler=scheduler,
+        lr_scheduler=lr_scheduler,
+        dropout_scheduler=dropout_scheduler,
         dataloader=dataloader,
         loss_fn=loss_fn,
     )

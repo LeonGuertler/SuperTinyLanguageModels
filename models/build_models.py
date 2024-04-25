@@ -5,8 +5,10 @@ Contains the functions to build the actual model.
 from models.core_models import (
     StandardTransformer,
     ModernTransformer,
-    ModernFFNSharingTransformer
+    ModernFFNSharingTransformer,
+    GenericTransformer,
 )
+
 
 from models.autoregressive_model_shell import (
     AutoregressiveModelShell
@@ -16,9 +18,10 @@ from models.autoregressive_byte_model_shell import (
 )
 
 
+
 def build_model(cfg=None, checkpoint=None):
     """
-    Either initialize or load a model, depending on 
+    Either initialize or load a model, depending on
     whether a config or checkpoint was provided
     (respectively).
     Args:
@@ -34,23 +37,25 @@ def build_model(cfg=None, checkpoint=None):
         model = initialize_model(checkpoint["config"])
 
         # load the model weights
-        model.load_state_dict(checkpoint['model'])
+        model.load_state_dict(checkpoint["model"])
         model.eval()
-    
+
     else:
         # initialize model
         model = initialize_model(cfg)
         model.train()
 
-    return model 
-
+    return model
 
 
 CORE_MODEL_DICT = {
     "baseline": StandardTransformer,
     "modern": ModernTransformer,
-    "modern_ffn_sharing": ModernFFNSharingTransformer
+    "modern_ffn_sharing": ModernFFNSharingTransformer,
+    "generic": GenericTransformer,
 }
+
+
 def build_core_model(cfg):
     """
     Given the core model config, build it.
@@ -59,9 +64,8 @@ def build_core_model(cfg):
     Returns:
         core_model: core_model_instance
     """
-    return CORE_MODEL_DICT[cfg['core_model']['core_model_type']](
-        cfg=cfg
-    )
+    return CORE_MODEL_DICT[cfg["core_model"]["core_model_type"]](cfg=cfg)
+
 
 
 MODEL_SHELL_DICT = {
@@ -69,6 +73,8 @@ MODEL_SHELL_DICT = {
     "autoregressive_byte_encoding": AutoregressiveByteModelShell,
 
 }
+
+
 
 def build_shell(cfg, core_model):
     """
@@ -80,7 +86,7 @@ def build_shell(cfg, core_model):
     Returns:
         model_shell: model_shell_instance
     """
-    return MODEL_SHELL_DICT[cfg["model_shell"]['shell_type']](
+    return MODEL_SHELL_DICT[cfg["model_shell"]["shell_type"]](
         cfg=cfg,
         core_model=core_model,
     )
@@ -90,13 +96,12 @@ def initialize_model(cfg):
     """
     Initializes the model from the configuration
     Args:
-        cfg: main config 
+        cfg: main config
     Returns:
         model: model instance
     """
     # build the core model
     core_model = build_core_model(cfg)
-
 
     # build the model shell
     model = build_shell(
@@ -104,5 +109,4 @@ def initialize_model(cfg):
         core_model=core_model,
     )
 
-    return model 
-
+    return model

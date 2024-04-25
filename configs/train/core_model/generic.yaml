@@ -1,0 +1,11 @@
+core_model_type: "generic"
+hidden_dim: 512
+depth: 8
+num_heads: 8
+ffn_dim: 1536
+bias: False
+# modern version e.g.
+attn_type: "rope"
+ffn_type: "swiglu"
+ffn_activation: "gelu"
+normalization: "rmsnorm"
