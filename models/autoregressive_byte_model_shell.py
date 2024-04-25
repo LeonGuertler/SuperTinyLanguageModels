@@ -240,8 +240,8 @@ class ByteLevelProcessor(nn.Module):
                 x = x.mean(dim=-2)
                 return_batch[i, ii] = x
 
-        print(return_batch)
-        input(return_batch.size())
+        #print(return_batch)
+        #input(return_batch.size())
 
         return return_batch
         
