@@ -1,0 +1,8 @@
+shell_type: "autoregressive_byte_encoding"
+tokenizer: "gpt2"
+vocab_size: 50304
+embedding_dim: 512
+pooling_tokenizer: "bpe"
+pooling_vocab_size: 512
+tokenizer_dataset_name: "simple_en_wiki"
+context_window: 512

@@ -12,7 +12,13 @@ from models.components.layers.normalization import (
     RMSNorm,
 )
 
-from models.components.layers.attention import CausalSelfAttention
+
+from models.components.layers.attention import (
+    CausalSelfAttention,
+    BidirectionalSelfAttention,
+    RoPESelfAttention,
+)
+
 
 from models.components.layers.feedforward import FFN, SWIGluFFN
 
@@ -69,7 +75,45 @@ class BaseTransformerBlock(nn.Module):
         return x
 
 
+class BidirectionalTransformerBlock(nn.Module):
+    """
+    A simple abstraction to combine the 
+    LayerNorms, SelfAttention and FeedForward layers
+    """
+    def __init__(self, hidden_dim, ffn_dim, ffn_activation, bias, num_heads, dropout):
+        super().__init__()
+        self.ln_1 = LayerNorm(hidden_dim, bias=bias)
+        self.attn = BidirectionalSelfAttention(
+            hidden_dim=hidden_dim,
+            num_heads=num_heads,
+            bias=bias,
+            dropout=dropout,
+        )
+        self.ln_2 = LayerNorm(hidden_dim, bias=bias)
+        self.mlp = FFN(
+            hidden_dim=hidden_dim,
+            ffn_dim=ffn_dim,
+            bias=bias,
+            dropout=dropout,
+            ffn_activation=ffn_activation
+        )
+
+    def forward(self, x, attention_mask=None):
+        """
+        A simple, residual forward 
+        pass through the GPT block.
+        Args:
+            x: the input tensor (b, s, h)
+        """
+        x = x + self.attn(self.ln_1(x), attention_mask)
+        x = x + self.mlp(self.ln_2(x))
+        return x
+    
+
+
+
 class ModernTransformerBlock(nn.Module):
+
     """
     A simple abstraction to combine the
     RMSNorm, SelfAttention (RoPE) and ModernFFN Layers
