@@ -197,6 +197,9 @@ class ByteLevelProcessor(nn.Module):
         )
         for i, token_batch in enumerate(batch_of_pooled_token_ids):
             # iterate over actual ids
+            batched_seq = torch.zeros(
+                (len(token_batch), self.embedding_dim),
+            )
             for ii, token_id in enumerate(token_batch):
                 # decode into string
                 print(token_id)
@@ -205,20 +208,23 @@ class ByteLevelProcessor(nn.Module):
                 print(token_string)
                 byte_ids = self.byte_tokenizer.encode(token_string)
                 # convert to tensor
-                byte_ids = torch.tensor(byte_ids).to('cuda')
+                byte_ids = torch.tensor(byte_ids).to('cuda').un
                 input(byte_ids)
                 # embed
                 x = self.token_embedder(byte_ids)#.unsqueeze(0)
 
-                # process tokens
-                print(x.size())
-                x = self.transformer[0](x)
-                x = self.up_proj(x)
-                x = self.transformer[1](x)
+                batched_seq[ii] = x
 
-                # mean pool tokens
-                x = x.mean(dim=1)
-                return_batch[i, ii] = x
+
+            # process tokens
+            print(x.size())
+            x = self.transformer[0](x)
+            x = self.up_proj(x)
+            x = self.transformer[1](x)
+
+            # mean pool tokens
+            x = x.mean(dim=-2)
+            return_batch[i] = x
 
         print(return_batch)
         input(return_batch.size())
