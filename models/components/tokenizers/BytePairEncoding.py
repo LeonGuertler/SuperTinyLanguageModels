@@ -5,12 +5,14 @@ by https://twitter.com/lexandermorgan/status/1778793836929495098.
 
 Original Paper: https://arxiv.org/abs/1508.07909v5
 """
+
 import os
 from heapq import nlargest
-from tqdm import tqdm 
 
+from tqdm import tqdm
+
+from models.components.tokenizers import utils
 from trainers.utils import load_data
-from models.components.tokenizers import utils 
 
 
 class BPETokenizer:
@@ -21,24 +23,23 @@ class BPETokenizer:
         self.vocab_size = vocab_size
         self.dataset_name = dataset_name
         self.special_tokens = {
-            "<|pad|>": vocab_size-2,
-            "<|endoftext|>": vocab_size-1,
+            "<|pad|>": vocab_size - 2,
+            "<|endoftext|>": vocab_size - 1,
         }
 
-        assert self.vocab_size > 256+len(self.special_tokens), "Vocab size too small! Must be > 256+len(special_tokens))"
-
+        assert self.vocab_size > 256 + len(
+            self.special_tokens
+        ), "Vocab size too small! Must be > 256+len(special_tokens))"
 
         if not utils.check_if_tokenizer_exists(
-            tokenizer_type="bpe",
-            vocab_size=vocab_size, 
-            dataset_name=dataset_name
+            tokenizer_type="bpe", vocab_size=vocab_size, dataset_name=dataset_name
         ):
             # train the tokenizer and save it
             self._train_tokenizer()
             self._save()
 
         else:
-            # load the stored tokenizer 
+            # load the stored tokenizer
             self._load()
 
         self.eot_token = self.special_tokens["<|endoftext|>"]
@@ -47,8 +48,8 @@ class BPETokenizer:
         """
         Encode the text into Byte Pair Encoding tokens.
         """
-        text_bytes = text.encode("utf-8") # raw bytes
-        ids = list(text_bytes) # list of integers in range 0..255
+        text_bytes = text.encode("utf-8")  # raw bytes
+        ids = list(text_bytes)  # list of integers in range 0..255
         while len(ids) >= 2:
             # find the pair with the lowest merge index
             stats = utils.get_stats(ids)
@@ -58,12 +59,11 @@ class BPETokenizer:
             # just the first pair in the list, arbitrarily
             # we can detect this terminating case by a membership check
             if pair not in self.merges:
-                break # nothing else can be merged anymore
+                break  # nothing else can be merged anymore
             # otherwise let's merge the best pair (lowest merge index)
             idx = self.merges[pair]
             ids = utils.merge(ids, pair, idx)
         return ids
-    
 
     def decode(self, tokens):
         """
@@ -84,7 +84,7 @@ class BPETokenizer:
         # convert it into a large string
         dataset_text = "".join(dataset["train"]["text"])
 
-        # preprocess the input text 
+        # preprocess the input text
         text_bytes = dataset_text.encode("utf-8")
         text_bytes = [*map(int, text_bytes)]
         ids = list(text_bytes)
@@ -93,15 +93,13 @@ class BPETokenizer:
         max_clutch_size = 64
 
         # iteratively merge the most frequent pair
-        merges = {}  # (int, int) -> int 
+        merges = {}  # (int, int) -> int
 
         with tqdm(total=num_merges, desc="Training BPE", disable=not verbose) as pbar:
             while num_merges > 0:
                 stats = utils.get_stats(ids)
                 top_pairs = nlargest(
-                    min(max_clutch_size, num_merges),
-                    stats,
-                    key=stats.get
+                    min(max_clutch_size, num_merges), stats, key=stats.get
                 )
                 pairs_to_merge = {}
                 first_seen = set()
@@ -110,13 +108,13 @@ class BPETokenizer:
                     if pair[0] in second_seen or pair[1] in first_seen:
                         first_seen.add(pair[0])
                         second_seen.add(pair[1])
-                        continue # skip this pair but keep looking for mergeable top_pairs
+                        continue  # skip this pair but keep looking for mergeable top_pairs
                     first_seen.add(pair[0])
                     second_seen.add(pair[1])
                     pairs_to_merge[pair] = current_vocab_size
                     current_vocab_size += 1
                     num_merges -= 1
-                    pbar.update(1) 
+                    pbar.update(1)
 
                 ids = utils.multi_merge(ids, pairs_to_merge)
                 merges.update(pairs_to_merge)
@@ -138,19 +136,19 @@ class BPETokenizer:
 
     def _save(self):
         """
-        Save the tokenizer as a .model file, and save the vocabulary 
+        Save the tokenizer as a .model file, and save the vocabulary
         for easy debugging as a .vocab file.
         """
         tokenizer_folder, tokenizer_path = utils.get_tokenizer_path(
             tokenizer_type="bpe",
             vocab_size=self.vocab_size,
-            dataset_name=self.dataset_name
+            dataset_name=self.dataset_name,
         )
         # create folder if necessary
         if not os.path.exists(tokenizer_folder):
             os.makedirs(tokenizer_folder)
 
-        # store the .model file 
+        # store the .model file
         with open(tokenizer_path, "w") as f:
             # write the merges
             for idx1, idx2 in self.merges:
@@ -183,12 +181,12 @@ class BPETokenizer:
         _, tokenizer_path = utils.get_tokenizer_path(
             tokenizer_type="bpe",
             vocab_size=self.vocab_size,
-            dataset_name=self.dataset_name
+            dataset_name=self.dataset_name,
         )
-        
+
         merges = {}
         idx = 256
-        with open(tokenizer_path, 'r', encoding="utf-8") as f:
+        with open(tokenizer_path, "r", encoding="utf-8") as f:
             # read the merges
             for line in f:
                 idx1, idx2 = map(int, line.split())
@@ -196,5 +194,3 @@ class BPETokenizer:
                 idx += 1
         self.merges = merges
         self.vocab = self._build_vocab()
-
-
