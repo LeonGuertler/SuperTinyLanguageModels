@@ -227,7 +227,7 @@ class ByteLevelProcessor(nn.Module):
         full_batch = self.transformer[0](full_batch)
         full_batch = self.up_proj(full_batch)
         full_batch = self.transformer[1](full_batch)
-        full_batch = full_batch.batch.mean(dim=-2)
+        full_batch = full_batch.mean(dim=-2)
         full_batch = full_batch.view(B, S, E)
         return full_batch
 
