@@ -200,6 +200,8 @@ class ByteLevelProcessor(nn.Module):
             batched_seq = torch.zeros(
                 (len(token_batch), self.embedding_dim),
             )
+            boundaries = []
+            o = 0
             for ii, token_id in enumerate(token_batch):
                 # decode into string
                 print(token_id)
@@ -215,7 +217,13 @@ class ByteLevelProcessor(nn.Module):
                 print(x.size())
                 print(batched_seq.size())
 
-                batched_seq[ii] = x
+                # get boundaries
+                boundaries.append((o, o + len(byte_ids)))
+                o += len(byte_ids)
+
+                batched_seq[boundaries[-2]:boundaries[-1]] = x
+
+                
 
 
             # process tokens
