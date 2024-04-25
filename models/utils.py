@@ -42,3 +42,6 @@ def print_model_stats(model):
 
     # Print the table
     print(df.to_string(index=False))
+
+
+

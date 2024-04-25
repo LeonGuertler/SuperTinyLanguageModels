@@ -56,6 +56,9 @@ class AutoregressiveModelShell(nn.Module):
         # report number of parameters
         print_model_stats(self)
 
+        # gpt-2 weight init
+        self.apply(self._init_weights)
+
 
     def forward(self, token_ids):
         """
@@ -87,7 +90,7 @@ class AutoregressiveModelShell(nn.Module):
 
         return logits, loss
         
-    def inference(self, text_string, output_tokens):
+    def inference(self, token_ids):
         """
         Similar to the forward pass, but takes in a string 
         (or batch of strings) and only return the logits 
@@ -98,14 +101,6 @@ class AutoregressiveModelShell(nn.Module):
             logits for the next token
         """
 
-        # tokenize string
-        token_ids = self.tokenizer.encode(text_string)
-
-        # add the output tokens
-        token_ids += output_tokens
-
-        # convert to tensor
-        token_ids = torch.tensor(token_ids).unsqueeze(0).to("cuda")
 
         b, s = token_ids.size()
 

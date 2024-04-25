@@ -202,6 +202,7 @@ class ByteLevelProcessor(nn.Module):
                 print(token_id)
                 token_string = self.pooling_tokenizer.decode([token_id])
                 # encode into character ids
+                print(token_string)
                 byte_ids = self.byte_tokenizer.encode(token_string)
                 # convert to tensor
                 byte_ids = torch.tensor(byte_ids).to('cuda')
