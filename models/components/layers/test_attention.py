@@ -19,8 +19,8 @@ def test_normal_attention():
         use_rope=True,
         max_context_window=512,
         group_size=1,
-    )
-    x = torch.rand(2, 10, 64)
+    ).to("cuda")
+    x = torch.rand(2, 10, 64).to("cuda")
     out = attention_head(x)
 
     assert out.shape == (2, 10, 64)
@@ -35,8 +35,8 @@ def test_group_attention():
         use_rope=True,
         max_context_window=512,
         group_size=2,
-    )
-    x = torch.rand(2, 10, 64)
+    ).to("cuda")
+    x = torch.rand(2, 10, 64).to("cuda")
     out = attention_head(x)
 
     assert out.shape == (2, 10, 64)

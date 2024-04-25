@@ -25,7 +25,7 @@ class CausalSelfAttention(nn.Module):
         # key, query, value projections for all heads, but in a batch
         self.c_attn = nn.Linear(
             hidden_dim,
-            3 * hidden_dim,
+            hidden_dim + 2*hidden_dim // group_size,
             bias=bias,
         )
 
@@ -55,12 +55,16 @@ class CausalSelfAttention(nn.Module):
         """
         assert attention_mask is None, "Not implemented yet"
         B, S, H = x.size()  # batch, sequence, hidden
+        num_grouped_heads = self.num_heads // self.group_size
+        Hg = H // self.group_size
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
-        q, k, v = self.c_attn(x).split(self.hidden_dim, dim=2)
-        k = k.view(B, S, self.num_heads, H // self.num_heads)  # (B, T, nh, hs)
+        q, k, v = self.c_attn(x).split(
+            [H, Hg, Hg], dim=-1
+        )
+        k = k.view(B, S, num_grouped_heads, H // self.num_heads)  # (B, T, nh, hs)
         q = q.view(B, S, self.num_heads, H // self.num_heads)  # (B, T, nh, hs)
-        v = v.view(B, S, self.num_heads, H // self.num_heads).transpose(
+        v = v.view(B, S, num_grouped_heads, H // self.num_heads).transpose(
             1, 2
         )  # (B, nh, T, hs)
 
@@ -69,21 +73,9 @@ class CausalSelfAttention(nn.Module):
         q = q.transpose(1, 2)  # (B, nh, T, hs)
         k = k.transpose(1, 2)  # (B, nh, T, hs)
 
-        # pool heads by group for k, v
-        k = k.view(
-            B,
-            self.num_heads // self.group_size,
-            self.group_size,
-            S,
-            H // self.num_heads,
-        ).mean(dim=2)
-        v = v.view(
-            B,
-            self.num_heads // self.group_size,
-            self.group_size,
-            S,
-            H // self.num_heads,
-        ).mean(dim=2)
+        # reshape to have same dim as q
+        k = k.repeat_interleave(self.group_size, dim=1)
+        v = v.repeat_interleave(self.group_size, dim=1)
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         # flash attention
