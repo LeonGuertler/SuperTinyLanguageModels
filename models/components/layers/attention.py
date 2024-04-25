@@ -18,6 +18,7 @@ class CausalSelfAttention(nn.Module):
         bias=False,
         use_rope=False,
         max_context_window=512,
+        group_size=1,
     ):
         super().__init__()
         assert hidden_dim % num_heads == 0
@@ -46,6 +47,7 @@ class CausalSelfAttention(nn.Module):
             self.freqs_cis = compute_freqs_cis(
                 seq_len=max_context_window, head_dim=hidden_dim // num_heads
             ).to(torch.device("cuda"))
+        self.group_size = group_size
 
     def forward(self, x, attention_mask=None):
         """
@@ -66,6 +68,22 @@ class CausalSelfAttention(nn.Module):
             q, k = apply_rotary_emb(q, k, freqs_cis=self.freqs_cis[:S])
         q = q.transpose(1, 2)  # (B, nh, T, hs)
         k = k.transpose(1, 2)  # (B, nh, T, hs)
+
+        # pool heads by group for k, v
+        k = k.view(
+            B,
+            self.num_heads // self.group_size,
+            self.group_size,
+            S,
+            H // self.num_heads,
+        ).mean(dim=2)
+        v = v.view(
+            B,
+            self.num_heads // self.group_size,
+            self.group_size,
+            S,
+            H // self.num_heads,
+        ).mean(dim=2)
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         # flash attention
