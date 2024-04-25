@@ -46,7 +46,7 @@ class AutoregressiveByteModelShell(nn.Module):
         # build the embedder 
         self.token_embedder = nn.Embedding(
             num_embeddings=self.cfg["model_shell"]["vocab_size"],
-            embedding_dim=256, #self.cfg["model_shell"]["embedding_dim"],
+            embedding_dim=self.cfg["model_shell"]["embedding_dim"],
         )
 
         self.byte_token_processor = ByteLevelProcessor(
@@ -202,10 +202,8 @@ class ByteLevelProcessor(nn.Module):
             
             for ii, token_id in enumerate(token_batch):
                 # decode into string
-                #print(token_id)
                 token_string = self.pooling_tokenizer.decode([token_id])
                 # encode into character ids
-                #print(token_string)
                 byte_ids = self.byte_tokenizer.encode(token_string)
                 # convert to tensor
                 byte_ids = torch.tensor(byte_ids).to('cuda')
@@ -213,7 +211,7 @@ class ByteLevelProcessor(nn.Module):
                 if num_ids > 12:
                     byte_ids = byte_ids[:12]
                     num_ids = 12
-                #input(byte_ids)
+
                 # embed
                 x = self.token_embedder(byte_ids).unsqueeze(0)
 
@@ -221,7 +219,6 @@ class ByteLevelProcessor(nn.Module):
                 # add to full batch
                 full_batch[i, ii, :num_ids] = x
 
-        # flatten full batch and pass it through the transformer
 
         #print(full_batch.size())
         B, S, S_char, E = full_batch.size()
@@ -229,9 +226,7 @@ class ByteLevelProcessor(nn.Module):
         full_batch = self.transformer[0](full_batch)
         full_batch = self.up_proj(full_batch)
         full_batch = self.transformer[1](full_batch)
-        #print(full_batch.size())
         full_batch = full_batch.mean(dim=-2)
-        #print(full_batch.size())
         full_batch = full_batch.view(B, S, -1)
         return full_batch
 
