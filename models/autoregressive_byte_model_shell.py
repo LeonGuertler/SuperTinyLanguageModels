@@ -64,9 +64,9 @@ class AutoregressiveByteModelShell(nn.Module):
         )
 
         # share the weights between the token embeddings and the final logit layer
-        self.token_embedder.weight = (
-            self.lm_head.linear.weight
-        ) # https://paperswithcode.com/method/weight-tying
+        #self.token_embedder.weight = (
+        #    self.lm_head.linear.weight
+        #) # https://paperswithcode.com/method/weight-tying
 
 
         # report number of parameters
