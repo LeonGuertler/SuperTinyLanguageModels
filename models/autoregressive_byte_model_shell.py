@@ -223,15 +223,15 @@ class ByteLevelProcessor(nn.Module):
 
         # flatten full batch and pass it through the transformer
 
-        print(full_batch.size())
+        #print(full_batch.size())
         B, S, S_char, E = full_batch.size()
         full_batch = full_batch.view(B*S, S_char, E)
         full_batch = self.transformer[0](full_batch)
         full_batch = self.up_proj(full_batch)
         full_batch = self.transformer[1](full_batch)
-        print(full_batch.size())
+        #print(full_batch.size())
         full_batch = full_batch.mean(dim=-2)
-        print(full_batch.size())
-        full_batch = full_batch.view(B, S, E)
+        #print(full_batch.size())
+        full_batch = full_batch.view(B, S, -1)
         return full_batch
 
