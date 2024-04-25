@@ -221,7 +221,7 @@ class ByteLevelProcessor(nn.Module):
                 boundaries.append((o, o + len(byte_ids)))
                 o += len(byte_ids)
 
-                batched_seq[boundaries[-2]:boundaries[-1]] = x
+                batched_seq[boundaries[-1][0]:boundaries[-1][1]] = x
 
                 
 
