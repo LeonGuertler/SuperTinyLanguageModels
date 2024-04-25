@@ -19,6 +19,9 @@ from models.components.layers import BidirectionalTransformerBlock
 
 
 class AutoregressiveByteModelShell(nn.Module):
+    """
+    A model shell for byte-level learning.
+    """
     def __init__(
             self,
             cfg,
@@ -106,7 +109,7 @@ class AutoregressiveByteModelShell(nn.Module):
 
         return logits, loss
         
-    def inference(self, text_string, output_tokens):
+    def inference(self, token_ids):
         """
         Similar to the forward pass, but takes in a string 
         (or batch of strings) and only return the logits 
@@ -116,15 +119,6 @@ class AutoregressiveByteModelShell(nn.Module):
         Returns:
             logits for the next token
         """
-
-        # tokenize string
-        token_ids = self.tokenizer.encode(text_string)
-
-        # add the output tokens
-        token_ids += output_tokens
-
-        # convert to tensor
-        token_ids = torch.tensor(token_ids).unsqueeze(0).to("cuda")
 
         b, s = token_ids.size()
 
@@ -137,12 +131,20 @@ class AutoregressiveByteModelShell(nn.Module):
         # embed token_ids
         #x = self.token_embedder(token_ids)
 
-        # forward through the core model
-        x = self.core_model(x)
+        # process to sub-word tokens
+        x = self.byte_token_processor(token_ids)
 
-       # forward only the last token through the lm_head
-        logits = self.lm_head(x[:, -1, :])
-        return logits
+        # forward through the core model
+        x_return = self.core_model(x)
+        if isinstance(x, tuple):
+            x, loss = x_return
+        else:
+            x, loss = x_return, None
+
+        # get logits
+        logits = self.lm_head(x)
+
+        return logits[:, -1, :]
 
 
 
