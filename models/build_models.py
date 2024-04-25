@@ -9,7 +9,14 @@ from models.core_models import (
     GenericTransformer,
 )
 
-from models.autoregressive_model_shell import AutoregressiveModelShell
+
+from models.autoregressive_model_shell import (
+    AutoregressiveModelShell
+)
+from models.autoregressive_byte_model_shell import (
+    AutoregressiveByteModelShell
+)
+
 
 
 def build_model(cfg=None, checkpoint=None):
@@ -60,7 +67,13 @@ def build_core_model(cfg):
     return CORE_MODEL_DICT[cfg["core_model"]["core_model_type"]](cfg=cfg)
 
 
-MODEL_SHELL_DICT = {"autoregressive": AutoregressiveModelShell}
+
+MODEL_SHELL_DICT = {
+    "autoregressive": AutoregressiveModelShell,
+    "autoregressive_byte_encoding": AutoregressiveByteModelShell,
+
+}
+
 
 
 def build_shell(cfg, core_model):

@@ -7,9 +7,11 @@ from models.build_models import build_model
 
 # from trainers.standard_trainer import BaseTrainer
 from trainers.base_trainer import BaseTrainer
+from trainers.byte_trainer import ByteTrainer
 from trainers.base_profiler import BaseProfiler
 from trainers.dataloader import (
     StandardDataloader,
+    BytePoolingDataloader,
     Seq2SeqDataloader
 )
 from trainers.loss_fn import cross_entropy_loss_fn
@@ -71,6 +73,7 @@ def build_dropout_scheduler(trainer_cfg):
 
 DATALODER_DICT = {
     "standard": StandardDataloader,
+    "byte_pooling_dataloader": BytePoolingDataloader,
     "seq2seq": Seq2SeqDataloader
 }
 
@@ -97,6 +100,7 @@ def build_loss_fn(loss_fn_name):
 
 TRAINER_DICT = {
     "base_trainer": BaseTrainer,
+    "byte_trainer": ByteTrainer,
     "base_profiler": BaseProfiler
 }
 
