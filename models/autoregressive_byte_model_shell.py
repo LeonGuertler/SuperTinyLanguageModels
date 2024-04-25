@@ -191,17 +191,15 @@ class ByteLevelProcessor(nn.Module):
         """
         A batch of lists of tensors (token ids)
         """
-        return_batch = torch.zeros(
-            (batch_of_pooled_token_ids.size(0), batch_of_pooled_token_ids.size(1), self.hidden_dim),
+
+        full_batch = torch.zeros(
+            (batch_of_pooled_token_ids.size(0), batch_of_pooled_token_ids.size(1), 12, self.embedding_dim),
             device=torch.device("cuda")#self.device
         )
+        
         for i, token_batch in enumerate(batch_of_pooled_token_ids):
             # iterate over actual ids
-            """batched_seq = torch.zeros(
-                (len(token_batch), self.embedding_dim),
-            )
-            boundaries = []
-            o = 0"""
+            
             for ii, token_id in enumerate(token_batch):
                 # decode into string
                 #print(token_id)
@@ -211,37 +209,25 @@ class ByteLevelProcessor(nn.Module):
                 byte_ids = self.byte_tokenizer.encode(token_string)
                 # convert to tensor
                 byte_ids = torch.tensor(byte_ids).to('cuda')
+                num_ids = len(byte_ids)
+                if num_ids > 12:
+                    byte_ids = byte_ids[:12]
+                    num_ids = 12
                 #input(byte_ids)
                 # embed
                 x = self.token_embedder(byte_ids).unsqueeze(0)
-                #print(x.size())
-                #print(batched_seq.size())
-
-                # get boundaries
-                #boundaries.append((o, o + x.size(0)))
-                #o += len(byte_ids)
-                #print(boundaries)
-
-                #batched_seq[boundaries[-1][0]:boundaries[-1][1]] = x
-
-                
 
 
-                # process tokens
-                #print(x.size())
-                x = self.transformer[0](x)
-                x = self.up_proj(x)
-                x = self.transformer[1](x)
+                # add to full batch
+                full_batch[i, ii, :num_ids] = x
 
-                # mean pool tokens
-                # pool according to boundaries
-                #for ii, boundary in enumerate(boundaries):
-                #    return_batch[i, ii] = batched_seq[boundary[0]:boundary[1]].mean(dim=-2)
-                x = x.mean(dim=-2)
-                return_batch[i, ii] = x
+        # flatten full batch and pass it through the transformer
+        B, S, S_char, E = full_batch.size()
+        full_batch = full_batch.view(B*S, S_char, E)
+        full_batch = self.transformer[0](full_batch)
+        full_batch = self.up_proj(full_batch)
+        full_batch = self.transformer[1](full_batch)
+        full_batch = full_batch.batch.mean(dim=-2)
+        full_batch = full_batch.view(B, S, E)
+        return full_batch
 
-        #print(return_batch)
-        #input(return_batch.size())
-
-        return return_batch
-        
