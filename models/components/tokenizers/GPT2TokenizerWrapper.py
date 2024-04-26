@@ -8,6 +8,7 @@ class GPT2Tokenizer:
     def __init__(self):
         self.tokenizer = tiktoken.get_encoding("gpt2")
         self.eot_token = self.tokenizer.eot_token
+        self.pad_token = 0
 
     def encode(self, text):
         return self.tokenizer.encode_ordinary(text)
