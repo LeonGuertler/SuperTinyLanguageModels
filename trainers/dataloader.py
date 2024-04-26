@@ -164,6 +164,7 @@ class ConversationalDataloader:
             )
             self.load_shape = (int(len(data)/2/self.context_window), 2, self.context_window)
             data = None 
+
         data = np.memmap(
             os.path.join(self.dataset_path, f"{split}.bin"), 
             shape=self.load_shape,
