@@ -17,6 +17,11 @@ from models.autoregressive_byte_model_shell import (
     AutoregressiveByteModelShell
 )
 
+from models.seq_2_seq_model_shell import (
+    Seq2SeqModelShell
+)
+
+from models.core_models.test_vae import VAEEncoderDecoder
 
 
 def build_model(cfg=None, checkpoint=None):
@@ -53,6 +58,7 @@ CORE_MODEL_DICT = {
     "modern": ModernTransformer,
     "modern_ffn_sharing": ModernFFNSharingTransformer,
     "generic": GenericTransformer,
+    "vae": VAEEncoderDecoder,
 }
 
 
@@ -71,6 +77,7 @@ def build_core_model(cfg):
 MODEL_SHELL_DICT = {
     "autoregressive": AutoregressiveModelShell,
     "autoregressive_byte_encoding": AutoregressiveByteModelShell,
+    "seq_2_seq": Seq2SeqModelShell,
 
 }
 

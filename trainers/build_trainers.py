@@ -9,14 +9,20 @@ from models.build_models import build_model
 from trainers.base_trainer import BaseTrainer
 from trainers.byte_trainer import ByteTrainer
 from trainers.base_profiler import BaseProfiler
+from trainers.convo_trainer import ConversationalTrainer
 from trainers.dataloader import (
     StandardDataloader,
     BytePoolingDataloader,
-    Seq2SeqDataloader
+    ConversationalDataloader
 )
 from trainers.loss_fn import cross_entropy_loss_fn
 from trainers.optimizer import configure_nanoGPT_optimizer
-from trainers.scheduler import CosineLRScheduler, LRScheduler, DropoutScheduler, LinearDropoutScheduler
+from trainers.scheduler import (
+    CosineLRScheduler, 
+    LRScheduler, 
+    DropoutScheduler, 
+    LinearDropoutScheduler
+)
 
 OPTIMIZER_DICT = {
     "nanoGPTadamW": lambda model, cfg: configure_nanoGPT_optimizer(
@@ -74,7 +80,7 @@ def build_dropout_scheduler(trainer_cfg):
 DATALODER_DICT = {
     "standard": StandardDataloader,
     "byte_pooling_dataloader": BytePoolingDataloader,
-    "seq2seq": Seq2SeqDataloader
+    "conversational": ConversationalDataloader
 }
 
 
@@ -88,7 +94,9 @@ def build_dataloader(cfg):
     )
 
 
-LOSS_FN_DICT = {"cross_entropy": cross_entropy_loss_fn}
+LOSS_FN_DICT = {
+    "cross_entropy": cross_entropy_loss_fn
+}
 
 
 def build_loss_fn(loss_fn_name):
@@ -101,7 +109,8 @@ def build_loss_fn(loss_fn_name):
 TRAINER_DICT = {
     "base_trainer": BaseTrainer,
     "byte_trainer": ByteTrainer,
-    "base_profiler": BaseProfiler
+    "base_profiler": BaseProfiler,
+    "convo_trainer": ConversationalTrainer 
 }
 
 def build_trainer(cfg):

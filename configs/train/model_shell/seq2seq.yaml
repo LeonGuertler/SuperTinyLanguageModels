@@ -1,0 +1,5 @@
+shell_type: "seq2seq"
+tokenizer: "gpt2"
+tokenizer_dataset_name: "openhermes-2.5"
+vocab_size: 50304
+context_window: 512

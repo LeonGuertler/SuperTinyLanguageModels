@@ -27,10 +27,13 @@ def create_folder_structure(path_config):
 
 
 
+
+
 DATASET_DICT = {
     "debug": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
     "en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.en"),
     "simple_en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
+    "openhermes-2.5": load_dataset("teknium/OpenHermes-2.5"),
 }
 
 

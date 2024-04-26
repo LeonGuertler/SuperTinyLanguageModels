@@ -1,6 +1,6 @@
 defaults:
   - _self_
   - general: default
-  - model_shell: autoregressive_byte_level
-  - core_model: baseline
-  - trainer: byte
+  - model_shell: seq2seq
+  - core_model: vae
+  - trainer: conversational
