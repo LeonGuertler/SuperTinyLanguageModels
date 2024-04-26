@@ -251,6 +251,7 @@ class ConversationalDataloader:
                 # Write into mmap
                 arr[idx : idx + len(arr_batch)] = arr_batch
                 idx += len(arr_batch)
+                input(np.shape(arr))
             arr.flush()
 
 
