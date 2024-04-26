@@ -98,7 +98,7 @@ class StandardDataloader:
             process,
             remove_columns=["text"],
             desc="tokenizing the splits",
-            num_proc=8,
+            num_proc=1,
         )
 
         # concatenate all the ids in each dataset into one large file we can use for training
@@ -211,7 +211,7 @@ class Seq2SeqDataloader:
             process,
             remove_columns=["text"],
             desc="tokenizing the splits",
-            num_proc=8,
+            num_proc=1,
         )
 
         # concatenate all the ids in each dataset into one large file we can use for training
@@ -368,7 +368,7 @@ class BytePoolingDataloader:
             process,
             remove_columns=["text"],
             desc="tokenizing the splits",
-            num_proc=8,
+            num_proc=1,
         )
 
         # concatenate all the ids in each dataset into one large file we can use for training
@@ -385,7 +385,7 @@ class BytePoolingDataloader:
                 batch = dset.shard(
                     num_shards=total_batches, index=batch_idx, contiguous=True
                 ).with_format("numpy")
-                arr_batch = np.concatenate(batch["ids"])
+                arr_batch = np.stack(batch["ids"])
                 # Write into mmap
                 arr[idx : idx + len(arr_batch)] = arr_batch
                 idx += len(arr_batch)
