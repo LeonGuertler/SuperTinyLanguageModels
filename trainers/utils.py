@@ -41,7 +41,7 @@ def load_data(dataset_name, shuffle=True):
 
     # create dataset split
     split_dataset = dataset["train"].train_test_split(
-        test_size=0.01, seed=489, shuffle=shuffle
+        test_size=0.05, seed=489, shuffle=shuffle
     )
 
     # rename test split to val
