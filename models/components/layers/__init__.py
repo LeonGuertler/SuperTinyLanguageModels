@@ -16,7 +16,6 @@ from models.components.layers.normalization import (
 from models.components.layers.attention import (
     CausalSelfAttention,
     BidirectionalSelfAttention,
-    RoPESelfAttention,
 )
 
 
