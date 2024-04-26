@@ -93,7 +93,6 @@ class BidirectionalTransformerBlock(nn.Module):
             hidden_dim=hidden_dim,
             ffn_dim=ffn_dim,
             bias=bias,
-            dropout=dropout,
             ffn_activation=ffn_activation
         )
 
