@@ -30,7 +30,7 @@ lr_scheduler:
   name: "cosine"
 
 dataloader:
-  name: "standard"
+  name: "byte"
 
 loss_fn:
   name: "cross_entropy"
