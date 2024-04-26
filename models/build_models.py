@@ -77,7 +77,7 @@ def build_core_model(cfg):
 MODEL_SHELL_DICT = {
     "autoregressive": AutoregressiveModelShell,
     "autoregressive_byte_encoding": AutoregressiveByteModelShell,
-    "seq_2_seq": Seq2SeqModelShell,
+    "seq2seq": Seq2SeqModelShell,
 
 }
 
