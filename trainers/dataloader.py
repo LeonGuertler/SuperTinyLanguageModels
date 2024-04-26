@@ -151,12 +151,24 @@ class ConversationalDataloader:
         # assert that one of the conversation datasets is being used
         assert self.cfg["trainer"]["dataset"] in ["openhermes-2.5"], "Conversational dataloader only supports openhermes-2.5 dataset"
 
+        self.load_shape = None 
+
+
     def get_batch(self, split="train"):
         """
         Get a train/val batch
         """
+        if self.load_shape is None:
+            data = np.memmap(
+                os.path.join(self.dataset_path, f"{split}.bin"), dtype=np.uint16, mode="r"
+            )
+            self.load_shape = (len(data)/2/self.context_window, 2, self.context_window)
+            data = None 
         data = np.memmap(
-            os.path.join(self.dataset_path, f"{split}.bin"), dtype=np.uint16, mode="r"
+            os.path.join(self.dataset_path, f"{split}.bin"), 
+            shape=self.load_shape,
+            dtype=np.uint16, 
+            mode="r"
         )
 
         input(np.shape(data))
@@ -251,7 +263,6 @@ class ConversationalDataloader:
                 # Write into mmap
                 arr[idx : idx + len(arr_batch)] = arr_batch
                 idx += len(arr_batch)
-                input(np.shape(arr))
             arr.flush()
 
 
