@@ -189,14 +189,16 @@ class ByteLevelProcessor(nn.Module):
         self.up_proj = nn.Linear(embedding_dim, hidden_dim, bias=False)
 
 
-    def forward(self, batch_of_pooled_token_ids):
+    def forward(self, x):
         """
         A batch of sequences of byte tokens.
         First flatten across first dim, pass through transformer, pool and reshape
         """
-        B, S, S_char = batch_of_pooled_token_ids.size()
+        input(x.size())
 
-        x = batch_of_pooled_token_ids.view(B*S, S_char)
+        B, S, S_char = x.size()
+
+        x = x.view(B*S, S_char)
 
         # embed 
         x = self.token_embedder(x)
