@@ -14,10 +14,20 @@ class ByteTrainer:
     Uses subcomponents: optimizer, scheduler,
     model, dataloader, loss functions, logger"""
 
-    def __init__(self, cfg, model, optimizer, lr_scheduler, dataloader, loss_fn) -> None:
+    def __init__(
+            self, 
+            cfg, 
+            model, 
+            optimizer, 
+            lr_scheduler, 
+            dataloader, 
+            loss_fn,
+            dropout_scheduler
+        ) -> None:
         self.model = model
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
+        self.dropout_scheduler = dropout_scheduler
         self.dataloader = dataloader
         self.loss_fn = loss_fn
         self.cfg = cfg
@@ -144,6 +154,7 @@ class ByteTrainer:
                 lr = self.lr_scheduler.step(self.optimizer, iter_num)
             else:
                 lr = self.optimizer.param_groups[0]["lr"]
+            dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
             if not iter_num % self.cfg.trainer.training.eval_interval:
                 losses = self.estimate_loss(self.model)
