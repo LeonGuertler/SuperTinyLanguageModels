@@ -46,7 +46,7 @@ class Seq2SeqModelShell(nn.Module):
         print(f"Number of parameters: {sum(p.numel() for p in self.parameters())}")
 
         # gpt-2 weight init
-        self.apply(self._init_weights)
+        #self.apply(self._init_weights)
 
 
     def forward(self, token_ids):
