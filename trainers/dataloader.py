@@ -246,6 +246,7 @@ class ConversationalDataloader:
                     num_shards=total_batches, index=batch_idx, contiguous=True
                 ).with_format("numpy")
                 arr_batch = np.stack(batch["ids"])
+                input(arr_batch)
                 # Write into mmap
                 arr[idx : idx + len(arr_batch)] = arr_batch
                 idx += len(arr_batch)
