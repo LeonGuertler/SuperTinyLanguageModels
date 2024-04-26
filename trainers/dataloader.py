@@ -169,7 +169,7 @@ class ConversationalDataloader:
             os.path.join(self.dataset_path, f"{split}.bin"), 
             shape=self.load_shape,
             dtype=np.uint16, 
-            mode="r"
+            mode="r+"
         )
 
 
