@@ -160,6 +160,10 @@ class ConversationalDataloader:
         )
 
         ix = torch.randint(len(data), (self.batch_size,))
+        # test load one 
+        a = data[ix[0]]
+        print(a)
+        input(np.shape(a))
         Xy = torch.stack(
             [
                 torch.from_numpy((data[i]).astype(np.int64))
