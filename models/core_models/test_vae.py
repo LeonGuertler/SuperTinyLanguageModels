@@ -618,4 +618,4 @@ class VAEEncoderDecoder(nn.Module):
         latent_space = self.encoder(x)
         #print(x.size(), latent_space.size())
         x = self.decoder(x, latent_space)
-        return x
+        return x, None 
