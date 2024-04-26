@@ -203,13 +203,15 @@ class ConversationalDataloader:
         def process(example):
             question_ids = np.ones(self.context_window, dtype=np.uint16) * tokenizer.pad_token
             raw_question_ids = tokenizer.encode(example["conversations"][0]["value"])
-            question_ids[:len(raw_question_ids)] = raw_question_ids
-            question_ids[len(raw_question_ids)] = tokenizer.eot_token
+            end_id = min(len(raw_question_ids), self.context_window) - 1
+            question_ids[:len(raw_question_ids):end_id] = raw_question_ids
+            question_ids[end_id] = tokenizer.eot_token
 
             response_ids = np.ones(self.context_window, dtype=np.uint16) * tokenizer.pad_token
             raw_response_ids = tokenizer.encode(example["conversations"][1]["value"])
-            response_ids[:len(raw_response_ids)] = raw_response_ids
-            response_ids[len(raw_response_ids)] = tokenizer.eot_token
+            end_id = min(len(raw_response_ids), self.context_window) - 1
+            response_ids[:len(raw_response_ids):end_id] = raw_response_ids
+            response_ids[end_id] = tokenizer.eot_token
 
             qa_pair = np.stack([question_ids, response_ids])
             return {
