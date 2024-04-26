@@ -351,7 +351,7 @@ class BytePoolingDataloader:
                 # decode id 
                 sub_word_text = pooling_tokenizer.decode([pooling_ids[i]])
                 sub_word_tokens = byte_tokenizer.encode(sub_word_text)
-                trunc_len = min(len(sub_word_tokens), self.sub_word_max)
+                trunc_len = min(len(sub_word_tokens), self.sub_word_max) -1
                 pad_trunc_sub[i, :trunc_len] = sub_word_tokens[:trunc_len]
 
                 # add end_of_word token
