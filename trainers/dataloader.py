@@ -268,14 +268,24 @@ class BytePoolingDataloader:
             self.cfg["trainer"]["dataloader"]["name"]
         )
 
+        self.sub_word_max = 12
         self.context_window = self.cfg["model_shell"]["context_window"]
         self.batch_size = self.cfg["trainer"]["training"]["batch_size"]
         self.device = self.cfg["general"]["device"]
+
+        self.load_shape = None 
 
     def get_batch(self, split="train"):
         """
         Get a train/val batch
         """
+        if self.load_shape is None:
+            data = np.memmap(
+                os.path.join(self.dataset_path, f"{split}.bin"), dtype=np.uint16, mode="r"
+            )
+            self.load_shape = (int(len(data)/self.sub_word_max), self.sub_word_max)
+            data = None 
+
         data = np.memmap(
             os.path.join(self.dataset_path, f"{split}.bin"), dtype=np.uint16, mode="r"
         )
@@ -331,21 +341,27 @@ class BytePoolingDataloader:
             decode them, re-encode them using the byte level tokenizer
             and store those as sub-world lists of byte tokens.
             """
+            # encode decode using pooling tokenizer and pad to the same length
             pooling_ids = pooling_tokenizer.encode(example["text"])
-            example_tokens = []
+            pooling_ids.append(pooling_tokenizer.eot_token)
+            
+            pad_trunc_sub = np.ones((len(pooling_ids), self.sub_word_max), dtype=np.uint16) * byte_tokenizer.pad_token
+
             for i in range(len(pooling_ids)):
-                # decode individual ids, re-encode them using the byte tokenizer
+                # decode id 
                 sub_word_text = pooling_tokenizer.decode([pooling_ids[i]])
-                byte_token_ids = byte_tokenizer.encode(sub_word_text)
-                example_tokens.append(byte_token_ids)
-            #ids = byte_tokenizer.encode(example["text"])
-            #ids.append(byte_tokenizer.eot_token)
-            #bounds = 
-            """
-            At this point, the structure of example_tokens is a list of lists of byte tokens,
-            which are in the same size as gpt-2 tokenizer sub-word units.
-            """
-            return {"ids": example_tokens, "len": len(example_tokens)}
+                sub_word_tokens = byte_tokenizer.encode(sub_word_text)
+                trunc_len = min(len(sub_word_tokens), self.sub_word_max)
+                pad_trunc_sub[i, :trunc_len] = sub_word_tokens[:trunc_len]
+
+                # add end_of_word token
+                pad_trunc_sub[i, trunc_len] = byte_tokenizer.eot_token
+
+            return {
+                "ids": pad_trunc_sub,
+                "len": len(pooling_ids)
+            }
+            
 
         # tokenize the dataset
         tokenized = split_dataset.map(
@@ -357,10 +373,10 @@ class BytePoolingDataloader:
 
         # concatenate all the ids in each dataset into one large file we can use for training
         for split, dset in tokenized.items():
-            arr_len = np.sum(dset["len"], dtype=np.uint64)
+            arr_shape = (np.sum(dset["len"], dtype=np.uint64), self.sub_word_max)
             filename = os.path.join(self.dataset_path, f"{split}.bin")
             dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
-            arr = np.memmap(filename, dtype='S', mode="w+", shape=(arr_len,))
+            arr = np.memmap(filename, dtype='S', mode="w+", shape=arr_shape)
             total_batches = 1024
 
             idx = 0

@@ -191,44 +191,18 @@ class ByteLevelProcessor(nn.Module):
 
     def forward(self, batch_of_pooled_token_ids):
         """
-        A batch of lists of tensors (token ids)
+        A batch of sequences of byte tokens.
+        First flatten across first dim, pass through transformer, pool and reshape
         """
+        B, S, S_char = batch_of_pooled_token_ids.size()
 
-        full_batch = torch.zeros(
-            (batch_of_pooled_token_ids.size(0), batch_of_pooled_token_ids.size(1), 12, self.embedding_dim),
-            device=torch.device("cuda")#self.device
-        )
-        
-        for i, token_batch in enumerate(batch_of_pooled_token_ids):
-            # iterate over actual ids
-            
-            for ii, token_id in enumerate(token_batch):
-                # decode into string
-                token_string = self.pooling_tokenizer.decode([token_id])
-                # encode into character ids
-                byte_ids = self.byte_tokenizer.encode(token_string)
-                # convert to tensor
-                byte_ids = torch.tensor(byte_ids).to('cuda')
-                num_ids = len(byte_ids)
-                if num_ids > 12:
-                    byte_ids = byte_ids[:12]
-                    num_ids = 12
+        x = batch_of_pooled_token_ids.view(B*S, S_char)
 
-                # embed
-                x = self.token_embedder(byte_ids).unsqueeze(0)
-
-
-                # add to full batch
-                full_batch[i, ii, :num_ids] = x
-
-
-        #print(full_batch.size())
-        B, S, S_char, E = full_batch.size()
-        full_batch = full_batch.view(B*S, S_char, E)
-        full_batch = self.transformer[0](full_batch)
-        full_batch = self.up_proj(full_batch)
-        full_batch = self.transformer[1](full_batch)
-        full_batch = full_batch.mean(dim=-2)
-        full_batch = full_batch.view(B, S, -1)
-        return full_batch
-
+        # embed 
+        x = self.token_embedder(x)
+        x = self.transformer[0](x)
+        x = self.up_proj(x)
+        x = self.transformer[1](x)
+        x = x.mean(dim=-2)
+        x = x.view(B, S, -1)
+        return x
