@@ -41,7 +41,9 @@ class Seq2SeqModelShell(nn.Module):
 
 
         # report number of parameters
-        print_model_stats(self)
+        #print_model_stats(self)
+        # print parameter count
+        print(f"Number of parameters: {sum(p.numel() for p in self.parameters())}")
 
         # gpt-2 weight init
         self.apply(self._init_weights)
