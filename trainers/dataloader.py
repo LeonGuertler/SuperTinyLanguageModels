@@ -287,7 +287,7 @@ class BytePoolingDataloader:
             data = None 
 
         data = np.memmap(
-            os.path.join(self.dataset_path, f"{split}.bin"), dtype=np.uint16, mode="r+"
+            os.path.join(self.dataset_path, f"{split}.bin"), dtype=np.uint16, mode="r+", shape=self.load_shape
         )
 
         ix = torch.randint(len(data) - self.context_window, (self.batch_size,))
@@ -387,7 +387,7 @@ class BytePoolingDataloader:
                     num_shards=total_batches, index=batch_idx, contiguous=True
                 ).with_format("numpy")
                 arr_batch = np.concatenate(batch["ids"]) #, dim=0)
-                input(np.shape(arr_batch))
+                #input(np.shape(arr_batch)) # (n, sub_word_max)
                 # Write into mmap
                 arr[idx : idx + len(arr_batch)] = arr_batch
                 idx += len(arr_batch)
