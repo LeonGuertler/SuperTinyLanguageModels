@@ -374,8 +374,6 @@ class BytePoolingDataloader:
         # concatenate all the ids in each dataset into one large file we can use for training
         for split, dset in tokenized.items():
             print(split)
-            if split == "train":
-                continue 
             arr_shape = (np.sum(dset["len"], dtype=np.uint64), self.sub_word_max)
 
             filename = os.path.join(self.dataset_path, f"{split}.bin")
