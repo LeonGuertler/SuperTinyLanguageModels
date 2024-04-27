@@ -96,9 +96,11 @@ class AutoregressiveByteModelShell(nn.Module):
 
         # process to sub-word tokens
         x = self.byte_token_processor(token_ids)
+        print("second", x.size())
 
         # forward through the core model
         x_return = self.core_model(x)
+        print("second", x_return.size())
         if isinstance(x, tuple):
             x, loss = x_return
         else:
@@ -106,6 +108,7 @@ class AutoregressiveByteModelShell(nn.Module):
 
         # get logits
         logits = self.lm_head(x)
+        print("second", logits.size())
 
         return logits, loss
         
@@ -133,9 +136,11 @@ class AutoregressiveByteModelShell(nn.Module):
 
         # process to sub-word tokens
         x = self.byte_token_processor(token_ids)
+        print("second", x.size())
 
         # forward through the core model
         x_return = self.core_model(x)
+        print("second", x.size())
         if isinstance(x, tuple):
             x, loss = x_return
         else:
@@ -143,6 +148,8 @@ class AutoregressiveByteModelShell(nn.Module):
 
         # get logits
         logits = self.lm_head(x)
+
+        print("second", x.size())
 
         return logits[:, -1, :]
 
