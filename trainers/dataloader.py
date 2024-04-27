@@ -358,7 +358,7 @@ class BytePoolingDataloader:
                 pad_trunc_sub[i, trunc_len] = byte_tokenizer.eot_token
 
             return {
-                "ids": pad_trunc_sub.unsqueeze(0),
+                "ids": pad_trunc_sub,
                 "len": len(pooling_ids)
             }
             
