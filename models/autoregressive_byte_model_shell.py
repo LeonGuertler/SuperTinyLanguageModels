@@ -207,4 +207,5 @@ class ByteLevelProcessor(nn.Module):
         x = self.transformer[1](x)
         x = x.mean(dim=-2)
         x = x.view(B, S, -1)
+        input(x.size())
         return x
