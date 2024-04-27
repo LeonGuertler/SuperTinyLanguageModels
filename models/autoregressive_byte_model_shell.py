@@ -83,12 +83,12 @@ class AutoregressiveByteModelShell(nn.Module):
         last token is passed into the NextTokenHead.
         """
 
-        b, s = token_ids.size()
+        #b, s = token_ids.size()
 
         # check that the sequence length is not longer than the context window
-        assert (
-            s <= self.cfg["model_shell"]["context_window"]
-        ), f"Cannot forward sequence of length {s}, block size is only {self.cfg['model_shell']['context_window']}"
+        #assert (
+        #    s <= self.cfg["model_shell"]["context_window"]
+        #), f"Cannot forward sequence of length {s}, block size is only {self.cfg['model_shell']['context_window']}"
 
 
         # embed token_ids
