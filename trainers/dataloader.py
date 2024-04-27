@@ -373,13 +373,11 @@ class BytePoolingDataloader:
 
         # concatenate all the ids in each dataset into one large file we can use for training
         for split, dset in tokenized.items():
-            print(split)
             arr_shape = (np.sum(dset["len"], dtype=np.uint64), self.sub_word_max)
 
             filename = os.path.join(self.dataset_path, f"{split}.bin")
-            print(filename)
             dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
-            arr = np.memmap(filename, dtype='S', mode="w+", shape=arr_shape)
+            arr = np.memmap(filename, dtype=dtype, mode="w+", shape=arr_shape)
             total_batches = 1024
 
             idx = 0
