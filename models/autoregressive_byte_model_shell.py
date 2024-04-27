@@ -202,6 +202,7 @@ class ByteLevelProcessor(nn.Module):
 
         # embed 
         x = self.token_embedder(x)
+        print(x.size())
         x = self.transformer[0](x)
         x = self.up_proj(x)
         x = self.transformer[1](x)
