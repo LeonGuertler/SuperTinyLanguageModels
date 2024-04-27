@@ -379,8 +379,7 @@ class BytePoolingDataloader:
             arr_shape = (np.sum(dset["len"], dtype=np.uint64), self.sub_word_max)
 
             filename = os.path.join(self.dataset_path, f"{split}.bin")
-            if not os.path.exists(os.path.dirname(filename)):
-                os.makedirs(os.path.dirname(filename))
+            print(filename)
             dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
             arr = np.memmap(filename, dtype='S', mode="w+", shape=arr_shape)
             total_batches = 1024
