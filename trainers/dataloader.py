@@ -358,7 +358,7 @@ class BytePoolingDataloader:
                 pad_trunc_sub[i, trunc_len] = byte_tokenizer.eot_token
 
             return {
-                "ids": pad_trunc_sub,
+                "ids": pad_trunc_sub.unsqueeze(0),
                 "len": len(pooling_ids)
             }
             
@@ -386,7 +386,7 @@ class BytePoolingDataloader:
                 batch = dset.shard(
                     num_shards=total_batches, index=batch_idx, contiguous=True
                 ).with_format("numpy")
-                arr_batch = np.stack(batch["ids"])
+                arr_batch = np.concatenate(batch["ids"])
                 # Write into mmap
                 arr[idx : idx + len(arr_batch)] = arr_batch
                 idx += len(arr_batch)
