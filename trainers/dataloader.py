@@ -386,7 +386,8 @@ class BytePoolingDataloader:
                 batch = dset.shard(
                     num_shards=total_batches, index=batch_idx, contiguous=True
                 ).with_format("numpy")
-                arr_batch = np.concatenate(batch["ids"])
+                arr_batch = np.concatenate(batch["ids"], dim=0)
+                input(np.shape(arr_batch))
                 # Write into mmap
                 arr[idx : idx + len(arr_batch)] = arr_batch
                 idx += len(arr_batch)
