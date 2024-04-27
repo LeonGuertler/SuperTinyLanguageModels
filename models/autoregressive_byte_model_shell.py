@@ -205,7 +205,10 @@ class ByteLevelProcessor(nn.Module):
         x = self.transformer[0](x)
         x = self.up_proj(x)
         x = self.transformer[1](x)
+        print(s.size())
         x = x.mean(dim=-2)
+        print(s.size())
+        print(B, S)
         x = x.view(B, S, -1)
         input(x.size())
         return x
