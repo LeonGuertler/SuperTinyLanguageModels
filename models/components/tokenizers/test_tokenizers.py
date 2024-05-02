@@ -4,8 +4,8 @@ Pytest functions for the individual components of the different tokenizers.
 
 import pytest
 
-from models.components.tokenizers.GPT2TokenizerWrapper import GPT2Tokenizer
 from models.components.tokenizers.BytePairEncoding import BPETokenizer
+from models.components.tokenizers.GPT2TokenizerWrapper import GPT2Tokenizer
 
 # test the GPT2tokenizer
 test_string = "This is a test string. <|endoftext|>"

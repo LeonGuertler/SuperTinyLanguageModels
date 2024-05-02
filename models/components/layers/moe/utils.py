@@ -1,12 +1,16 @@
 """
 Utils functions and classes for MoE layers.
 """
-import torch 
-import torch.nn as nn
-import torch.nn.functional as F 
+
+import torch
+from torch import nn
+from torch.nn import functional as F
+
 
 @torch.jit.script
-def compute_gating(k: int, num_experts: int, top_k_gates: torch.Tensor, top_k_indices: torch.Tensor):
+def compute_gating(
+    k: int, num_experts: int, top_k_gates: torch.Tensor, top_k_indices: torch.Tensor
+):
     """
     Compute gating values for the mixture of experts based on probabilities and top-k indices.
     Taken from: https://github.com/myshell-ai/JetMoE/blob/main/jetmoe/utils/parallel_experts.py
@@ -22,7 +26,11 @@ def compute_gating(k: int, num_experts: int, top_k_gates: torch.Tensor, top_k_in
         torch.Tensor: Expert size for each expert.
         torch.Tensor: Sorted indices of top-k experts.
     """
-    zeros = torch.zeros([top_k_gates.size(0), num_experts], dtype=top_k_gates.dtype, device=top_k_gates.device)
+    zeros = torch.zeros(
+        [top_k_gates.size(0), num_experts],
+        dtype=top_k_gates.dtype,
+        device=top_k_gates.device,
+    )
     gates = zeros.scatter(1, top_k_indices, 1)
     expert_size = gates.long().sum(0)
     top_k_gates = top_k_gates.flatten()
@@ -60,7 +68,9 @@ class ParallelExperts(nn.Module):
         """
         Reset the parameters of the model.
         """
-        nn.init.uniform_(self.weight, -1.0 / self.weight.size(1), 1.0 / self.weight.size(1))
+        nn.init.uniform_(
+            self.weight, -1.0 / self.weight.size(1), 1.0 / self.weight.size(1)
+        )
 
     def forward(self, inputs, expert_size):
         """

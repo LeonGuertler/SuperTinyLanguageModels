@@ -3,7 +3,7 @@ The Model Shell holds the tokenizer, core-model and model head.
 """
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from models.components.tokenizers import build_tokenizer
 from models.components.LMHeads import NextTokenHead
@@ -77,12 +77,13 @@ class AutoregressiveByteModelShell(nn.Module):
         last token is passed into the NextTokenHead.
         """
 
-        b, s = token_ids.size()
+        _, s = token_ids.size()
 
         # check that the sequence length is not longer than the context window
-        assert (
-            s <= self.cfg["model_shell"]["context_window"]
-        ), f"Cannot forward sequence of length {s}, block size is only {self.cfg['model_shell']['context_window']}"
+        assert s <= self.cfg["model_shell"]["context_window"], (
+            f"Cannot forward sequence of length {s}, block size is only"
+            f" {self.cfg['model_shell']['context_window']}"
+        )
 
         # embed token_ids
         # x = self.token_embedder(token_ids)
@@ -113,7 +114,7 @@ class AutoregressiveByteModelShell(nn.Module):
             logits for the next token
         """
 
-        b, s = token_ids.size()
+        _, s = token_ids.size()
 
         # check that the sequence length is not longer than the context window
         assert (
@@ -126,9 +127,9 @@ class AutoregressiveByteModelShell(nn.Module):
         # forward through the core model
         x_return = self.core_model(x)
         if isinstance(x, tuple):
-            x, loss = x_return
+            x, _ = x_return
         else:
-            x, loss = x_return, None
+            x, _ = x_return, None
 
         # get logits
         logits = self.lm_head(x)
@@ -168,7 +169,6 @@ class ByteLevelProcessor(nn.Module):
                     ffn_activation="gelu",
                     bias=False,
                     num_heads=8,
-                    dropout=0.0,
                 ),
                 BidirectionalTransformerBlock(
                     hidden_dim=hidden_dim,
@@ -176,7 +176,6 @@ class ByteLevelProcessor(nn.Module):
                     ffn_activation="gelu",
                     bias=False,
                     num_heads=8,
-                    dropout=0.0,
                 ),
             ]
         )

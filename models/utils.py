@@ -4,6 +4,7 @@ General Model utils
 
 import pandas as pd
 
+
 def print_model_stats(model):
     """
     Print relevant model statistics, including the number of parameters
@@ -34,7 +35,11 @@ def print_model_stats(model):
     # Prepare the data
     data = {
         "Component": ["Total", "LM Head + Embeddings", "Core Model"],
-        "Parameters": [format_number(total_params), format_number(lm_head_and_embeddings_params), format_number(core_model_params)]
+        "Parameters": [
+            format_number(total_params),
+            format_number(lm_head_and_embeddings_params),
+            format_number(core_model_params),
+        ],
     }
 
     # Create a DataFrame
@@ -42,6 +47,3 @@ def print_model_stats(model):
 
     # Print the table
     print(df.to_string(index=False))
-
-
-

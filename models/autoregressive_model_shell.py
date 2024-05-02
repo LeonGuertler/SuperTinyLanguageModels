@@ -2,8 +2,7 @@
 The Model Shell holds the tokenizer, core-model and model head.
 """
 
-import torch
-import torch.nn as nn
+from torch import nn
 
 from models.components.tokenizers import build_tokenizer
 from models.components.LMHeads import NextTokenHead
@@ -13,6 +12,8 @@ from models.weight_initialization import build_weight_init
 
 
 class AutoregressiveModelShell(nn.Module):
+    """Code that wraps the model, embedder, and head together."""
+
     def __init__(
         self,
         cfg,
@@ -54,9 +55,8 @@ class AutoregressiveModelShell(nn.Module):
         # weight init
         self.weight_init_func = build_weight_init(
             weight_init_type=self.cfg["model_shell"]["weight_init"],
-            depth=self.cfg["core_model"]["depth"],
         )
-        self.apply(self.weight_init_func)
+        self.init_weights()
 
     def init_weights(self):
         """
@@ -71,7 +71,7 @@ class AutoregressiveModelShell(nn.Module):
         last token is passed into the NextTokenHead.
         """
 
-        b, s = token_ids.size()
+        _, s = token_ids.size()
 
         # check that the sequence length is not longer than the context window
         assert (
@@ -104,7 +104,7 @@ class AutoregressiveModelShell(nn.Module):
             logits for the next token
         """
 
-        b, s = token_ids.size()
+        _, s = token_ids.size()
 
         # check that the sequence length is not longer than the context window
         assert (

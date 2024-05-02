@@ -8,13 +8,16 @@ Original Paper: https://arxiv.org/abs/1508.07909v5
 
 import os
 from heapq import nlargest
+
 from tqdm import tqdm
 
-from trainers.utils import load_data
 from models.components.tokenizers import utils
+from trainers.utils import load_data
 
 
 class BPETokenizer:
+    """Tokenizer for Byte Pair Encoding."""
+
     def __init__(self, vocab_size, dataset_name):
         """
         Check if the specific tokenizer already exists, if not, create it.
@@ -148,10 +151,12 @@ class BPETokenizer:
             os.makedirs(tokenizer_folder)
 
         # store the .model file
+        # pylint: disable=unspecified-encoding
         with open(tokenizer_path, "w") as f:
             # write the merges
             for idx1, idx2 in self.merges:
                 f.write(f"{idx1} {idx2}\n")
+        # pylint: enable=unspecified-encoding
 
         # store the .vocab file
         vocab_path = tokenizer_path.replace(".model", ".vocab")

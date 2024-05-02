@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import math
 
 
 def gpt2_weights_init(module):
@@ -23,11 +22,11 @@ def gpt2_weights_init(module):
     # I don't like this
 
 
-def torch_default_init(module):
+def torch_default_init(_):
     """
     Initialize model weights according to PyTorch defaults.
+    i.e. do nothing.
     """
-    pass
 
 
 def build_weight_init(weight_init_type):
@@ -35,6 +34,7 @@ def build_weight_init(weight_init_type):
     Build the weight initialization function
     """
     if weight_init_type == "gpt2":
-        return lambda module: gpt2_weights_init(module)
-    else:
-        raise ValueError(f"Weight initialization {weight_init_type} not supported.")
+        return gpt2_weights_init
+    elif weight_init_type == "standard":
+        return torch_default_init
+    raise ValueError(f"Weight initialization {weight_init_type} not supported.")

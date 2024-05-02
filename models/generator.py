@@ -23,7 +23,7 @@ class StandardGenerator(nn.Module):
             input_text,
             self.generate_config["max_new_tokens"],
             self.generate_config["temperature"],
-            self.generate_config["top_k"]
+            self.generate_config["top_k"],
         )
 
     @torch.no_grad()
@@ -36,8 +36,8 @@ class StandardGenerator(nn.Module):
         idx = self.model.tokenizer.encode_text(input_text)
         # push to device
         idx = torch.tensor(idx).unsqueeze(0).to(torch.device("cuda"))
-        #input_string = input_text
-        #output_tokens = []
+        # input_string = input_text
+        # output_tokens = []
         for _ in range(max_new_tokens):
             # forward the model to get the logits for the index in the sequence
             logits = self.model.inference(idx)
@@ -53,13 +53,13 @@ class StandardGenerator(nn.Module):
             idx_next = torch.multinomial(probs, num_samples=1)
             if idx_next == self.model.tokenizer.eot_token:
                 break
-            #new_char = self.model.tokenizer.decode([idx_next.item()])
+            # new_char = self.model.tokenizer.decode([idx_next.item()])
             idx = torch.cat((idx, idx_next), dim=1)
-            #output_tokens.append(idx_next.item())
-            #input_string += new_char
+            # output_tokens.append(idx_next.item())
+            # input_string += new_char
         return self.tokenizer.decode_tokens(idx[0].tolist())
-        #return self.model.tokenizer.decode(output_tokens)
-        #return input_string[len(input_text):]
+        # return self.model.tokenizer.decode(output_tokens)
+        # return input_string[len(input_text):]
 
     def forward(self, x):
         """Call the underlying model"""

@@ -2,13 +2,10 @@
 A collection of Language Model heads.
 """
 
-import torch
 import torch.nn as nn
 
+from models.components.layers import LayerNorm
 
-from models.components.layers import (
-    LayerNorm
-)
 
 class NextTokenHead(nn.Module):
     def __init__(self, hidden_dim, vocab_size):
