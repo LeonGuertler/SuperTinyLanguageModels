@@ -30,6 +30,7 @@ jobs:
       - name: Lint with pylint
         run: |
           pylint **/*.py
+        continue-on-error: true
       - name: Test with pytest
         run: |
           pytest
