@@ -10,6 +10,8 @@ from models.components.layers import ModernTransformerBlock
 
 
 class ModernFFNSharingTransformer(nn.Module):
+    """ModernBlock Transformer with FFN Sharing"""
+
     def __init__(self, cfg):
         """
         Initialize a Llama-3 style transformer model

@@ -14,9 +14,7 @@ class FFN(nn.Module):
     A simple Feed Forward Network block.
     """
 
-    def __init__(
-        self, hidden_dim, ffn_dim, bias=False, ffn_activation: str = "gelu"
-    ):
+    def __init__(self, hidden_dim, ffn_dim, bias=False, ffn_activation: str = "gelu"):
         super().__init__()
         self.c_fc = nn.Linear(
             hidden_dim,
@@ -52,12 +50,7 @@ class SWIGluFFN(nn.Module):
     N.B. does not support dropout #TODO it should?
     """
 
-    def __init__(
-        self,
-        hidden_dim,
-        ffn_dim,
-        **_
-    ):
+    def __init__(self, hidden_dim, ffn_dim, **_):
         super().__init__()
 
         self.lin_1 = nn.Linear(hidden_dim, ffn_dim, bias=False)
