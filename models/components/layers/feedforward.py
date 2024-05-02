@@ -122,23 +122,13 @@ class BSpline(nn.Module):
             return term1 + term2
 
     def forward(self, x):
-        batch_size, seq_len = x.size(0), x.size(1)
-        grid_intervals = int(self.grid_intervals.item())  # Convert to int for indexing
-
-        x = x.view(batch_size * seq_len, self.hidden_dim)
-        basis = torch.stack(
-            [
-                self.basis_function(x, i, self.order, self.knot_vector)
-                for i in range(grid_intervals)
-            ],
-            dim=2,
-        )
-        x = torch.bmm(
-            x.unsqueeze(1),
-            basis.view(batch_size * seq_len, grid_intervals, self.order + 1),
-        ).squeeze(1)
-        return x.view(batch_size, seq_len, self.hidden_dim)
-
+        batch_size, seq_len, hidden_dim = x.size()
+        assert hidden_dim == self.hidden_dim, "Input dimension must match hidden_dim"
+        grid_intervals = int(self.grid_intervals.item())
+        x = x.contiguous().view(batch_size * seq_len, hidden_dim)
+        basis = torch.stack([self.basis_function(x, i, self.order, self.knot_vector) for i in range(grid_intervals)], dim=1)
+        x = torch.bmm(x.unsqueeze(1), basis.view(batch_size * seq_len, grid_intervals, hidden_dim)).squeeze(1)
+        return x.view(batch_size, seq_len, hidden_dim)
 
 class KAN(nn.Module):
     """Drop-in replacement of Linear layer with KAN layer
@@ -156,7 +146,7 @@ class KAN(nn.Module):
 
         # We have order no. of splines
         self.b_splines = nn.ModuleList(
-            [BSpline(hidden_dim, grid_intervals) for _ in range(order)]
+            [BSpline(ffn_dim, grid_intervals) for _ in range(order)]
         )
         self.order = order
 

@@ -57,7 +57,7 @@ class AutoregressiveModelShell(nn.Module):
         print_model_stats(self)
 
         # gpt-2 weight init
-        self.apply(self._init_weights)
+        # self.apply(self._init_weights)
 
 
     def forward(self, token_ids):
