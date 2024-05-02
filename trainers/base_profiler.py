@@ -4,13 +4,15 @@ each module)."""
 
 import time
 
-import torch
-import wandb
-from omegaconf import OmegaConf
-from torch.profiler import ProfilerActivity, profile, record_function
+# import torch
+# import wandb
+# from omegaconf import OmegaConf
+from torch.profiler import ProfilerActivity, profile
 
-from trainers import utils
+# from trainers import utils
 from trainers.base_trainer import BaseTrainer
+
+# from torch.profiler import record_function
 
 
 class TimeWrapper:
@@ -164,7 +166,10 @@ class BaseProfiler(BaseTrainer):
         self.optimizer.step = TimeWrapper(self.optimizer.step)
 
         # wrap the scheduler step
-        self.scheduler.step = TimeWrapper(self.scheduler.step)
+        self.lr_scheduler.step = TimeWrapper(self.lr_scheduler.step)
+
+        # wrap the dropout scheduler step
+        self.dropout_scheduler.step = TimeWrapper(self.dropout_scheduler.step)
 
         # wrap the get_batch function
         self.dataloader.get_batch = TimeWrapper(self.dataloader.get_batch)
@@ -181,7 +186,8 @@ class BaseProfiler(BaseTrainer):
             "model_train_pass": self.model.get_time_train(),
             "model_eval_pass": self.model.get_time_eval(),
             "optimizer.step": self.optimizer.step.get_time(),
-            "scheduler.step": self.scheduler.step.get_time(),
+            "scheduler.step": self.lr_scheduler.step.get_time(),
+            "dropout_scheduler.step": self.dropout_scheduler.step.get_time(),
             "dataloader.get_batch": self.dataloader.get_batch.get_time(),
         }
 
