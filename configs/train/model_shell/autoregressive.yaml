@@ -3,3 +3,4 @@ tokenizer: "bpe"
 tokenizer_dataset_name: "simple_en_wiki"
 vocab_size: 8192
 context_window: 512
+weight_init: gpt2
