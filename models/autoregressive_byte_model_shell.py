@@ -202,6 +202,9 @@ class ByteLevelDecoder(nn.Module):
         x = x.view(x.size(0), x.size(1), self.num_projection_heads, self.byte_hidden_dim)
 
         # concat x with x_byte_emb
+        print('important shapes', x.size())
+        print('important shapes', x_raw_emb.size())
+        
         x = torch.cat([x, x_raw_emb], dim=-2)
 
         # flatten across B and S and pass through transformer
