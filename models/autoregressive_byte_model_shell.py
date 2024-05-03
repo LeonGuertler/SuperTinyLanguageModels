@@ -200,14 +200,14 @@ class ByteLevelDecoder(nn.Module):
         # project the latent embeddings
         x = self.projection(x)
         x = x.view(x.size(0), x.size(1), self.num_projection_heads, self.byte_hidden_dim)
-        print('important shapes', x.size())
-        print('important shapes', x_raw_emb.size())
+        #print('important shapes', x.size())
+        #print('important shapes', x_raw_emb.size())
 
         # view x_raw_emb
         x_raw_emb = x_raw_emb.view(x.size(0), x.size(1), 12, self.byte_hidden_dim)
         # concat x with x_byte_emb
-        print('important shapes', x.size())
-        print('important shapes', x_raw_emb.size())
+        #print('important shapes', x.size())
+        #print('important shapes', x_raw_emb.size())
         
         x = torch.cat([x, x_raw_emb], dim=-2)
 
@@ -282,7 +282,7 @@ class ByteLevelProcessor(nn.Module):
         A batch of sequences of byte tokens.
         First flatten across first dim, pass through transformer, pool and reshape
         """
-        input(x.size())
+        #input(x.size())
 
         B, S, S_char = x.size()
 
@@ -290,14 +290,14 @@ class ByteLevelProcessor(nn.Module):
 
         # embed 
         x_emb = self.token_embedder(x)
-        print(x_emb.size())
+        #print(x_emb.size())
         x = self.transformer[0](x_emb)
         x = self.up_proj(x)
         x = self.transformer[1](x)
-        print(x.size())
+        #print(x.size())
         x = x.mean(dim=-2)
-        print(x.size())
-        print(B, S)
+        #print(x.size())
+        #print(B, S)
         x = x.view(B, S, -1)
-        input(x.size())
+        #input(x.size())
         return x, x_emb
