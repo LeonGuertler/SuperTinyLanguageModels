@@ -105,16 +105,16 @@ class AutoregressiveByteModelShell(nn.Module):
 
         # process to sub-word tokens
         x, x_emb = self.byte_token_processor(token_ids)
-        print("second", x.size())
+        #print("second", x.size())
 
         # forward through the core model
         x_return = self.core_model(x)
-        print("second", x_return.size())
+        #print("second", x_return.size())
 
         # pass into the byte level decoder 
         x_return = self.byte_decoder(x_emb, x_return)
 
-        input(x_return.size())
+        #input(x_return.size())
 
         return x_return, None
 
