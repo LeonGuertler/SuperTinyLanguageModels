@@ -2,13 +2,9 @@
 
 import torch.nn as nn
 
-
-from models.components.layers.normalization import build_normalization
-
 from models.components.layers.attention import build_attention
-
 from models.components.layers.feedforward import build_ffn
-
+from models.components.layers.normalization import build_normalization
 from models.components.positional_encoding import LearnedPosEncoding
 
 

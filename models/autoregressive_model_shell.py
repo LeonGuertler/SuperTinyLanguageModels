@@ -4,9 +4,8 @@ The Model Shell holds the tokenizer, core-model and model head.
 
 from torch import nn
 
-from models.components.tokenizers import build_tokenizer
 from models.components.LMHeads import NextTokenHead
-
+from models.components.tokenizers import build_tokenizer
 from models.utils import print_model_stats
 from models.weight_initialization import build_weight_init
 

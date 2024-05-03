@@ -1,10 +1,10 @@
 """
 Evaluator class for evaluating models.
 """
-import time 
-import torch 
 
-from evals.mcqs.load_benchmarks import load_benchmark
+import torch
+
+from evals.mcqs.load_benchmaks import load_benchmark
 from evals.metrics import MCQ_METRIC_DICT
 
 
@@ -16,11 +16,10 @@ class MCQEvaluator:
 
     def __init__(self, cfg, model):
         self.cfg = cfg
-        self.model = model 
+        self.model = model
 
         # make sure the model is in eval model
         self.model.eval()
-
 
     @torch.no_grad()
     def predict(self, prompt_list, options_list=None):
@@ -29,8 +28,10 @@ class MCQEvaluator:
         (if necessary, restrict the output space to the tokens
         given in the options list)
         """
-        iterator = zip(
-            prompt_list, [None]*len(prompt_list)) if options_list is None else zip(prompt_list, options_list
+        iterator = (
+            zip(prompt_list, [None] * len(prompt_list))
+            if options_list is None
+            else zip(prompt_list, options_list)
         )
         answer_list = []
         for prompt, options in iterator:
@@ -51,25 +52,21 @@ class MCQEvaluator:
 
             answer_list.append(answer)
 
-        return answer_list 
-    
+        return answer_list
+
     def _calculate_metrics(self, predictions, targets):
         """
         Calculate the metrics for the model
         """
         score_dict = {}
 
-        for metric_name in MCQ_METRIC_DICT.keys():
-            score_dict[metric_name] = MCQ_METRIC_DICT[metric_name](
-                predictions=predictions,
-                targets=targets
-            )
-        
+        for metric_name, metric in MCQ_METRIC_DICT.items():
+            score_dict[metric_name] = metric(predictions=predictions, targets=targets)
+
         return score_dict
-    
 
     def evaluate_benchmark(self, benchmark_name):
-        """ Evaluate model performance on a specific benchmark"""
+        """Evaluate model performance on a specific benchmark"""
         # load the benchmark_loader
         prompts, labels, options = load_benchmark(benchmark_name)
 
@@ -79,26 +76,20 @@ class MCQEvaluator:
         # calculate the scores
         score_dict = self._calculate_metrics(predictions, labels)
 
-        return score_dict 
-    
+        return score_dict
+
     def evaluate(self, benchmark_names):
-        """ Given a list of benchmark names, load and evaluate them """
+        """Given a list of benchmark names, load and evaluate them"""
         results = {}
         for benchmark_name in benchmark_names:
-            score_dict = self.evaluate_benchmark(
-                benchmark_name=benchmark_name
-            )
+            score_dict = self.evaluate_benchmark(benchmark_name=benchmark_name)
             results[benchmark_name] = score_dict
 
         self._pretty_print_results(results)
 
     def _pretty_print_results(self, results):
-        """ Pretty print the results """
+        """Pretty print the results"""
         for benchmark_name, score_dict in results.items():
             print(f"{benchmark_name}:")
             for metric_name, score in score_dict.items():
                 print(f"\t{metric_name}: {score}")
-
-
-
-

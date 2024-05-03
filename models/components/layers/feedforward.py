@@ -66,7 +66,8 @@ class SWIGluFFN(nn.Module):
 
 class JetMoEFFN(nn.Module):
     """
-    Implementation based on: https://github.com/myshell-ai/JetMoE/blob/main/jetmoe/modeling_jetmoe.py
+    Implementation based on:
+    https://github.com/myshell-ai/JetMoE/blob/main/jetmoe/modeling_jetmoe.py
     """
 
     def __init__(self, hidden_dim, ffn_dim, num_experts, top_k, bias):

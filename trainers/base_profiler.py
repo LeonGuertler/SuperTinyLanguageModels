@@ -1,21 +1,17 @@
 """A profiler that trains on a subset of the data and keeps
-track of relevant statistics (like memory and time usage of 
+track of relevant statistics (like memory and time usage of
 each module)."""
 
 import time
 
-# import torch
-# import wandb
-# from omegaconf import OmegaConf
 from torch.profiler import ProfilerActivity, profile
 
-# from trainers import utils
 from trainers.base_trainer import BaseTrainer
-
-# from torch.profiler import record_function
 
 
 class TimeWrapper:
+    """Wrapper to track the time taken by a function."""
+
     def __init__(self, func):
         self.func = func
         self.time_tracker = []
@@ -28,46 +24,13 @@ class TimeWrapper:
         return out
 
     def get_time(self):
+        """Get the time taken by the function."""
         return self.time_tracker
 
 
-"""class TimeWrapperModel:
-    def __init__(self, model):
-        self.model = model
-        self.time_tracker_train = []
-        self.time_tracker_eval = []
-
-
-    def __call__(self, *args, **kwargs):
-        t0 = time.time()
-        out = self.model(*args, **kwargs)
-        t1 = time.time()
-        if self.model.training:
-            self.time_tracker_train.append(t1 - t0)
-        else:
-            self.time_tracker_eval.append(t1 - t0)
-        return out
-    
-    def eval(self):
-        self.model.eval()
-
-    def train(self):
-        self.model.train()
-    
-    def get_time_train(self):
-        return self.time_tracker_train 
-
-    def get_time_eval(self):
-        return self.time_tracker_eval
-    
-    def state_dict(self):
-        return self.model.state_dict()
-    
-    def parameters(self):
-        return self.model.parameters()"""
-
-
 class TimeWrapperModel:
+    """Wrapper to track the time taken by the model forward pass."""
+
     def __init__(self, model):
         self.model = model
         self.time_tracker_train = []
@@ -108,29 +71,39 @@ class TimeWrapperModel:
             )
 
     def get_layer_time_memory_stats(self):
+        """Get the layer-wise time and memory usage statistics."""
         return self.layer_time_memory_stats
 
     def eval(self):
+        """Set the model to evaluation mode."""
         self.model.eval()
 
     def train(self):
+        """Set the model to training mode."""
         self.model.train()
 
     def get_time_train(self):
+        """Get the time taken by the model in training mode."""
         return self.time_tracker_train
 
     def get_time_eval(self):
+        """Get the time taken by the model in evaluation mode."""
         return self.time_tracker_eval
 
     def state_dict(self):
+        """Get the state dict of the model."""
         return self.model.state_dict()
 
     def parameters(self):
+        """Get the parameters of the model."""
         return self.model.parameters()
 
 
 class BaseProfiler(BaseTrainer):
+    """Profiler for the trainer class"""
+
     def pretty_print_stats(self, time_dict):
+        """Print the statistics in a pretty format."""
         # Header for the table
         print(
             f"{'Component':<25} {'Calls':<10} {'Total Time (s)':<15} {'Average Time (ms)':<20}"
@@ -147,7 +120,7 @@ class BaseProfiler(BaseTrainer):
                 f"{component:<25} {len(times):<10} {total_time:<15.3f} {avg_time:<20.3f}"
             )
 
-    def train(self):
+    def train(self, *_):
         # first wrap all relevant functions
 
         # wrap the estimate_loss function
@@ -215,7 +188,8 @@ class BaseProfiler(BaseTrainer):
             """
             for layer, data in structured_data.items():
                 if layer == "_stats":
-                    continue  # Skip printing the stats directly; they are printed when accessing their parent
+                    continue  # Skip printing the stats directly;
+                    # they are printed when accessing their parent
                 avg_cpu_time = sum(d["cpu_time_total"] for d in data["_stats"]) / len(
                     data["_stats"]
                 )
@@ -229,7 +203,9 @@ class BaseProfiler(BaseTrainer):
                     d["cuda_memory_usage"] for d in data["_stats"]
                 ) / len(data["_stats"])
                 print(
-                    f"{' ' * indent}{layer}: CPU Time: {avg_cpu_time:.3f}ms, CUDA Time: {avg_cuda_time:.3f}ms, CPU Memory: {avg_cpu_memory}B, CUDA Memory: {avg_cuda_memory}B"
+                    f"{' ' * indent}{layer}: CPU Time: {avg_cpu_time:.3f}ms,"
+                    f" CUDA Time: {avg_cuda_time:.3f}ms"
+                    f", CPU Memory: {avg_cpu_memory}B, CUDA Memory: {avg_cuda_memory}B"
                 )
                 print_layer_stats(data["children"], indent + 4)
 

@@ -70,11 +70,11 @@ class StandardDataloader:
             os.path.join(self.dataset_path, f"{split}.bin"), dtype=np.uint16, mode="r"
         )
 
-        ix = torch.randint(len(data) - self.context_window, (self.batch_size,))
+        idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
         X = torch.stack(
             [
                 torch.from_numpy((data[i : i + self.context_window]).astype(np.int64))
-                for i in ix
+                for i in idxs
             ]
         )
         y = torch.stack(
@@ -82,7 +82,7 @@ class StandardDataloader:
                 torch.from_numpy(
                     (data[i + 1 : i + 1 + self.context_window]).astype(np.int64)
                 )
-                for i in ix
+                for i in idxs
             ]
         )
 

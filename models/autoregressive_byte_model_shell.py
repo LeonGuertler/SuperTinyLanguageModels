@@ -5,12 +5,10 @@ The Model Shell holds the tokenizer, core-model and model head.
 import torch
 from torch import nn
 
-from models.components.tokenizers import build_tokenizer
-from models.components.LMHeads import NextTokenHead
-
-from models.utils import print_model_stats
-
 from models.components.layers import BidirectionalTransformerBlock
+from models.components.LMHeads import NextTokenHead
+from models.components.tokenizers import build_tokenizer
+from models.utils import print_model_stats
 
 
 class AutoregressiveByteModelShell(nn.Module):
@@ -117,9 +115,10 @@ class AutoregressiveByteModelShell(nn.Module):
         _, s = token_ids.size()
 
         # check that the sequence length is not longer than the context window
-        assert (
-            s <= self.cfg["model_shell"]["context_window"]
-        ), f"Cannot forward sequence of length {s}, block size is only {self.cfg['model_shell']['context_window']}"
+        assert s <= self.cfg["model_shell"]["context_window"], (
+            f"Cannot forward sequence of length {s},"
+            f" block size is only {self.cfg['model_shell']['context_window']}"
+        )
 
         # process to sub-word tokens
         x = self.byte_token_processor(token_ids)
@@ -199,7 +198,7 @@ class ByteLevelProcessor(nn.Module):
         for i, token_batch in enumerate(batch_of_pooled_token_ids):
             # iterate over actual ids
 
-            for ii, token_id in enumerate(token_batch):
+            for j, token_id in enumerate(token_batch):
                 # decode into string
                 token_string = self.pooling_tokenizer.decode([token_id])
                 # encode into character ids
@@ -215,7 +214,7 @@ class ByteLevelProcessor(nn.Module):
                 x = self.token_embedder(byte_ids).unsqueeze(0)
 
                 # add to full batch
-                full_batch[i, ii, :num_ids] = x
+                full_batch[i, j, :num_ids] = x
 
         # print(full_batch.size())
         B, S, S_char, E = full_batch.size()

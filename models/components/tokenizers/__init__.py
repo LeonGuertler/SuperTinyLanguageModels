@@ -2,8 +2,8 @@
 Init file for easier imports of tokenizers.
 """
 
-from models.components.tokenizers.GPT2TokenizerWrapper import GPT2Tokenizer
 from models.components.tokenizers.BytePairEncoding import BPETokenizer
+from models.components.tokenizers.GPT2TokenizerWrapper import GPT2Tokenizer
 
 
 def build_tokenizer(tokenizer_type, vocab_size, dataset_name):

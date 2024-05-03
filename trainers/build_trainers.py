@@ -1,5 +1,5 @@
 """
-Builds the individual components of the trainer, 
+Builds the individual components of the trainer,
 and the trainer itself.
 """
 
@@ -66,7 +66,6 @@ def build_dropout_scheduler(trainer_cfg):
     """
     if trainer_cfg["dropout_scheduler"]["name"] == "constant":
         return DropoutScheduler(trainer_cfg["dropout_scheduler"]["dropout"])
-
     if trainer_cfg["dropout_scheduler"]["name"] == "linear":
         return LinearDropoutScheduler(
             start_dropout_p=trainer_cfg["dropout_scheduler"]["start_dropout_p"],
@@ -74,6 +73,9 @@ def build_dropout_scheduler(trainer_cfg):
             start_iter=trainer_cfg["dropout_scheduler"]["start_iter"],
             end_iter=trainer_cfg["dropout_scheduler"]["end_iter"],
         )
+    raise NotImplementedError(
+        f"dropout scheduler {trainer_cfg['dropout_scheduler']['name']} not implemented."
+    )
 
 
 DATALODER_DICT = {
