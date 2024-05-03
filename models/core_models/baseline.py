@@ -4,11 +4,13 @@ GPT-2 like transformer.
 
 import torch.nn as nn
 
-from models.components.positional_encoding import LearnedPosEncoding
 from models.components.layers import BaseTransformerBlock
+from models.components.positional_encoding import LearnedPosEncoding
 
 
 class StandardTransformer(nn.Module):
+    """The baseline transformer from GPT-2 era."""
+
     def __init__(self, cfg):
         """
         Initialize the standard transformer model

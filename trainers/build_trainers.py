@@ -1,22 +1,27 @@
 """
-Builds the individual components of the trainer, 
+Builds the individual components of the trainer,
 and the trainer itself.
 """
 
 from models.build_models import build_model
+from trainers.base_profiler import BaseProfiler
 
 # from trainers.standard_trainer import BaseTrainer
 from trainers.base_trainer import BaseTrainer
 from trainers.byte_trainer import ByteTrainer
-from trainers.base_profiler import BaseProfiler
 from trainers.dataloader import (
-    StandardDataloader,
     BytePoolingDataloader,
-    Seq2SeqDataloader
+    Seq2SeqDataloader,
+    StandardDataloader,
 )
 from trainers.loss_fn import cross_entropy_loss_fn
 from trainers.optimizer import configure_nanoGPT_optimizer
-from trainers.scheduler import CosineLRScheduler, LRScheduler, DropoutScheduler, LinearDropoutScheduler
+from trainers.scheduler import (
+    CosineLRScheduler,
+    DropoutScheduler,
+    LinearDropoutScheduler,
+    LRScheduler,
+)
 
 OPTIMIZER_DICT = {
     "nanoGPTadamW": lambda model, cfg: configure_nanoGPT_optimizer(
@@ -44,7 +49,7 @@ SCHEDULER_DICT = {
     ),
     "constant": lambda cfg: LRScheduler(
         lr=cfg["optimizer"]["lr"],
-    )
+    ),
 }
 
 
@@ -61,7 +66,6 @@ def build_dropout_scheduler(trainer_cfg):
     """
     if trainer_cfg["dropout_scheduler"]["name"] == "constant":
         return DropoutScheduler(trainer_cfg["dropout_scheduler"]["dropout"])
-
     if trainer_cfg["dropout_scheduler"]["name"] == "linear":
         return LinearDropoutScheduler(
             start_dropout_p=trainer_cfg["dropout_scheduler"]["start_dropout_p"],
@@ -69,12 +73,15 @@ def build_dropout_scheduler(trainer_cfg):
             start_iter=trainer_cfg["dropout_scheduler"]["start_iter"],
             end_iter=trainer_cfg["dropout_scheduler"]["end_iter"],
         )
+    raise NotImplementedError(
+        f"dropout scheduler {trainer_cfg['dropout_scheduler']['name']} not implemented."
+    )
 
 
 DATALODER_DICT = {
     "standard": StandardDataloader,
     "byte_pooling_dataloader": BytePoolingDataloader,
-    "seq2seq": Seq2SeqDataloader
+    "seq2seq": Seq2SeqDataloader,
 }
 
 
@@ -101,8 +108,9 @@ def build_loss_fn(loss_fn_name):
 TRAINER_DICT = {
     "base_trainer": BaseTrainer,
     "byte_trainer": ByteTrainer,
-    "base_profiler": BaseProfiler
+    "base_profiler": BaseProfiler,
 }
+
 
 def build_trainer(cfg):
     """

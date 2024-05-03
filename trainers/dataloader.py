@@ -7,7 +7,34 @@ import os
 import numpy as np
 import torch
 from tqdm import tqdm
+
 from trainers.utils import load_data
+
+
+class BaseDataloader:
+    """Abstract class for dataloaders"""
+
+    def __init__(self, cfg, data_dir):
+        self.cfg = cfg
+        self.data_dir = data_dir
+
+    def get_batch(self, split="train"):
+        """
+        Get a train/val batch
+        """
+        raise NotImplementedError
+
+    def check_processed(self):
+        """
+        Check if the data has been preprocessed
+        """
+        raise NotImplementedError
+
+    def prepare_data(self, tokenizer):
+        """
+        Tokenize and store the data
+        """
+        raise NotImplementedError
 
 
 class StandardDataloader:
@@ -25,10 +52,10 @@ class StandardDataloader:
         self.cfg = cfg
         self.data_dir = data_dir
         self.dataset_path = os.path.join(
-            self.data_dir, 
+            self.data_dir,
             self.cfg["trainer"]["dataset"],
             f'{self.cfg["model_shell"]["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
-            self.cfg["trainer"]["dataloader"]["name"]
+            self.cfg["trainer"]["dataloader"]["name"],
         )
 
         self.context_window = self.cfg["model_shell"]["context_window"]
@@ -43,11 +70,11 @@ class StandardDataloader:
             os.path.join(self.dataset_path, f"{split}.bin"), dtype=np.uint16, mode="r"
         )
 
-        ix = torch.randint(len(data) - self.context_window, (self.batch_size,))
+        idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
         X = torch.stack(
             [
                 torch.from_numpy((data[i : i + self.context_window]).astype(np.int64))
-                for i in ix
+                for i in idxs
             ]
         )
         y = torch.stack(
@@ -55,7 +82,7 @@ class StandardDataloader:
                 torch.from_numpy(
                     (data[i + 1 : i + 1 + self.context_window]).astype(np.int64)
                 )
-                for i in ix
+                for i in idxs
             ]
         )
 
@@ -79,7 +106,7 @@ class StandardDataloader:
         if not os.path.exists(self.dataset_path):
             os.makedirs(self.dataset_path)
         else:
-            return # already processed
+            return  # already processed
 
         # load the dataset
         split_dataset = load_data(
@@ -122,13 +149,11 @@ class StandardDataloader:
             arr.flush()
 
 
-
-
 class Seq2SeqDataloader:
     """
     A sequence to sequence dataloader that preprocess a dataset
-    via tokenization, and then randomly loads batches of 
-    X,y pairs where both X and y are sequences of tokens of 
+    via tokenization, and then randomly loads batches of
+    X,y pairs where both X and y are sequences of tokens of
     a specific length
     Args:
         cfg: the data config
@@ -140,7 +165,7 @@ class Seq2SeqDataloader:
         self.cfg = cfg
         self.data_dir = data_dir
         self.dataset_path = os.path.join(
-            self.data_dir, 
+            self.data_dir,
             f'{self.cfg["model_shell"]["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
         )
 
@@ -156,7 +181,7 @@ class Seq2SeqDataloader:
             os.path.join(self.dataset_path, f"{split}.bin"), dtype=np.uint16, mode="r"
         )
 
-        ix = torch.randint(len(data) - 2*self.context_window, (self.batch_size,))
+        ix = torch.randint(len(data) - 2 * self.context_window, (self.batch_size,))
         X = torch.stack(
             [
                 torch.from_numpy((data[i : i + self.context_window]).astype(np.int64))
@@ -166,7 +191,9 @@ class Seq2SeqDataloader:
         y = torch.stack(
             [
                 torch.from_numpy(
-                    (data[i + self.context_window : i + 2* self.context_window]).astype(np.int64)
+                    (
+                        data[i + self.context_window : i + 2 * self.context_window]
+                    ).astype(np.int64)
                 )
                 for i in ix
             ]
@@ -192,7 +219,7 @@ class Seq2SeqDataloader:
         if not os.path.exists(self.dataset_path):
             os.makedirs(self.dataset_path)
         else:
-            return # already processed
+            return  # already processed
 
         # load the dataset
         split_dataset = load_data(
@@ -235,15 +262,15 @@ class Seq2SeqDataloader:
             arr.flush()
 
 
-
-
-# Function to serialize a list of IDs into a string
 def serialize_ids(ids_list):
-    return ','.join(map(str, ids_list))
+    """Function to serialize a list of IDs into a string"""
+    return ",".join(map(str, ids_list))
 
-# Function to deserialize a string back into a list of IDs
+
 def deserialize_ids(serialized_str):
-    return list(map(int, serialized_str.split(',')))
+    """Function to deserialize a string back into a list of IDs"""
+    return list(map(int, serialized_str.split(",")))
+
 
 class BytePoolingDataloader:
     """
@@ -260,12 +287,15 @@ class BytePoolingDataloader:
         self.cfg = cfg
         self.data_dir = data_dir
         self.dataset_path = os.path.join(
-            self.data_dir, 
+            self.data_dir,
             self.cfg["trainer"]["dataset"],
             "BytePooling",
             f'{self.cfg["model_shell"]["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
-            f'{self.cfg["model_shell"]["pooling_tokenizer"]}-{self.cfg["model_shell"]["pooling_vocab_size"]}',
-            self.cfg["trainer"]["dataloader"]["name"]
+            (
+                f'{self.cfg["model_shell"]["pooling_tokenizer"]}'
+                f'-{self.cfg["model_shell"]["pooling_vocab_size"]}'
+            ),
+            self.cfg["trainer"]["dataloader"]["name"],
         )
 
         self.context_window = self.cfg["model_shell"]["context_window"]
@@ -316,7 +346,7 @@ class BytePoolingDataloader:
         if not os.path.exists(self.dataset_path):
             os.makedirs(self.dataset_path)
         else:
-            return # already processed
+            return  # already processed
 
         # load the dataset
         split_dataset = load_data(
@@ -333,18 +363,15 @@ class BytePoolingDataloader:
             """
             pooling_ids = pooling_tokenizer.encode(example["text"])
             example_tokens = []
-            for i in range(len(pooling_ids)):
+            for pool_id in pooling_ids:
                 # decode individual ids, re-encode them using the byte tokenizer
-                sub_word_text = pooling_tokenizer.decode([pooling_ids[i]])
+                sub_word_text = pooling_tokenizer.decode([pool_id])
                 byte_token_ids = byte_tokenizer.encode(sub_word_text)
                 example_tokens.append(byte_token_ids)
-            #ids = byte_tokenizer.encode(example["text"])
-            #ids.append(byte_tokenizer.eot_token)
-            #bounds = 
-            """
-            At this point, the structure of example_tokens is a list of lists of byte tokens,
-            which are in the same size as gpt-2 tokenizer sub-word units.
-            """
+
+            # At this point, the structure of example_tokens is a list of lists of byte tokens,
+            # which are in the same size as gpt-2 tokenizer sub-word units.
+
             return {"ids": example_tokens, "len": len(example_tokens)}
 
         # tokenize the dataset
@@ -359,8 +386,7 @@ class BytePoolingDataloader:
         for split, dset in tokenized.items():
             arr_len = np.sum(dset["len"], dtype=np.uint64)
             filename = os.path.join(self.dataset_path, f"{split}.bin")
-            dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
-            arr = np.memmap(filename, dtype='S', mode="w+", shape=(arr_len,))
+            arr = np.memmap(filename, dtype="S", mode="w+", shape=(arr_len,))
             total_batches = 1024
 
             idx = 0

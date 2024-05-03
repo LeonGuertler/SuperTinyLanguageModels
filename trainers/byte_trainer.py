@@ -5,6 +5,7 @@ import time
 import torch
 import wandb
 from omegaconf import OmegaConf
+
 from trainers import utils
 
 
@@ -27,7 +28,7 @@ class ByteTrainer:
         self.scaler = None
         self.use_wandb = cfg.general.logging.wandb_log
         self.checkpoint_dir = cfg.general.paths.checkpoint_dir
-        
+
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
         self.ctx = self._setup_ctx()
@@ -36,10 +37,13 @@ class ByteTrainer:
 
         self.model.to("cuda")
 
-
     def _setup_logging(self):
         # set run name
-        run_name = f"{self.cfg.core_model.core_model_type}_{self.cfg.model_shell.shell_type}_{self.cfg.trainer.dataset}_{self.cfg.model_shell.tokenizer}_{self.cfg.model_shell.vocab_size}"
+        run_name = (
+            f"{self.cfg.core_model.core_model_type}_{self.cfg.model_shell.shell_type}"
+            f"_{self.cfg.trainer.dataset}_{self.cfg.model_shell.tokenizer}"
+            f"_{self.cfg.model_shell.vocab_size}"
+        )
         wandb.init(
             project=self.cfg.general.logging.wandb_project,
             config=OmegaConf.to_container(self.cfg),
@@ -47,7 +51,6 @@ class ByteTrainer:
         )
         wandb.init(project=self.cfg.general.logging.wandb_project)
         print("wand_b_initted")
-
 
     def _setup_ctx(self):
         """Get the context manager"""
@@ -86,10 +89,10 @@ class ByteTrainer:
             for i in range(eval_iters):
                 x, y = self.dataloader.get_batch(split)
                 with self.ctx:
-                    #print(y.size())
-                    output, loss = model(x)
-                    #print(output.size())
-                    #input(loss)
+                    # print(y.size())
+                    output, _ = model(x)
+                    # print(output.size())
+                    # input(loss)
                     losses[i] = self.loss_fn(output, y)
             out[split] = losses.mean().item()
         model.train()
@@ -118,7 +121,7 @@ class ByteTrainer:
 
         self.optimizer.zero_grad(set_to_none=True)
         return loss
-    
+
     def _save_model(self, iter_num=0):
         """
         store the current model checkpoint.
@@ -131,10 +134,7 @@ class ByteTrainer:
         }
         checkpoint_path = f"{self.checkpoint_dir}/ckpt_{iter_num}.pt"
         print(f"saving checkpoint to {checkpoint_path}")
-        torch.save(
-            checkpoint, 
-            checkpoint_path
-        )
+        torch.save(checkpoint, checkpoint_path)
 
     def run_training_loop(self):
         """Run the training loop"""
@@ -145,7 +145,8 @@ class ByteTrainer:
             if not iter_num % self.cfg.trainer.training.eval_interval:
                 losses = self.estimate_loss(self.model)
                 print(
-                    f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}"
+                    f"step {iter_num}: train loss {losses['train']:.4f}, "
+                    f"val loss {losses['val']:.4f}"
                 )
                 if self.use_wandb:
                     wandb.log(
@@ -160,11 +161,12 @@ class ByteTrainer:
             if not iter_num % self.cfg.trainer.training.checkpoint_interval:
                 self._save_model(iter_num)
 
-
             loss = self._run_step()
             t1 = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval:
-                lossf = loss.item() * self.gradient_accumulation_steps # TODO double check 
+                lossf = (
+                    loss.item() * self.gradient_accumulation_steps
+                )  # TODO double check
                 print(
                     f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {t1-t0:.1f}s"
                 )
@@ -175,5 +177,3 @@ class ByteTrainer:
         """Train the model"""
         utils.set_seed(seed)
         self.run_training_loop()
-
-

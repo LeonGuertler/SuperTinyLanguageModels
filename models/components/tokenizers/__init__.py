@@ -2,14 +2,10 @@
 Init file for easier imports of tokenizers.
 """
 
-from models.components.tokenizers.GPT2TokenizerWrapper import GPT2Tokenizer
-from models.components.tokenizers.BytePairEncoding import BPETokenizer
+from models.components.tokenizers.byte_pair_encoding import BPETokenizer
+from models.components.tokenizers.gpt2_tokenizer import GPT2Tokenizer
 
 
-TOKENIZER_DICT = {
-    "gpt2": lambda vocab_size, dataset_name: GPT2Tokenizer(),
-    "bpe": lambda vocab_size, dataset_name: BPETokenizer(vocab_size, dataset_name),
-}
 def build_tokenizer(tokenizer_type, vocab_size, dataset_name):
     """
     Given the tokenizer config, build it.
@@ -18,7 +14,8 @@ def build_tokenizer(tokenizer_type, vocab_size, dataset_name):
     Returns:
         tokenizer: tokenizer_instance
     """
-    return TOKENIZER_DICT[tokenizer_type](
-        vocab_size=vocab_size,
-        dataset_name=dataset_name
-    )
+    if tokenizer_type == "GPT2":
+        return GPT2Tokenizer()
+    elif tokenizer_type == "BPE":
+        return BPETokenizer(vocab_size=vocab_size, dataset_name=dataset_name)
+    raise ValueError(f"Tokenizer type {tokenizer_type} not recognized.")

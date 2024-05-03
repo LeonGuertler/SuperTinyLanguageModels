@@ -12,26 +12,30 @@ from heapq import nlargest
 from tqdm import tqdm
 
 from models.components.tokenizers import utils
+from models.components.tokenizers.tokenizer import Tokenizer
 from trainers.utils import load_data
 
 
-class BPETokenizer:
+class BPETokenizer(Tokenizer):
+    """Tokenizer for Byte Pair Encoding."""
+
     def __init__(self, vocab_size, dataset_name):
         """
         Check if the specific tokenizer already exists, if not, create it.
         """
+        super().__init__()
         self.vocab_size = vocab_size
         self.dataset_name = dataset_name
         self.special_tokens = {
             "<|pad|>": vocab_size - 2,
             "<|endoftext|>": vocab_size - 1,
         }
+        self.pad_token = self.special_tokens["<|pad|>"]
+        self.eot_token = self.special_tokens["<|endoftext|>"]
 
-
-        assert self.vocab_size > 256 + len(
+        assert self.vocab_size >= 256 + len(
             self.special_tokens
         ), "Vocab size too small! Must be > 256+len(special_tokens))"
-
 
         if not utils.check_if_tokenizer_exists(
             tokenizer_type="bpe", vocab_size=vocab_size, dataset_name=dataset_name
@@ -67,6 +71,12 @@ class BPETokenizer:
             ids = utils.merge(ids, pair, idx)
         return ids
 
+    def encode_batch(self, texts):
+        """
+        Encode a batch of texts into Byte Pair Encoding tokens.
+        """
+        return [self.encode(text) for text in texts]
+
     def decode(self, tokens):
         """
         Decode the Byte Pair Encoding tokens back into text.
@@ -74,6 +84,12 @@ class BPETokenizer:
         text_bytes = b"".join(self.vocab[idx] for idx in tokens)
         text = text_bytes.decode("utf-8", errors="replace")
         return text
+
+    def decode_batch(self, token_lists):
+        """
+        Decode a batch of Byte Pair Encoding token lists back into text.
+        """
+        return [self.decode(tokens) for tokens in token_lists]
 
     def _train_tokenizer(self, verbose=True):
         """
@@ -151,10 +167,12 @@ class BPETokenizer:
             os.makedirs(tokenizer_folder)
 
         # store the .model file
+        # pylint: disable=unspecified-encoding
         with open(tokenizer_path, "w") as f:
             # write the merges
             for idx1, idx2 in self.merges:
                 f.write(f"{idx1} {idx2}\n")
+        # pylint: enable=unspecified-encoding
 
         # store the .vocab file
         vocab_path = tokenizer_path.replace(".model", ".vocab")

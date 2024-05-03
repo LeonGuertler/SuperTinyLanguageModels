@@ -2,6 +2,7 @@
 A collection of metrics for evaluating models
 """
 
+
 def accuracy_metric(predictions, targets):
     """
     Calculate the accuracy of the model
@@ -15,9 +16,4 @@ def accuracy_metric(predictions, targets):
     return correct / total
 
 
-
-
-
-MCQ_METRIC_DICT = {
-    "accuracy": accuracy_metric
-}
+MCQ_METRIC_DICT = {"accuracy": accuracy_metric}
