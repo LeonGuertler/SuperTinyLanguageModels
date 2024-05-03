@@ -60,17 +60,20 @@ class AutoregressiveByteModelShell(nn.Module):
             token_embedder=self.token_embedder
         )
 
+         # build the language model head
+        self.lm_head = NextTokenHead(
+            hidden_dim=self.cfg["core_model"]["hidden_dim"],
+            vocab_size=self.cfg["model_shell"]["pooling_vocab_size"],
+        )
+
         self.byte_decoder = ByteLevelDecoder(
             core_hidden_dim=self.cfg["core_model"]["hidden_dim"],
             byte_hidden_dim=self.cfg["model_shell"]["embedding_dim"],
-            byte_vocab_size=self.cfg["model_shell"]["pooling_vocab_size"]
+            byte_vocab_size=self.cfg["model_shell"]["pooling_vocab_size"],
+            lm_head = self.lm_head
         )
 
-        # build the language model head
-        """self.lm_head = NextTokenHead(
-            hidden_dim=self.cfg["core_model"]["hidden_dim"],
-            vocab_size=self.cfg["model_shell"]["vocab_size"],
-        )"""
+       
 
         # share the weights between the token embeddings and the final logit layer
         #self.token_embedder.weight = (
@@ -138,7 +141,7 @@ class ByteLevelDecoder(nn.Module):
     LM (byte level) head only to the actual tokens, not 
     the latent ecoded ones.
     """
-    def __init__(self, core_hidden_dim, byte_hidden_dim, byte_vocab_size):
+    def __init__(self, core_hidden_dim, byte_hidden_dim, byte_vocab_size, lm_head):
         super().__init__()
         self.core_hidden_dim = core_hidden_dim
         self.byte_hidden_dim = byte_hidden_dim
@@ -181,12 +184,13 @@ class ByteLevelDecoder(nn.Module):
             hidden_dim=byte_hidden_dim,
             context_window=12+self.num_projection_heads
         )
+        self.lm_head = lm_head
 
-        self.lm_head = nn.Linear(
+        """self.lm_head = nn.Linear(
             in_features=byte_hidden_dim,
             out_features=byte_vocab_size,
             bias=False
-        )
+        )"""
 
     def forward(self, x_raw_emb, x):
         """
