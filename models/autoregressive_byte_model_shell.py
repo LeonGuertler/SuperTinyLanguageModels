@@ -15,8 +15,8 @@ from models.utils import (
 )
 
 from models.components.layers import BidirectionalTransformerBlock
-
-
+from models.components.layers import BaseTransformerBlock
+from models.components.positional_encoding import LearnedPosEncoding
 
 class AutoregressiveByteModelShell(nn.Module):
     """
@@ -60,11 +60,17 @@ class AutoregressiveByteModelShell(nn.Module):
             token_embedder=self.token_embedder
         )
 
+        self.byte_decoder = ByteLevelDecoder(
+            core_hidden_dim=self.cfg["core_model"]["hidden_dim"],
+            byte_hidden_dim=self.cfg["model_shell"]["embedding_dim"],
+            byte_vocab_size=self.cfg["model_shell"]["pooling_vocab_size"]
+        )
+
         # build the language model head
-        self.lm_head = NextTokenHead(
+        """self.lm_head = NextTokenHead(
             hidden_dim=self.cfg["core_model"]["hidden_dim"],
             vocab_size=self.cfg["model_shell"]["vocab_size"],
-        )
+        )"""
 
         # share the weights between the token embeddings and the final logit layer
         #self.token_embedder.weight = (
@@ -95,12 +101,21 @@ class AutoregressiveByteModelShell(nn.Module):
         #x = self.token_embedder(token_ids)
 
         # process to sub-word tokens
-        x = self.byte_token_processor(token_ids)
+        x, x_emb = self.byte_token_processor(token_ids)
         print("second", x.size())
 
         # forward through the core model
         x_return = self.core_model(x)
         print("second", x_return.size())
+
+        # pass into the byte level decoder 
+        x_return = self.byte_decoder(x_emb, x_return)
+
+        input(x_return.size())
+
+        return x_return, None
+
+
         if isinstance(x, tuple):
             x, loss = x_return
         else:
@@ -112,46 +127,101 @@ class AutoregressiveByteModelShell(nn.Module):
 
         return logits, loss
         
-    def inference(self, token_ids):
+
+
+
+class ByteLevelDecoder(nn.Module):
+    """
+    Use multiple learned heads to decode into by hidden size,
+    pre-append to the byte embeddings of the answers and 
+    autoregressively decode the next token, applying the 
+    LM (byte level) head only to the actual tokens, not 
+    the latent ecoded ones.
+    """
+    def __init__(self, core_hidden_dim, byte_hidden_dim, byte_vocab_size):
+        super().__init__()
+        self.core_hidden_dim = core_hidden_dim
+        self.byte_hidden_dim = byte_hidden_dim
+        self.byte_vocab_size = byte_vocab_size
+        self.num_projection_heads = 12
+
+        # project via linear and then split
+        self.projection = nn.Linear(
+            in_features=core_hidden_dim,
+            out_features=self.num_projection_heads * byte_hidden_dim,
+            bias=False
+        )
+
+        # small autoregressive transformer 
+        self.transformer = nn.ModuleDict(
+            dict(
+                drop=nn.Dropout(),
+                h=nn.ModuleList(
+                    [
+                        BaseTransformerBlock(
+                            hidden_dim=byte_hidden_dim,
+                            ffn_dim=byte_hidden_dim*4,
+                            ffn_activation="gelu",
+                            bias=False,
+                            num_heads=8,
+                        ),
+                        BaseTransformerBlock(
+                            hidden_dim=byte_hidden_dim,
+                            ffn_dim=byte_hidden_dim*4,
+                            ffn_activation="gelu",
+                            bias=False,
+                            num_heads=8,
+                        ),
+                    ]
+                ),
+            )
+        )
+
+        self.pos_encoder = LearnedPosEncoding(
+            hidden_dim=byte_hidden_dim,
+            context_window=12+self.num_projection_heads
+        )
+
+        self.lm_head = nn.Linear(
+            in_features=byte_hidden_dim,
+            out_features=byte_vocab_size,
+            bias=False
+        )
+
+    def forward(self, x_raw_emb, x):
         """
-        Similar to the forward pass, but takes in a string 
-        (or batch of strings) and only return the logits 
-        for the next token.
-        Args:
-            text_string: a string or list of strings
-        Returns:
-            logits for the next token
+        x_raw_emb (the original byte embeddings): (B, S, 12, H_b)
+        x (the latent embeddings): (B, S, H)
         """
+        # project the latent embeddings
+        x = self.projection(x)
+        x = x.view(x.size(0), x.size(1), self.num_projection_heads, self.byte_hidden_dim)
 
-        b, s = token_ids.size()
+        # concat x with x_byte_emb
+        x = torch.cat([x, x_raw_emb], dim=-2)
 
-        # check that the sequence length is not longer than the context window
-        assert (
-            s <= self.cfg["model_shell"]["context_window"]
-        ), f"Cannot forward sequence of length {s}, block size is only {self.cfg['model_shell']['context_window']}"
+        # flatten across B and S and pass through transformer
+        B, S, _, _ = x.size()
+        x = x.view(B*S, self.num_projection_heads+12, self.byte_hidden_dim)
+
+        # positional encoding
+        x = x + self.pos_encoder(x)
+
+        # pass through transformer
+        x = self.transformer.drop(x)
+        for block in self.transformer.h:
+            x = block(x)
+
+        # pass final 12 byte tokens through lm head
+        x = x[:, -12:, :]
+        x = self.lm_head(x)
+
+        # reshape and return
+        x = x.view(B, S, 12, self.byte_vocab_size)
+
+        return x
 
 
-        # embed token_ids
-        #x = self.token_embedder(token_ids)
-
-        # process to sub-word tokens
-        x = self.byte_token_processor(token_ids)
-        print("second", x.size())
-
-        # forward through the core model
-        x_return = self.core_model(x)
-        print("second", x.size())
-        if isinstance(x, tuple):
-            x, loss = x_return
-        else:
-            x, loss = x_return, None
-
-        # get logits
-        logits = self.lm_head(x)
-
-        print("second", x.size())
-
-        return logits[:, -1, :]
 
 
 
@@ -208,9 +278,9 @@ class ByteLevelProcessor(nn.Module):
         x = x.view(B*S, S_char)
 
         # embed 
-        x = self.token_embedder(x)
-        print(x.size())
-        x = self.transformer[0](x)
+        x_emb = self.token_embedder(x)
+        print(x_emb.size())
+        x = self.transformer[0](x_emb)
         x = self.up_proj(x)
         x = self.transformer[1](x)
         print(x.size())
@@ -219,4 +289,4 @@ class ByteLevelProcessor(nn.Module):
         print(B, S)
         x = x.view(B, S, -1)
         input(x.size())
-        return x
+        return x, x_emb
