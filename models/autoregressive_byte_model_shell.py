@@ -200,9 +200,11 @@ class ByteLevelDecoder(nn.Module):
         # project the latent embeddings
         x = self.projection(x)
         x = x.view(x.size(0), x.size(1), self.num_projection_heads, self.byte_hidden_dim)
+        print('important shapes', x.size())
+        print('important shapes', x_raw_emb.size())
 
         # view x_raw_emb
-        x_raw_emb = x_raw_emb.view(x_raw_emb.size(0), x_raw_emb.size(1), 12, self.byte_hidden_dim)
+        x_raw_emb = x_raw_emb.view(x_raw_emb.size(0), x_raw_emb.size(1), self.byte_hidden_dim)
         # concat x with x_byte_emb
         print('important shapes', x.size())
         print('important shapes', x_raw_emb.size())
