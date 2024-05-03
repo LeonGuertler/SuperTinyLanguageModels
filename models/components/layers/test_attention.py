@@ -10,9 +10,6 @@ import torch
 
 from models.components.layers import attention
 
-# test the GPT2tokenizer
-TEST_STRING = "This is a test string. <|endoftext|>"
-
 
 def test_normal_attention():
     """Just test that it runs..."""
@@ -37,7 +34,8 @@ def test_group_attention():
         bias=False,
         use_rope=True,
         max_context_window=512,
-    )
+        group_size=2,
+    ).to("cuda")
     x = torch.rand(2, 10, 64)
     out = attention_head(x)
 

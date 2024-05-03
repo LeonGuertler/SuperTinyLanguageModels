@@ -4,4 +4,5 @@ depth: 8
 num_heads: 8
 ffn_dim: 2048
 ffn_activation: "gelu"
+attn_group_size: 2
 bias: False

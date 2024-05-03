@@ -1,6 +1,6 @@
 shell_type: "autoregressive"
-tokenizer: "bpe"
+tokenizer: "gpt2"
 tokenizer_dataset_name: "simple_en_wiki"
-vocab_size: 8192
+vocab_size: 50304
 context_window: 512
 weight_init: gpt2
