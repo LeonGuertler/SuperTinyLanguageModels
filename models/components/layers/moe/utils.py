@@ -42,6 +42,10 @@ def compute_gating(
 
 
 class ParallelExperts(nn.Module):
+    """
+    Parallel experts layer.
+    """
+
     def __init__(self, num_experts, input_size, output_size) -> None:
         """
         Initialize the ParallelExperts module.
@@ -60,8 +64,9 @@ class ParallelExperts(nn.Module):
         self.output_size = output_size
 
     def extra_repr(self):
-        return "num_experts={}, input_size={}, output_size={}".format(
-            self.num_experts, self.input_size, self.output_size
+        return (
+            f"num_experts={self.num_experts}, input_size={self.input_size}"
+            f", output_size={self.output_size}"
         )
 
     def reset_parameters(self) -> None:
@@ -86,6 +91,8 @@ class ParallelExperts(nn.Module):
         input_list = inputs.split(expert_size, dim=0)
         output_list = []
         for i in range(self.num_experts):
+            # pylint: disable=not-callable
             output_list.append(F.linear(input_list[i], self.weight[i]))
+            # pylint: enable=not-callable
         results = torch.cat(output_list, dim=0)
         return results

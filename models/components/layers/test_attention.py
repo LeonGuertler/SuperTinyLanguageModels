@@ -35,7 +35,7 @@ def test_group_attention():
         use_rope=True,
         max_context_window=512,
         group_size=2,
-    ).to("cuda")
+    )
     x = torch.rand(2, 10, 64)
     out = attention_head(x)
 

@@ -29,10 +29,12 @@ def check_if_tokenizer_exists(tokenizer_type, vocab_size, dataset_name):
 
 
 def get_stats(ids):
+    """Return a Counter object of the token pairs."""
     return Counter(zip(ids, ids[1:]))
 
 
 def multi_merge(ids, pairs):
+    """Merge multiple pairs of tokens in a list of token ids."""
     skip = False
     newids = [
         (
@@ -49,6 +51,7 @@ def multi_merge(ids, pairs):
 
 
 def merge(ids, pair, idx):
+    """Merge a pair of tokens in a list of token ids."""
     skip = False
     newids = [
         (
@@ -65,10 +68,14 @@ def merge(ids, pair, idx):
 
 
 def replace_control_characters(s: str) -> str:
-    # we don't want to print control characters
-    # which distort the output (e.g. \n or much worse)
-    # https://stackoverflow.com/questions/4324790/removing-control-characters-from-a-string-in-python/19016117#19016117
-    # http://www.unicode.org/reports/tr44/#GC_Values_Table
+    """Replace control characters with their unicode escape sequence.
+
+    This is useful when printing tokens, as
+    we don't want to print control characters
+    which distort the output (e.g. \n or much worse)
+    https://stackoverflow.com/questions/4324790/removing-control-characters-from-a-string-in-python/19016117#19016117
+    http://www.unicode.org/reports/tr44/#GC_Values_Table
+    """
     chars = []
     for ch in s:
         if unicodedata.category(ch)[0] != "C":
@@ -79,7 +86,7 @@ def replace_control_characters(s: str) -> str:
 
 
 def render_token(t: bytes) -> str:
-    # pretty print a token, escaping control characters
+    """Pretty print a token, escaping control characters."""
     s = t.decode("utf-8", errors="replace")
     s = replace_control_characters(s)
     return s

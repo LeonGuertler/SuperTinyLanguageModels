@@ -262,13 +262,13 @@ class Seq2SeqDataloader:
             arr.flush()
 
 
-# Function to serialize a list of IDs into a string
 def serialize_ids(ids_list):
+    """Function to serialize a list of IDs into a string"""
     return ",".join(map(str, ids_list))
 
 
-# Function to deserialize a string back into a list of IDs
 def deserialize_ids(serialized_str):
+    """Function to deserialize a string back into a list of IDs"""
     return list(map(int, serialized_str.split(",")))
 
 
@@ -291,7 +291,10 @@ class BytePoolingDataloader:
             self.cfg["trainer"]["dataset"],
             "BytePooling",
             f'{self.cfg["model_shell"]["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
-            f'{self.cfg["model_shell"]["pooling_tokenizer"]}-{self.cfg["model_shell"]["pooling_vocab_size"]}',
+            (
+                f'{self.cfg["model_shell"]["pooling_tokenizer"]}'
+                f'-{self.cfg["model_shell"]["pooling_vocab_size"]}'
+            ),
             self.cfg["trainer"]["dataloader"]["name"],
         )
 

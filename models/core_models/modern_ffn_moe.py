@@ -8,6 +8,8 @@ from models.components.layers import JetFFNMoEBlock
 
 
 class ModernTransformerFFNMoE(nn.Module):
+    """ModernBlock Transformer with FFN MoE"""
+
     def __init__(self, cfg):
         """
         Initialize a Llama-3 style transformer model with

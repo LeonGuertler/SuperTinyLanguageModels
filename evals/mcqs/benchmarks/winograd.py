@@ -2,6 +2,7 @@
 
 from datasets import load_dataset
 
+# pylint: disable=line-too-long
 WINOGRAD_PROMPT = """A Winograd schema is a pair of sentences that differ in only one or two words and that contain an ambiguity that is resolved in opposite ways in the two sentences and requires the use of world knowledge and reasoning for its resolution.
 The schema takes its name from a well-known example by Terry Winograd:
 
@@ -19,6 +20,7 @@ Who does "{pronoun}" refer to in "{sentence}"?
 A: {option1}
 B: {option2}
 Answer: """
+# pylint: enable=line-too-long
 
 REMAP = {
     "0": "A",

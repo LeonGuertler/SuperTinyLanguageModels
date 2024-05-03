@@ -2,7 +2,12 @@
 A test function to test that the different models are loaded correctly.
 """
 
-# import pytest
+import io
+import unittest.mock
+
+# pylint: disable=unused-import
+# pylint: disable=missing-function-docstring
+import pytest
 import torch
 
 from models.build_models import build_model
@@ -60,7 +65,6 @@ sample_cfg = {
 def test_build_model():
     test_tokens = torch.randint(0, 512, (1, 512))
     test_string = "This is a test string"
-
     model = build_model(sample_cfg)
 
     # pass the tokens
@@ -76,17 +80,17 @@ def test_build_model():
         "iter_num": 0,
         "config": sample_cfg,
     }
-    checkpoint_path = "ckpt_debugging.pt"
-    print(f"saving checkpoint to {checkpoint_path}")
-    torch.save(checkpoint, checkpoint_path)
-    print(f"loading model from {checkpoint_path}")
-    # load model
-    checkpoint = torch.load(checkpoint_path)
-    model = build_model(checkpoint=checkpoint)
 
-    # delete model file
-    import os
+    # Create a virtual file
+    with unittest.mock.patch("torch.save") as mock_save:
+        mock_save.return_value = None
+        mock_file = io.BytesIO()
+        torch.save(checkpoint, mock_file)
+        mock_file.seek(0)
 
-    os.remove(checkpoint_path)
+        print("loading model from virtual file")
+        # load model
+        checkpoint = torch.load(mock_file)
+        model = build_model(checkpoint=checkpoint)
 
     assert model is not None

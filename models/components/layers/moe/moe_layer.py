@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 from models.components.layers.activations import build_activation
-from models.components.layers.moe.routing import top_k_gating
+from models.components.layers.moe.routing import TopKGating
 from models.components.layers.moe.utils import ParallelExperts, compute_gating
 
 
@@ -43,7 +43,7 @@ class MoE(nn.Module):
         self.activation = build_activation(activation_name=activation)
         self.input_size = hidden_dim
 
-        self.router = top_k_gating(
+        self.router = TopKGating(
             input_size=self.input_size, num_experts=num_experts, top_k=top_k
         )
 

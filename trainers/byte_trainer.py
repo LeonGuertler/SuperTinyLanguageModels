@@ -39,7 +39,11 @@ class ByteTrainer:
 
     def _setup_logging(self):
         # set run name
-        run_name = f"{self.cfg.core_model.core_model_type}_{self.cfg.model_shell.shell_type}_{self.cfg.trainer.dataset}_{self.cfg.model_shell.tokenizer}_{self.cfg.model_shell.vocab_size}"
+        run_name = (
+            f"{self.cfg.core_model.core_model_type}_{self.cfg.model_shell.shell_type}"
+            f"_{self.cfg.trainer.dataset}_{self.cfg.model_shell.tokenizer}"
+            f"_{self.cfg.model_shell.vocab_size}"
+        )
         wandb.init(
             project=self.cfg.general.logging.wandb_project,
             config=OmegaConf.to_container(self.cfg),
@@ -141,7 +145,8 @@ class ByteTrainer:
             if not iter_num % self.cfg.trainer.training.eval_interval:
                 losses = self.estimate_loss(self.model)
                 print(
-                    f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}"
+                    f"step {iter_num}: train loss {losses['train']:.4f}, "
+                    f"val loss {losses['val']:.4f}"
                 )
                 if self.use_wandb:
                     wandb.log(

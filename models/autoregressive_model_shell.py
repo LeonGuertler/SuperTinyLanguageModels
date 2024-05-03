@@ -4,7 +4,7 @@ The Model Shell holds the tokenizer, core-model and model head.
 
 from torch import nn
 
-from models.components.LMHeads import NextTokenHead
+from models.components.lm_heads import NextTokenHead
 from models.components.tokenizers import build_tokenizer
 from models.utils import print_model_stats
 from models.weight_initialization import build_weight_init
@@ -73,9 +73,10 @@ class AutoregressiveModelShell(nn.Module):
         _, s = token_ids.size()
 
         # check that the sequence length is not longer than the context window
-        assert (
-            s <= self.cfg["model_shell"]["context_window"]
-        ), f"Cannot forward sequence of length {s}, block size is only {self.cfg['model_shell']['context_window']}"
+        assert s <= self.cfg["model_shell"]["context_window"], (
+            f"Cannot forward sequence of length {s}, "
+            f"block size is only {self.cfg['model_shell']['context_window']}"
+        )
 
         # embed token_ids
         x = self.token_embedder(token_ids)
@@ -106,9 +107,10 @@ class AutoregressiveModelShell(nn.Module):
         _, s = token_ids.size()
 
         # check that the sequence length is not longer than the context window
-        assert (
-            s <= self.cfg["model_shell"]["context_window"]
-        ), f"Cannot forward sequence of length {s}, block size is only {self.cfg['model_shell']['context_window']}"
+        assert s <= self.cfg["model_shell"]["context_window"], (
+            f"Cannot forward sequence of length {s}, "
+            f"block size is only {self.cfg['model_shell']['context_window']}"
+        )
 
         # embed token_ids
         x = self.token_embedder(token_ids)

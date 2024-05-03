@@ -6,7 +6,7 @@ import torch
 from torch import nn
 
 from models.components.layers import BidirectionalTransformerBlock
-from models.components.LMHeads import NextTokenHead
+from models.components.lm_heads import NextTokenHead
 from models.components.tokenizers import build_tokenizer
 from models.utils import print_model_stats
 
@@ -217,8 +217,8 @@ class ByteLevelProcessor(nn.Module):
                 full_batch[i, j, :num_ids] = x
 
         # print(full_batch.size())
-        B, S, S_char, E = full_batch.size()
-        full_batch = full_batch.view(B * S, S_char, E)
+        B, S, char_seq_len, E = full_batch.size()
+        full_batch = full_batch.view(B * S, char_seq_len, E)
         full_batch = self.transformer[0](full_batch)
         full_batch = self.up_proj(full_batch)
         full_batch = self.transformer[1](full_batch)

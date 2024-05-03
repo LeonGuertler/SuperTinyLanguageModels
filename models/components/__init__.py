@@ -1,3 +1,5 @@
+"""Contains model components for transformers."""
+
 from models.components.layers.attention import SelfAttention
 from models.components.layers.feedforward import FFN, SWIGluFFN
 from models.components.layers.moe import MoE

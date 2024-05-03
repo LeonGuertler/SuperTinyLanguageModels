@@ -1,3 +1,5 @@
+"""Code for initializing the weights of a model."""
+
 import torch
 import torch.nn as nn
 

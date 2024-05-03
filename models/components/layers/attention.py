@@ -58,11 +58,11 @@ class SelfAttention(nn.Module):
         assert attention_mask is None, "Not implemented yet"
         B, S, H = x.size()  # batch, sequence, hidden
         num_grouped_heads = self.num_heads // self.group_size
-        Hg = H // self.group_size
+        group_hidden_dim = H // self.group_size
 
         # calculate query, key, values for all heads in batch
         # move head forward to be the batch dim
-        q, k, v = self.c_attn(x).split([H, Hg, Hg], dim=-1)
+        q, k, v = self.c_attn(x).split([H, group_hidden_dim, group_hidden_dim], dim=-1)
         k = k.view(B, S, num_grouped_heads, H // self.num_heads)  # (B, T, nh, hs)
         q = q.view(B, S, self.num_heads, H // self.num_heads)  # (B, T, nh, hs)
         v = v.view(B, S, num_grouped_heads, H // self.num_heads).transpose(
