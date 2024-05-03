@@ -1,5 +1,5 @@
 """
-Pytest functions for the individual components of the different tokenizers.
+Pytest functions for the individual components of the different attention.
 """
 
 # pylint: disable=unused-import
