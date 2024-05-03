@@ -18,3 +18,4 @@ def build_tokenizer(tokenizer_type, vocab_size, dataset_name):
         return GPT2Tokenizer()
     elif tokenizer_type == "BPE":
         return BPETokenizer(vocab_size=vocab_size, dataset_name=dataset_name)
+    raise ValueError(f"Tokenizer type {tokenizer_type} not recognized.")

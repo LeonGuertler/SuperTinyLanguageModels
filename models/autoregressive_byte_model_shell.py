@@ -101,7 +101,7 @@ class AutoregressiveByteModelShell(nn.Module):
 
         return logits, loss
 
-    def inference(self, token_ids):
+    def inference(self, sequence):
         """
         Similar to the forward pass, but takes in a string
         (or batch of strings) and only return the logits
@@ -111,8 +111,16 @@ class AutoregressiveByteModelShell(nn.Module):
         Returns:
             logits for the next token
         """
+        if isinstance(sequence, str):
+            sequence = [sequence]
 
-        _, s = token_ids.size()
+        byte_ids = self.byte_tokenizer.encode_batch(sequence)
+
+        token_ids = self.byte_token_processor.token_to_byte_ids(byte_ids)
+
+        tokens, _ = self.pooling_tokenizer.encode_batch(token_ids)
+
+        _, s = tokens.size()
 
         # check that the sequence length is not longer than the context window
         assert s <= self.cfg["model_shell"]["context_window"], (
@@ -121,7 +129,7 @@ class AutoregressiveByteModelShell(nn.Module):
         )
 
         # process to sub-word tokens
-        x = self.byte_token_processor(token_ids)
+        x = self.byte_token_processor(tokens)
 
         # forward through the core model
         x_return = self.core_model(x)
@@ -179,6 +187,19 @@ class ByteLevelProcessor(nn.Module):
             ]
         )
         self.up_proj = nn.Linear(embedding_dim, hidden_dim, bias=False)
+
+    def token_to_byte_ids(self, token_ids):
+        """
+        Convert token ids to byte ids
+
+        Token_ids: of shape (batch_size, sequence_length)
+        """
+        token_strings = self.pooling_tokenizer.decode_batch(token_ids)
+        byte_ids = []
+        for token_string in token_strings:
+            byte_id = self.byte_tokenizer.encode(token_string)
+            byte_ids.append(byte_id)
+        return byte_ids
 
     def forward(self, batch_of_pooled_token_ids):
         """

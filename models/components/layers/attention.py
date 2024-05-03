@@ -48,7 +48,7 @@ class SelfAttention(nn.Module):
             assert max_context_window % 2 == 0
             self.freqs_cis = compute_freqs_cis(
                 seq_len=max_context_window, head_dim=hidden_dim // num_heads
-            ).to(torch.device("cuda"))
+            )
         self.group_size = group_size
 
     def forward(self, x, attention_mask=None):

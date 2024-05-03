@@ -2,6 +2,7 @@
 The Model Shell holds the tokenizer, core-model and model head.
 """
 
+import torch
 from torch import nn
 
 from models.components.lm_heads import NextTokenHead
@@ -93,7 +94,7 @@ class AutoregressiveModelShell(nn.Module):
 
         return logits, loss
 
-    def inference(self, token_ids):
+    def inference(self, sequence):
         """
         Similar to the forward pass, but takes in a string
         (or batch of strings) and only return the logits
@@ -103,8 +104,16 @@ class AutoregressiveModelShell(nn.Module):
         Returns:
             logits for the next token
         """
+        if isinstance(sequence, str):
+            sequence = [sequence]
 
-        _, s = token_ids.size()
+        token_ids = self.tokenizer.encode_batch(sequence)
+
+        # pad token_ids and format as tensor
+        tokens, _ = self.tokenizer.pad_batch(token_ids)
+        # ignore mask for now...
+
+        _, s = tokens.size()
 
         # check that the sequence length is not longer than the context window
         assert s <= self.cfg["model_shell"]["context_window"], (
@@ -113,7 +122,7 @@ class AutoregressiveModelShell(nn.Module):
         )
 
         # embed token_ids
-        x = self.token_embedder(token_ids)
+        x = self.token_embedder(tokens)
 
         # forward through the core model
         x = self.core_model(x)

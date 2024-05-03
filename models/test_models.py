@@ -15,10 +15,11 @@ from models.build_models import build_model
 sample_cfg = {
     "model_shell": {
         "shell_type": "autoregressive",
-        "tokenizer": "bpe",
+        "tokenizer": "BPE",
         "tokenizer_dataset_name": "debug",
         "vocab_size": 512,
         "context_window": 512,
+        "weight_init": "standard",
     },
     "core_model": {
         "core_model_type": "modern",
@@ -71,6 +72,7 @@ def test_build_model():
     _ = model(test_tokens)
 
     # pass the string
+    assert model.tokenizer is not None
     _ = model.inference(test_string)
 
     # save model
@@ -82,9 +84,8 @@ def test_build_model():
     }
 
     # Create a virtual file
-    with unittest.mock.patch("torch.save") as mock_save:
-        mock_save.return_value = None
-        mock_file = io.BytesIO()
+    mock_file = io.BytesIO()
+    with unittest.mock.patch("builtins.open", unittest.mock.mock_open(), create=True):
         torch.save(checkpoint, mock_file)
         mock_file.seek(0)
 
