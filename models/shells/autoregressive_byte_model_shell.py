@@ -6,100 +6,35 @@ import torch
 from torch import nn
 
 from models.components.layers import BidirectionalTransformerBlock
-from models.components.lm_heads import NextTokenHead
-from models.components.tokenizers import build_tokenizer
-from models.utils import print_model_stats
+from models.shells.shell import Shell
 
 
-class AutoregressiveByteModelShell(nn.Module):
+class AutoregressiveByteModelShell(Shell):
     """
     A model shell for byte-level learning.
     """
 
     def __init__(
         self,
-        cfg,
+        processor,
+        token_embedder,
+        lm_head,
         core_model,
+        weight_init_func=None,
     ):
-        super().__init__()
-
-        # move to class
-        self.cfg = cfg
-        self.core_model = core_model
-
-        # build the tokenizer
-        self.byte_tokenizer = build_tokenizer(
-            tokenizer_type=self.cfg["model_shell"]["pooling_tokenizer"],
-            vocab_size=self.cfg["model_shell"]["pooling_vocab_size"],
-            dataset_name=self.cfg["model_shell"]["tokenizer_dataset_name"],
+        super().__init__(
+            tokenizer=processor,
+            lm_head=lm_head,
+            token_embedder=token_embedder,
+            core_model=core_model,
+            weight_init_func=weight_init_func,
         )
 
-        self.pooling_tokenizer = build_tokenizer(
-            tokenizer_type=self.cfg["model_shell"]["tokenizer"],
-            vocab_size=self.cfg["model_shell"]["vocab_size"],
-            dataset_name=self.cfg["model_shell"]["tokenizer_dataset_name"],
-        )
-
-        # build the embedder
-        self.token_embedder = nn.Embedding(
-            num_embeddings=self.cfg["model_shell"]["vocab_size"],
-            embedding_dim=self.cfg["model_shell"]["embedding_dim"],
-        )
-
-        self.byte_token_processor = ByteLevelProcessor(
-            embedding_dim=self.cfg["model_shell"]["embedding_dim"],
-            hidden_dim=self.cfg["core_model"]["hidden_dim"],
-            pooling_tokenizer=self.pooling_tokenizer,
-            byte_tokenizer=self.byte_tokenizer,
-            token_embedder=self.token_embedder,
-        )
-
-        # build the language model head
-        self.lm_head = NextTokenHead(
-            hidden_dim=self.cfg["core_model"]["hidden_dim"],
-            vocab_size=self.cfg["model_shell"]["vocab_size"],
-        )
-
-        # share the weights between the token embeddings and the final logit layer
-        # self.token_embedder.weight = (
-        #    self.lm_head.linear.weight
-        # ) # https://paperswithcode.com/method/weight-tying
-
-        # report number of parameters
-        print_model_stats(self)
-
-    def forward(self, token_ids):
+    def embed(self, token_ids):
         """
-        The default forward pass is used for training and accepts the
-        token_ids as input. When the model is in eval mode, only the
-        last token is passed into the NextTokenHead.
+        Embed the token ids.
         """
-
-        _, s = token_ids.size()
-
-        # check that the sequence length is not longer than the context window
-        assert s <= self.cfg["model_shell"]["context_window"], (
-            f"Cannot forward sequence of length {s}, block size is only"
-            f" {self.cfg['model_shell']['context_window']}"
-        )
-
-        # embed token_ids
-        # x = self.token_embedder(token_ids)
-
-        # process to sub-word tokens
-        x = self.byte_token_processor(token_ids)
-
-        # forward through the core model
-        x_return = self.core_model(x)
-        if isinstance(x, tuple):
-            x, loss = x_return
-        else:
-            x, loss = x_return, None
-
-        # get logits
-        logits = self.lm_head(x)
-
-        return logits, loss
+        return self.tokenizer(token_ids)
 
     def inference(self, sequence):
         """
@@ -114,11 +49,11 @@ class AutoregressiveByteModelShell(nn.Module):
         if isinstance(sequence, str):
             sequence = [sequence]
 
-        byte_ids = self.byte_tokenizer.encode_batch(sequence)
+        byte_ids = self.tokenizer.byte_tokenizer.encode_batch(sequence)
 
-        token_ids = self.byte_token_processor.token_to_byte_ids(byte_ids)
+        token_ids = self.tokenizer.token_to_byte_ids(byte_ids)
 
-        tokens, _ = self.pooling_tokenizer.encode_batch(token_ids)
+        tokens, _ = self.tokenizer.pooling_tokenizer.encode_batch(token_ids)
 
         _, s = tokens.size()
 
@@ -129,7 +64,7 @@ class AutoregressiveByteModelShell(nn.Module):
         )
 
         # process to sub-word tokens
-        x = self.byte_token_processor(tokens)
+        x = self.processor(tokens)
 
         # forward through the core model
         x_return = self.core_model(x)
