@@ -5,9 +5,11 @@ import time
 import torch
 import wandb
 from omegaconf import OmegaConf
+
 from trainers import utils
 
 
+# pylint: disable invalid-name
 class BaseTrainer:
     """Base Trainer Class
 
@@ -46,7 +48,11 @@ class BaseTrainer:
 
     def _setup_logging(self):
         # set run name
-        run_name = f"{self.cfg.core_model.core_model_type}_{self.cfg.model_shell.shell_type}_{self.cfg.trainer.dataset}_{self.cfg.model_shell.tokenizer}_{self.cfg.model_shell.vocab_size}"
+        run_name = (
+            f"{self.cfg.core_model.core_model_type}_{self.cfg.model_shell.shell_type}"
+            f"_{self.cfg.trainer.dataset}_{self.cfg.model_shell.tokenizer}"
+            f"_{self.cfg.model_shell.vocab_size}"
+        )
         wandb.init(
             project=self.cfg.general.logging.wandb_project,
             config=OmegaConf.to_container(self.cfg),
@@ -145,7 +151,7 @@ class BaseTrainer:
     def run_training_loop(self):
         """Run the training loop"""
         for iter_num in range(self.cfg.trainer.training.max_iters):
-            t0 = time.time()
+            start_time = time.time()
             if self.lr_scheduler is not None:
                 lr = self.lr_scheduler.step(self.optimizer, iter_num)
             else:
@@ -157,10 +163,12 @@ class BaseTrainer:
                     self.model, tokenizer=self.model.tokenizer
                 )
                 print(
-                    f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}"
+                    f"step {iter_num}: train loss {losses['train']:.4f},"
+                    f" val loss {losses['val']:.4f}"
                 )
                 print(
-                    f"step {iter_num}: train perplexity {perplexities['train']:.4f}, val perplexity {perplexities['val']:.4f}"
+                    f"step {iter_num}: train perplexity {perplexities['train']:.4f},"
+                    f" val perplexity {perplexities['val']:.4f}"
                 )
                 if self.use_wandb:
                     wandb.log(
@@ -179,13 +187,13 @@ class BaseTrainer:
                 self._save_model(iter_num)
 
             loss = self._run_step()
-            t1 = time.time()
+            end_time = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval:
                 lossf = (
                     loss.item() * self.gradient_accumulation_steps
                 )  # TODO double check
                 print(
-                    f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {t1-t0:.1f}s"
+                    f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s"
                 )
                 if self.use_wandb:
                     wandb.log(

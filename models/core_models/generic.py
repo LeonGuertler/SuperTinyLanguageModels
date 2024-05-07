@@ -2,13 +2,9 @@
 
 import torch.nn as nn
 
-
-from models.components.layers.normalization import build_normalization
-
 from models.components.layers.attention import build_attention
-
 from models.components.layers.feedforward import build_ffn
-
+from models.components.layers.normalization import build_normalization
 from models.components.positional_encoding import LearnedPosEncoding
 
 
@@ -29,6 +25,7 @@ class GenericTransformerBlock(nn.Module):
         num_heads,
         normalization="layernorm",
         attn_type="causal",
+        attn_group_size=1,
         ffn_activation=None,
     ):
         super().__init__()
@@ -42,6 +39,7 @@ class GenericTransformerBlock(nn.Module):
             hidden_dim=hidden_dim,
             num_heads=num_heads,
             bias=bias,
+            group_size=attn_group_size,
         )
         self.norm_2 = build_normalization(
             normalization,
@@ -106,6 +104,7 @@ class GenericTransformer(nn.Module):
                             bias=self.core_model_cfg["bias"],
                             normalization=self.core_model_cfg["normalization"],
                             attn_type=self.core_model_cfg["attn_type"],
+                            attn_group_size=self.core_model_cfg["attn_group_size"],
                         )
                         for _ in range(self.core_model_cfg["depth"])
                     ]

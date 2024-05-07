@@ -1,12 +1,16 @@
 """
 Utils functions and classes for MoE layers.
 """
-import torch 
-import torch.nn as nn
-import torch.nn.functional as F 
+
+import torch
+from torch import nn
+from torch.nn import functional as F
+
 
 @torch.jit.script
-def compute_gating(k: int, num_experts: int, top_k_gates: torch.Tensor, top_k_indices: torch.Tensor):
+def compute_gating(
+    k: int, num_experts: int, top_k_gates: torch.Tensor, top_k_indices: torch.Tensor
+):
     """
     Compute gating values for the mixture of experts based on probabilities and top-k indices.
     Taken from: https://github.com/myshell-ai/JetMoE/blob/main/jetmoe/utils/parallel_experts.py
@@ -22,7 +26,11 @@ def compute_gating(k: int, num_experts: int, top_k_gates: torch.Tensor, top_k_in
         torch.Tensor: Expert size for each expert.
         torch.Tensor: Sorted indices of top-k experts.
     """
-    zeros = torch.zeros([top_k_gates.size(0), num_experts], dtype=top_k_gates.dtype, device=top_k_gates.device)
+    zeros = torch.zeros(
+        [top_k_gates.size(0), num_experts],
+        dtype=top_k_gates.dtype,
+        device=top_k_gates.device,
+    )
     gates = zeros.scatter(1, top_k_indices, 1)
     expert_size = gates.long().sum(0)
     top_k_gates = top_k_gates.flatten()
@@ -34,6 +42,10 @@ def compute_gating(k: int, num_experts: int, top_k_gates: torch.Tensor, top_k_in
 
 
 class ParallelExperts(nn.Module):
+    """
+    Parallel experts layer.
+    """
+
     def __init__(self, num_experts, input_size, output_size) -> None:
         """
         Initialize the ParallelExperts module.
@@ -52,15 +64,18 @@ class ParallelExperts(nn.Module):
         self.output_size = output_size
 
     def extra_repr(self):
-        return "num_experts={}, input_size={}, output_size={}".format(
-            self.num_experts, self.input_size, self.output_size
+        return (
+            f"num_experts={self.num_experts}, input_size={self.input_size}"
+            f", output_size={self.output_size}"
         )
 
     def reset_parameters(self) -> None:
         """
         Reset the parameters of the model.
         """
-        nn.init.uniform_(self.weight, -1.0 / self.weight.size(1), 1.0 / self.weight.size(1))
+        nn.init.uniform_(
+            self.weight, -1.0 / self.weight.size(1), 1.0 / self.weight.size(1)
+        )
 
     def forward(self, inputs, expert_size):
         """
@@ -76,6 +91,8 @@ class ParallelExperts(nn.Module):
         input_list = inputs.split(expert_size, dim=0)
         output_list = []
         for i in range(self.num_experts):
+            # pylint: disable=not-callable
             output_list.append(F.linear(input_list[i], self.weight[i]))
+            # pylint: enable=not-callable
         results = torch.cat(output_list, dim=0)
         return results

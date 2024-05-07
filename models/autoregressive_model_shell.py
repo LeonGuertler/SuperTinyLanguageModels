@@ -3,14 +3,17 @@ The Model Shell holds the tokenizer, core-model and model head.
 """
 
 import torch
-import torch.nn as nn
+from torch import nn
 
-from models.components.LMHeads import NextTokenHead
+from models.components.lm_heads import NextTokenHead
 from models.components.tokenizers import build_tokenizer
 from models.utils import print_model_stats
+from models.weight_initialization import build_weight_init
 
 
 class AutoregressiveModelShell(nn.Module):
+    """Code that wraps the model, embedder, and head together."""
+
     def __init__(
         self,
         cfg,
@@ -49,6 +52,18 @@ class AutoregressiveModelShell(nn.Module):
         # report number of parameters
         print_model_stats(self)
 
+        # weight init
+        self.weight_init_func = build_weight_init(
+            weight_init_type=self.cfg["model_shell"]["weight_init"],
+        )
+        self.init_weights()
+
+    def init_weights(self):
+        """
+        Initialize the weights of the model
+        """
+        self.apply(self.weight_init_func)
+
     def forward(self, token_ids):
         """
         The default forward pass is used for training and accepts the
@@ -56,12 +71,13 @@ class AutoregressiveModelShell(nn.Module):
         last token is passed into the NextTokenHead.
         """
 
-        b, s = token_ids.size()
+        _, s = token_ids.size()
 
         # check that the sequence length is not longer than the context window
-        assert (
-            s <= self.cfg["model_shell"]["context_window"]
-        ), f"Cannot forward sequence of length {s}, block size is only {self.cfg['model_shell']['context_window']}"
+        assert s <= self.cfg["model_shell"]["context_window"], (
+            f"Cannot forward sequence of length {s}, "
+            f"block size is only {self.cfg['model_shell']['context_window']}"
+        )
 
         # embed token_ids
         x = self.token_embedder(token_ids)
@@ -78,7 +94,7 @@ class AutoregressiveModelShell(nn.Module):
 
         return logits, loss
 
-    def inference(self, text_string, output_tokens):
+    def inference(self, sequence):
         """
         Similar to the forward pass, but takes in a string
         (or batch of strings) and only return the logits
@@ -88,25 +104,25 @@ class AutoregressiveModelShell(nn.Module):
         Returns:
             logits for the next token
         """
+        if isinstance(sequence, str):
+            sequence = [sequence]
 
-        # tokenize string
-        token_ids = self.tokenizer.encode(text_string)
+        token_ids = self.tokenizer.encode_batch(sequence)
 
-        # add the output tokens
-        token_ids += output_tokens
+        # pad token_ids and format as tensor
+        tokens, _ = self.tokenizer.pad_batch(token_ids)
+        # ignore mask for now...
 
-        # convert to tensor
-        token_ids = torch.tensor(token_ids).unsqueeze(0).to("cuda")
-
-        b, s = token_ids.size()
+        _, s = tokens.size()
 
         # check that the sequence length is not longer than the context window
-        assert (
-            s <= self.cfg["model_shell"]["context_window"]
-        ), f"Cannot forward sequence of length {s}, block size is only {self.cfg['model_shell']['context_window']}"
+        assert s <= self.cfg["model_shell"]["context_window"], (
+            f"Cannot forward sequence of length {s}, "
+            f"block size is only {self.cfg['model_shell']['context_window']}"
+        )
 
         # embed token_ids
-        x = self.token_embedder(token_ids)
+        x = self.token_embedder(tokens)
 
         # forward through the core model
         x = self.core_model(x)

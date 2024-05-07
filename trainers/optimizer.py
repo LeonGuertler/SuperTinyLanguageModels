@@ -2,8 +2,9 @@
 A collection of optimizers used for training.
 """
 
-import torch
 import inspect
+
+import torch
 
 
 # pylint: disable=invalid-name

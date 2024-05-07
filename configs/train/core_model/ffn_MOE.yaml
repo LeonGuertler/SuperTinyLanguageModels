@@ -1,9 +1,0 @@
-core_model_type: "ffn_MOE"
-hidden_dim: 512
-num_experts: 8
-top_k: 2
-depth: 8
-num_heads: 8
-ffn_dim: 2048
-ffn_activation: "gelu"
-bias: False

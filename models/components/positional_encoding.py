@@ -19,9 +19,14 @@ class LearnedPosEncoding(nn.Module):
         """
         Forward pass∏
         """
+        # check device
+
         if len(x.shape) >= 2:
-            return self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(
-                0
-            )  # .to(x.device)
+            return (
+                self.pe(torch.arange(x.size(1), device=x.device))
+                .unsqueeze(0)
+                .to(x.device)
+            )
+
         else:
             return self.pe(torch.arange(x.size(1), device=x.device))

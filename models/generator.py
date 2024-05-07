@@ -23,7 +23,7 @@ class StandardGenerator(nn.Module):
             input_text,
             self.generate_config["max_new_tokens"],
             self.generate_config["temperature"],
-            self.generate_config["top_k"]
+            self.generate_config["top_k"],
         )
 
     @torch.no_grad()
@@ -33,11 +33,14 @@ class StandardGenerator(nn.Module):
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
         Most likely you'll want to make sure to be in model.eval() mode of operation for this.
         """
-        input_string = input_text
-        output_tokens = []
+        idx = self.model.tokenizer.encode_text(input_text)
+        # push to device
+        idx = torch.tensor(idx).unsqueeze(0).to(torch.device("cuda"))
+        # input_string = input_text
+        # output_tokens = []
         for _ in range(max_new_tokens):
             # forward the model to get the logits for the index in the sequence
-            logits = self.model.inference(input_string, output_tokens)
+            logits = self.model.inference(idx)
             # pluck the logits at the final step and scale by desired temperature
             logits = logits / temperature
             # optionally crop the logits to only the top k options
@@ -50,11 +53,13 @@ class StandardGenerator(nn.Module):
             idx_next = torch.multinomial(probs, num_samples=1)
             if idx_next == self.model.tokenizer.eot_token:
                 break
-            #new_char = self.model.tokenizer.decode([idx_next.item()])
-            output_tokens.append(idx_next.item())
-            #input_string += new_char
-        return self.model.tokenizer.decode(output_tokens)
-        #return input_string[len(input_text):]
+            # new_char = self.model.tokenizer.decode([idx_next.item()])
+            idx = torch.cat((idx, idx_next), dim=1)
+            # output_tokens.append(idx_next.item())
+            # input_string += new_char
+        return self.tokenizer.decode_tokens(idx[0].tolist())
+        # return self.model.tokenizer.decode(output_tokens)
+        # return input_string[len(input_text):]
 
     def forward(self, x):
         """Call the underlying model"""

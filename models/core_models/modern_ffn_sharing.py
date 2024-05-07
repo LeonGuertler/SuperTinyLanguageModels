@@ -4,12 +4,13 @@ Llama-3 like transformer.
 
 import torch.nn as nn
 
-from models.components.positional_encoding import LearnedPosEncoding
-
 from models.components.layers import ModernTransformerBlock
+from models.components.positional_encoding import LearnedPosEncoding
 
 
 class ModernFFNSharingTransformer(nn.Module):
+    """ModernBlock Transformer with FFN Sharing"""
+
     def __init__(self, cfg):
         """
         Initialize a Llama-3 style transformer model

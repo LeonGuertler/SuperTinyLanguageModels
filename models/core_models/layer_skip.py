@@ -1,8 +1,8 @@
 """A normal transformer but skips some layers and has early exits."""
 
-from models.core_models import generic
-
 import torch
+
+from models.core_models import generic
 
 
 class LayerSkipTransformer(generic.GenericTransformerBlock):

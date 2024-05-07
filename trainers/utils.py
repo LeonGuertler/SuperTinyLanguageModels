@@ -25,8 +25,6 @@ def create_folder_structure(path_config):
         os.makedirs(path_config["checkpoint_dir"])
 
 
-
-
 DATASET_DICT = {
     "debug": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
     "en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.en"),

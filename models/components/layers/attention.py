@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 
-class CausalSelfAttention(nn.Module):
+class SelfAttention(nn.Module):
     """
     Basic Self-Attention module.
     """
@@ -18,13 +18,15 @@ class CausalSelfAttention(nn.Module):
         bias=False,
         use_rope=False,
         max_context_window=512,
+        is_causal=True,
+        group_size=1,
     ):
         super().__init__()
         assert hidden_dim % num_heads == 0
         # key, query, value projections for all heads, but in a batch
         self.c_attn = nn.Linear(
             hidden_dim,
-            3 * hidden_dim,
+            hidden_dim + 2 * hidden_dim // group_size,
             bias=bias,
         )
 
@@ -41,11 +43,13 @@ class CausalSelfAttention(nn.Module):
         self.hidden_dim = hidden_dim
         self.num_heads = num_heads
         self.use_rope = use_rope
+        self.is_causal = is_causal
         if self.use_rope:
             assert max_context_window % 2 == 0
             self.freqs_cis = compute_freqs_cis(
                 seq_len=max_context_window, head_dim=hidden_dim // num_heads
-            ).to(torch.device("cuda"))
+            )
+        self.group_size = group_size
 
     def forward(self, x, attention_mask=None):
         """
@@ -53,12 +57,15 @@ class CausalSelfAttention(nn.Module):
         """
         assert attention_mask is None, "Not implemented yet"
         B, S, H = x.size()  # batch, sequence, hidden
+        num_grouped_heads = self.num_heads // self.group_size
+        group_hidden_dim = H // self.group_size
 
-        # calculate query, key, values for all heads in batch and move head forward to be the batch dim
-        q, k, v = self.c_attn(x).split(self.hidden_dim, dim=2)
-        k = k.view(B, S, self.num_heads, H // self.num_heads)  # (B, T, nh, hs)
+        # calculate query, key, values for all heads in batch
+        # move head forward to be the batch dim
+        q, k, v = self.c_attn(x).split([H, group_hidden_dim, group_hidden_dim], dim=-1)
+        k = k.view(B, S, num_grouped_heads, H // self.num_heads)  # (B, T, nh, hs)
         q = q.view(B, S, self.num_heads, H // self.num_heads)  # (B, T, nh, hs)
-        v = v.view(B, S, self.num_heads, H // self.num_heads).transpose(
+        v = v.view(B, S, num_grouped_heads, H // self.num_heads).transpose(
             1, 2
         )  # (B, nh, T, hs)
 
@@ -66,6 +73,10 @@ class CausalSelfAttention(nn.Module):
             q, k = apply_rotary_emb(q, k, freqs_cis=self.freqs_cis[:S])
         q = q.transpose(1, 2)  # (B, nh, T, hs)
         k = k.transpose(1, 2)  # (B, nh, T, hs)
+
+        # reshape to have same dim as q
+        k = k.repeat_interleave(self.group_size, dim=1)
+        v = v.repeat_interleave(self.group_size, dim=1)
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         # flash attention
@@ -76,7 +87,7 @@ class CausalSelfAttention(nn.Module):
             value=v,
             attn_mask=None,
             dropout_p=self.dropout_layer.p if self.training else 0,
-            is_causal=True,
+            is_causal=self.is_causal,
         )
         # pylint: enable=not-callable
         y = (
@@ -129,7 +140,7 @@ def build_attention(
     """
     Build an attention layer
     """
-    return CausalSelfAttention(
+    return SelfAttention(
         hidden_dim=hidden_dim,
         num_heads=num_heads,
         use_rope=use_rope,

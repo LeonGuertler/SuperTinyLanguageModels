@@ -1,17 +1,19 @@
 """Various Scheduler"""
 
 import math
+
 import torch.nn as nn
 
+
 class LRScheduler:
+    """Constant LR scheduler"""
 
     def __init__(self, lr):
         self.lr = lr
 
-    def get_lr(self, iter_num):
+    def get_lr(self, _):
         """Return Constant LR"""
         return self.lr
-
 
     def step(self, optimizer, iter_num):
         """Step the scheduler"""
@@ -19,10 +21,18 @@ class LRScheduler:
         self.apply_lr(optimizer, lr)
         return lr
 
+    def apply_lr(self, optimizer, lr):
+        """Apply the learning rate to the optimizer"""
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = lr
+
+
 class CosineLRScheduler(LRScheduler):
     """Basic Cosine LR scheduler with warmup and decay."""
 
     def __init__(self, warmup_iters, decay_iters, lr, min_lr):
+        """Initialize the scheduler"""
+        super().__init__(lr)
         self.warmup_iters = warmup_iters
         self.decay_iters = decay_iters
         self.lr = lr
@@ -36,46 +46,47 @@ class CosineLRScheduler(LRScheduler):
             1 + math.cos((iter_num - self.warmup_iters) / self.decay_iters * math.pi)
         )
 
-    def apply_lr(self, optimizer, lr):
-        """Apply the learning rate to the optimizer"""
-        for param_group in optimizer.param_groups:
-            param_group["lr"] = lr
-
 
 class DropoutScheduler:
-    """Dropout Scheduler"""
+    """Constant Dropout Scheduler"""
 
     def __init__(self, dropout_p=0.1):
         self.dropout_p = dropout_p
 
-    def get_dropout(self, iter):
+    def get_dropout(self, _):
         """Return Constant Dropout"""
         return self.dropout_p
 
     def set_dropout(self, model, dropout_p):
+        """Set the dropout probability for the model"""
         for module in model.modules():
             if isinstance(module, nn.Dropout):
                 module.p = dropout_p
 
-    def step(self, model, iter):
-        dropout_p = self.get_dropout(iter)
+    def step(self, model, iter_num):
+        """Step the scheduler"""
+        dropout_p = self.get_dropout(iter_num)
         self.set_dropout(model, dropout_p)
         return dropout_p
+
 
 class LinearDropoutScheduler(DropoutScheduler):
     """Dropout Scheduler"""
 
     def __init__(self, start_iter, end_iter, start_dropout_p, end_dropout_p):
+        """Initialize the dropout schedule"""
+        super().__init__(start_dropout_p)
         self.start_iter = start_iter
         self.end_iter = end_iter
         self.start_dropout_p = start_dropout_p
         self.end_dropout_p = end_dropout_p
 
-    def get_dropout(self, iter):
+    def get_dropout(self, iter_num):
         """Return Constant Dropout"""
-        if iter < self.start_iter:
+        if iter_num < self.start_iter:
             return self.start_dropout_p
-        if iter >= self.end_iter:
+        if iter_num >= self.end_iter:
             return self.end_dropout_p
-        return self.start_dropout_p + (iter - self.start_iter) * (self.end_dropout_p - self.start_dropout_p) / (self.end_iter - self.start_iter)
-
+        return self.start_dropout_p + (iter_num - self.start_iter) * (
+            self.end_dropout_p - self.start_dropout_p
+        ) / (self.end_iter - self.start_iter)
