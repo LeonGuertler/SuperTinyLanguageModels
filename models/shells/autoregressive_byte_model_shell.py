@@ -14,22 +14,6 @@ class AutoregressiveByteModelShell(Shell):
     A model shell for byte-level learning.
     """
 
-    def __init__(
-        self,
-        processor,
-        token_embedder,
-        lm_head,
-        core_model,
-        weight_init_func=None,
-    ):
-        super().__init__(
-            tokenizer=processor,
-            lm_head=lm_head,
-            token_embedder=token_embedder,
-            core_model=core_model,
-            weight_init_func=weight_init_func,
-        )
-
     def embed(self, token_ids):
         """
         Embed the token ids.
@@ -49,22 +33,19 @@ class AutoregressiveByteModelShell(Shell):
         if isinstance(sequence, str):
             sequence = [sequence]
 
-        byte_ids = self.tokenizer.byte_tokenizer.encode_batch(sequence)
-
-        token_ids = self.tokenizer.token_to_byte_ids(byte_ids)
-
-        tokens, _ = self.tokenizer.pooling_tokenizer.encode_batch(token_ids)
+        tokens = self.tokenizer.pooling_tokenizer.encode_batch(sequence)
+        tokens = torch.tensor(tokens)
 
         _, s = tokens.size()
 
         # check that the sequence length is not longer than the context window
-        assert s <= self.cfg["model_shell"]["context_window"], (
+        assert s <= self.context_window, (
             f"Cannot forward sequence of length {s},"
-            f" block size is only {self.cfg['model_shell']['context_window']}"
+            f"max window size is only {self.context_window}"
         )
 
         # process to sub-word tokens
-        x = self.processor(tokens)
+        x = self.tokenizer(tokens)
 
         # forward through the core model
         x_return = self.core_model(x)
@@ -148,7 +129,6 @@ class ByteLevelProcessor(nn.Module):
                 12,
                 self.embedding_dim,
             ),
-            device=torch.device("cuda"),  # self.device
         )
 
         for i, token_batch in enumerate(batch_of_pooled_token_ids):
@@ -156,11 +136,11 @@ class ByteLevelProcessor(nn.Module):
 
             for j, token_id in enumerate(token_batch):
                 # decode into string
-                token_string = self.pooling_tokenizer.decode([token_id])
+                token_string = self.pooling_tokenizer.decode([token_id.item()])
                 # encode into character ids
                 byte_ids = self.byte_tokenizer.encode(token_string)
                 # convert to tensor
-                byte_ids = torch.tensor(byte_ids).to("cuda")
+                byte_ids = torch.tensor(byte_ids)
                 num_ids = len(byte_ids)
                 if num_ids > 12:
                     byte_ids = byte_ids[:12]

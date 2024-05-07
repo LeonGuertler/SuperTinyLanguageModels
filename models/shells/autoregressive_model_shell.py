@@ -8,17 +8,6 @@ from models.shells.shell import Shell
 class AutoregressiveModelShell(Shell):
     """Code that wraps the model, embedder, and head together."""
 
-    def __init__(
-        self, tokenizer, token_embedder, lm_head, core_model, weight_init_func=None
-    ):
-        super().__init__(
-            tokenizer=tokenizer,
-            token_embedder=token_embedder,
-            lm_head=lm_head,
-            core_model=core_model,
-            weight_init_func=weight_init_func,
-        )
-
     def embed(self, token_ids):
         """
         Embed the token ids.
@@ -47,9 +36,9 @@ class AutoregressiveModelShell(Shell):
         _, s = tokens.size()
 
         # check that the sequence length is not longer than the context window
-        assert s <= self.cfg["model_shell"]["context_window"], (
+        assert s <= self.context_window, (
             f"Cannot forward sequence of length {s}, "
-            f"block size is only {self.cfg['model_shell']['context_window']}"
+            f"block size is only {self.context_window}"
         )
 
         # embed token_ids

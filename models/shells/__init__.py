@@ -17,7 +17,7 @@ def build_shell(cfg, core_model):
     """
 
     lm_head = build_lm_head(
-        head_type=cfg["model_shell"]["lm_head"],
+        head_type=cfg["model_shell"]["head_type"],
         hidden_dim=cfg["core_model"]["hidden_dim"],
         vocab_size=cfg["model_shell"]["vocab_size"],
     )
@@ -26,7 +26,7 @@ def build_shell(cfg, core_model):
         embedding_dim=cfg["model_shell"]["embedding_dim"],
     )
 
-    if cfg["shell"]["type"] == "autoregressive":
+    if cfg["model_shell"]["shell_type"] == "autoregressive":
         tokenizer = build_tokenizer(
             tokenizer_type=cfg["model_shell"]["tokenizer"],
             vocab_size=cfg["model_shell"]["vocab_size"],
@@ -38,10 +38,10 @@ def build_shell(cfg, core_model):
             lm_head=lm_head,
             core_model=core_model,
         )
-    elif cfg["shell"]["type"] == "autoregressive_byte":
+    elif cfg["model_shell"]["shell_type"] == "autoregressive_byte":
         pooling_tokenizer = build_tokenizer(
             tokenizer_type=cfg["model_shell"]["pooling_tokenizer"],
-            vocab_size=cfg["model_shell"]["vocab_size"],
+            vocab_size=cfg["model_shell"]["pooling_vocab_size"],
             dataset_name=cfg["model_shell"]["tokenizer_dataset_name"],
         )
         byte_tokenizer = build_tokenizer(
@@ -57,7 +57,7 @@ def build_shell(cfg, core_model):
             token_embedder=token_embedder,
         )
         return AutoregressiveByteModelShell(
-            processor=processor,
+            tokenizer=processor,
             token_embedder=token_embedder,
             lm_head=lm_head,
             core_model=core_model,

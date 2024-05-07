@@ -11,7 +11,13 @@ class Shell(nn.Module):
     """
 
     def __init__(
-        self, tokenizer, token_embedder, lm_head, core_model, weight_init_func=None
+        self,
+        tokenizer,
+        token_embedder,
+        lm_head,
+        core_model,
+        weight_init_func=None,
+        context_window=1024,
     ):
         super().__init__()
 
@@ -28,7 +34,10 @@ class Shell(nn.Module):
 
         # weight init
         self.weight_init_func = weight_init_func
-        self._init_weights()
+        if self.weight_init_func is not None:
+            self._init_weights()
+
+        self.context_window = context_window
 
     def _tie_weights(self):
         """Tie the weights of the model embeddings and the final logit layer.
@@ -60,9 +69,9 @@ class Shell(nn.Module):
         _, s = token_ids.size()
 
         # check that the sequence length is not longer than the context window
-        assert s <= self.cfg["model_shell"]["context_window"], (
+        assert s <= self.context_window, (
             f"Cannot forward sequence of length {s}, "
-            f"block size is only {self.cfg['model_shell']['context_window']}"
+            f"max window size is only {self.context_window}"
         )
 
         # embed token_ids
