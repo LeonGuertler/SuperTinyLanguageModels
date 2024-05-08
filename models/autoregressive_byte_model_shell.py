@@ -104,7 +104,7 @@ class AutoregressiveByteModelShell(nn.Module):
         #x = self.token_embedder(token_ids)
 
         # process to sub-word tokens
-        x, x_emb = self.byte_token_processor(token_ids)
+        x = self.byte_token_processor(token_ids)
         #print("second", x.size())
 
         # forward through the core model
@@ -112,7 +112,7 @@ class AutoregressiveByteModelShell(nn.Module):
         #print("second", x_return.size())
 
         # pass into the byte level decoder 
-        x_return = self.byte_decoder(x_emb, x_return)
+        x_return = self.byte_decoder(x_return)
 
         #input(x_return.size())
 
@@ -327,9 +327,9 @@ class ByteLevelProcessor(nn.Module):
         x = x.view(B*S, S_char)
 
         # embed 
-        x_emb = self.token_embedder(x)
+        x = self.token_embedder(x)
         #print(x_emb.size())
-        x = self.transformer[0](x_emb)
+        x = self.transformer[0](x)
         x = self.up_proj(x)
         x = self.transformer[1](x)
         #print(x.size())
@@ -338,4 +338,4 @@ class ByteLevelProcessor(nn.Module):
         #print(B, S)
         x = x.view(B, S, -1)
         #input(x.size())
-        return x, x_emb
+        return x
