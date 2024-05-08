@@ -186,10 +186,10 @@ class ByteLevelDecoder(nn.Module):
         )
         self.lm_head = lm_head
 
-        # learned new 12 tokens
+        """# learned new 12 tokens
         self.new_tokens = nn.Parameter(
             torch.randn(12, byte_hidden_dim)
-        )
+        )"""
 
         """self.lm_head = nn.Linear(
             in_features=byte_hidden_dim,
@@ -206,12 +206,10 @@ class ByteLevelDecoder(nn.Module):
         x = self.projection(x)
         x = x.view(x.size(0), x.size(1), self.num_projection_heads, self.byte_hidden_dim)
 
-        # add 12 new tokens intialized as learned
-        x = torch.cat([x, self.new_tokens.unsqueeze(0).expand(x.size(0), -1, -1).unsqueeze(1)], dim=1)
 
         # pass through model and deocde 
         B, S, _, _ = x.size()
-        x = x.view(B*S, self.num_projection_heads+12, self.byte_hidden_dim)
+        x = x.view(B*S, self.num_projection_heads, self.byte_hidden_dim)
 
         # positional encoding
         x = x + self.pos_encoder(x)
@@ -222,7 +220,6 @@ class ByteLevelDecoder(nn.Module):
             x = block(x)
 
         # pass final 12 byte tokens through lm head
-        x = x[:, -12:, :]
         x = self.lm_head(x)
 
         # reshape and return
