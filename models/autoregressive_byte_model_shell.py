@@ -188,16 +188,6 @@ class ByteLevelDecoder(nn.Module):
         )
         self.lm_head = lm_head
 
-        """# learned new 12 tokens
-        self.new_tokens = nn.Parameter(
-            torch.randn(12, byte_hidden_dim)
-        )"""
-
-        """self.lm_head = nn.Linear(
-            in_features=byte_hidden_dim,
-            out_features=byte_vocab_size,
-            bias=False
-        )"""
 
     def forward(self, x):
         """
@@ -229,46 +219,6 @@ class ByteLevelDecoder(nn.Module):
 
         return x
 
-
-
-
-    """def forward(self, x_raw_emb, x):
-        #x_raw_emb (the original byte embeddings): (B, S, 12, H_b)
-        #x (the latent embeddings): (B, S, H)
-        # project the latent embeddings
-        x = self.projection(x)
-        x = x.view(x.size(0), x.size(1), self.num_projection_heads, self.byte_hidden_dim)
-        #print('important shapes', x.size())
-        #print('important shapes', x_raw_emb.size())
-
-        # view x_raw_emb
-        x_raw_emb = x_raw_emb.view(x.size(0), x.size(1), 12, self.byte_hidden_dim)
-        # concat x with x_byte_emb
-        #print('important shapes', x.size())
-        #print('important shapes', x_raw_emb.size())
-        
-        x = torch.cat([x, x_raw_emb], dim=-2)
-
-        # flatten across B and S and pass through transformer
-        B, S, _, _ = x.size()
-        x = x.view(B*S, self.num_projection_heads+12, self.byte_hidden_dim)
-
-        # positional encoding
-        x = x + self.pos_encoder(x)
-
-        # pass through transformer
-        x = self.transformer.drop(x)
-        for block in self.transformer.h:
-            x = block(x)
-
-        # pass final 12 byte tokens through lm head
-        x = x[:, -12:, :]
-        x = self.lm_head(x)
-
-        # reshape and return
-        x = x.view(B, S, 12, self.byte_vocab_size)
-
-        return x"""
 
 
 
