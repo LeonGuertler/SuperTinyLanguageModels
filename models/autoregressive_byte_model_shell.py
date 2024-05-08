@@ -167,6 +167,7 @@ class ByteLevelDecoder(nn.Module):
                             ffn_activation="gelu",
                             bias=False,
                             num_heads=8,
+                            dropout=0.1
                         ),
                         BidirectionalTransformerBlock(
                             hidden_dim=byte_hidden_dim,
@@ -174,6 +175,7 @@ class ByteLevelDecoder(nn.Module):
                             ffn_activation="gelu",
                             bias=False,
                             num_heads=8,
+                            dropout=0.1
                         ),
                     ]
                 ),
