@@ -83,7 +83,7 @@ class BaseTrainer:
         Preprocess the data
         """
         print("Preprocessing the training data")
-        self.dataloader.prepare_data(tokenizer=self.model.tokenizer)
+        self.dataloader.prepare_data()
 
     @torch.no_grad()
     def estimate_performance(self, model, tokenizer, eval_iters=1000):

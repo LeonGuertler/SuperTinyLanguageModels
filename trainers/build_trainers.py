@@ -8,7 +8,6 @@ from trainers.base_profiler import BaseProfiler
 
 # from trainers.standard_trainer import BaseTrainer
 from trainers.base_trainer import BaseTrainer
-from trainers.byte_trainer import ByteTrainer
 from trainers.dataloader import (
     BytePoolingDataloader,
     Seq2SeqDataloader,
@@ -85,13 +84,14 @@ DATALODER_DICT = {
 }
 
 
-def build_dataloader(cfg):
+def build_dataloader(cfg, tokenizer):
     """
     Given the config, build the dataloader
     """
     return DATALODER_DICT[cfg["trainer"]["dataloader"]["name"]](
         cfg=cfg,
         data_dir=cfg["general"]["paths"]["data_path"],
+        tokenizer=tokenizer,
     )
 
 
@@ -107,7 +107,6 @@ def build_loss_fn(loss_fn_name):
 
 TRAINER_DICT = {
     "base_trainer": BaseTrainer,
-    "byte_trainer": ByteTrainer,
     "base_profiler": BaseProfiler,
 }
 
@@ -138,7 +137,7 @@ def build_trainer(cfg):
     dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg["trainer"])
 
     # build dataloder
-    dataloader = build_dataloader(cfg=cfg)
+    dataloader = build_dataloader(cfg=cfg, tokenizer=model.tokenizer)
 
     # build loss function
     loss_fn = build_loss_fn(loss_fn_name=cfg["trainer"]["loss_fn"]["name"])
