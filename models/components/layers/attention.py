@@ -1,62 +1,63 @@
 """
 A collection of attention layers.
 """
-
-import torch
-import torch.nn as nn
+import torch 
 
 
-class SelfAttention(nn.Module):
+class Attention(torch.nn.Module):
     """
-    Basic Self-Attention module.
+    Basic but flexible attention module.
     """
-
     def __init__(
         self,
         hidden_dim,
         num_heads,
-        bias=False,
-        use_rope=False,
-        max_context_window=512,
-        is_causal=True,
-        group_size=1,
+        bias,
+        use_rope,
+        context_window,
+        is_causal,
+        group_size,
     ):
         super().__init__()
-        assert hidden_dim % num_heads == 0
-        # key, query, value projections for all heads, but in a batch
-        self.c_attn = nn.Linear(
-            hidden_dim,
+        assert hidden_dim % num_heads == 0, "Hidden dim must be divisible by num heads"
+
+        # key, query, value projections for all heads
+        self.c_attn = torch.nn.Linear(
+            hidden_dim, 
             hidden_dim + 2 * hidden_dim // group_size,
-            bias=bias,
+            bias=bias
         )
 
         # output projection
-        self.c_proj = nn.Linear(
+        self.c_proj = torch.nn.Linear(
+            hidden_dim, 
             hidden_dim,
-            hidden_dim,
-            bias=bias,
+            bias=bias
         )
 
-        # regularization
-        self.dropout_layer = nn.Dropout()
+        # attention dropout
+        self.attn_dropout = torch.nn.Dropout()
 
-        self.hidden_dim = hidden_dim
         self.num_heads = num_heads
-        self.use_rope = use_rope
-        self.is_causal = is_causal
-        if self.use_rope:
-            assert max_context_window % 2 == 0
-            self.freqs_cis = compute_freqs_cis(
-                seq_len=max_context_window, head_dim=hidden_dim // num_heads
-            )
         self.group_size = group_size
+        self.is_causal = is_causal
+
+        # rope
+        self.use_rope = use_rope
+        if self.use_rope:
+            assert context_window % 2 == 0
+            self.freqs_cis = compute_freqs_cis(
+                seq_len=context_window,
+                head_dim=hidden_dim // num_heads
+            )
+
 
     def forward(self, x, attention_mask=None):
         """
         Forward pass
         """
-        assert attention_mask is None, "Not implemented yet"
-        B, S, H = x.size()  # batch, sequence, hidden
+        assert attention_mask is  None, "Not implemented yet"
+        B, S, H = x.size()
         num_grouped_heads = self.num_heads // self.group_size
         group_hidden_dim = H // self.group_size
 
@@ -131,18 +132,26 @@ def compute_freqs_cis(seq_len, head_dim):
     return freqs_cis
 
 
-def build_attention(
-    use_rope: bool,
-    hidden_dim: int,
-    num_heads: int,
-    **kwargs,
-):
+
+ATTENTION_DICT = {
+    "generic": lambda hidden_dim, context_window, attn_cfg: Attention(
+        hidden_dim=hidden_dim,
+        num_heads=attn_cfg["num_heads"],
+        bias=attn_cfg["bias"],
+        use_rope=attn_cfg["use_rope"],
+        context_window=context_window,
+        is_causal=attn_cfg["is_causal"],
+        group_size=attn_cfg["group_size"],
+    )
+}
+
+def build_attention(hidden_dim, context_window, attn_cfg):
     """
     Build an attention layer
     """
-    return SelfAttention(
+    return ATTENTION_DICT[attn_cfg["attn_type"]](
         hidden_dim=hidden_dim,
-        num_heads=num_heads,
-        use_rope=use_rope,
-        **kwargs,
+        context_window=context_window,
+        attn_cfg=attn_cfg,
     )
+
