@@ -3,8 +3,7 @@ Builds the individual components of the trainer,
 and the trainer itself.
 """
 
-from models.build_models import build_model
-from trainers.base_profiler import BaseProfiler
+from models.build_model import build_model
 
 # from trainers.standard_trainer import BaseTrainer
 from trainers.base_trainer import BaseTrainer
@@ -107,7 +106,6 @@ def build_loss_fn(loss_fn_name):
 
 TRAINER_DICT = {
     "base_trainer": BaseTrainer,
-    "base_profiler": BaseProfiler,
 }
 
 
@@ -119,7 +117,7 @@ def build_trainer(cfg):
 
     # build model
     model = build_model(
-        cfg=cfg,
+        model_cfg=cfg,
     )
 
     # push model to device
@@ -152,6 +150,7 @@ def build_trainer(cfg):
         dropout_scheduler=dropout_scheduler,
         dataloader=dataloader,
         loss_fn=loss_fn,
+        run_profile=cfg["trainer"]["training"]["run_profile"],
     )
 
     return trainer
