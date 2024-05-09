@@ -20,6 +20,8 @@ sample_cfg = {
         "vocab_size": 512,
         "context_window": 512,
         "weight_init": "standard",
+        "head_type": "next_token",
+        "embedding_dim": 512,
     },
     "core_model": {
         "core_model_type": "modern",
@@ -69,7 +71,7 @@ def test_build_model():
     model = build_model(sample_cfg)
 
     # pass the tokens
-    _ = model(test_tokens)
+    _, _ = model(test_tokens)
 
     # pass the string
     assert model.tokenizer is not None

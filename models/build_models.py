@@ -2,14 +2,13 @@
 Contains the functions to build the actual model.
 """
 
-from models.autoregressive_byte_model_shell import AutoregressiveByteModelShell
-from models.autoregressive_model_shell import AutoregressiveModelShell
 from models.core_models import (
     GenericTransformer,
     ModernFFNSharingTransformer,
     ModernTransformer,
     StandardTransformer,
 )
+from models.shells import build_shell
 
 
 def build_model(cfg=None, checkpoint=None):
@@ -60,28 +59,6 @@ def build_core_model(cfg):
     return CORE_MODEL_DICT[cfg["core_model"]["core_model_type"]](cfg=cfg)
 
 
-MODEL_SHELL_DICT = {
-    "autoregressive": AutoregressiveModelShell,
-    "autoregressive_byte_encoding": AutoregressiveByteModelShell,
-}
-
-
-def build_shell(cfg, core_model):
-    """
-    Given the model shell config, build it.
-    Args:
-        cfg: cfg
-        tokenizer: tokenizer_instance
-        core_model: core_model_instance
-    Returns:
-        model_shell: model_shell_instance
-    """
-    return MODEL_SHELL_DICT[cfg["model_shell"]["shell_type"]](
-        cfg=cfg,
-        core_model=core_model,
-    )
-
-
 def initialize_model(cfg):
     """
     Initializes the model from the configuration
@@ -94,9 +71,6 @@ def initialize_model(cfg):
     core_model = build_core_model(cfg)
 
     # build the model shell
-    model = build_shell(
-        cfg=cfg,
-        core_model=core_model,
-    )
+    model = build_shell(cfg, core_model)
 
     return model

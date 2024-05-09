@@ -7,3 +7,4 @@ pooling_vocab_size: 512
 tokenizer_dataset_name: "simple_en_wiki"
 context_window: 512
 weight_init: gpt2
+head_type: "next_token"
