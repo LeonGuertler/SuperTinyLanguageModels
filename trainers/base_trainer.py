@@ -3,8 +3,10 @@
 import time
 
 import torch
+import torchvision.models as models
 import wandb
 from omegaconf import OmegaConf
+from torch.profiler import ProfilerActivity, profile, record_function
 
 from trainers import utils
 
@@ -25,6 +27,7 @@ class BaseTrainer:
         loss_fn,
         lr_scheduler=None,
         dropout_scheduler=None,
+        run_profile=False,
     ) -> None:
         self.model = model
         self.optimizer = optimizer
@@ -45,6 +48,8 @@ class BaseTrainer:
         self.ctx = self._setup_ctx()
         if self.use_wandb:
             self._setup_logging()
+        if run_profile:
+            self.run_profile()
 
     def _setup_logging(self):
         # set run name
@@ -133,6 +138,41 @@ class BaseTrainer:
 
         self.optimizer.zero_grad(set_to_none=True)
         return loss
+
+    def run_profile(self):
+        """Run the profiler"""
+        with profile(
+            activities=[
+                ProfilerActivity.CPU,
+                ProfilerActivity.CUDA,
+            ],
+            record_shapes=True,
+            profile_memory=True,
+            with_stack=True,
+        ) as prof:
+            for i in range(10):
+                if i > 1:
+                    self._run_step()
+                else:
+                    with record_function("_run_step"):
+                        self._run_step()
+            # place profile in dictionary
+            backwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
+            print(backwards_prof)
+
+            for i in range(2):
+                if i > 1:
+                    self.estimate_performance(
+                        self.model, self.model.tokenizer, eval_iters=1
+                    )
+                else:
+                    with record_function("estimate_performance"):
+                        self.estimate_performance(
+                            self.model, self.model.tokenizer, eval_iters=10
+                        )
+            # place profile in dictionary
+            forwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
+            print(forwards_prof)
 
     def _save_model(self, iter_num=0):
         """
