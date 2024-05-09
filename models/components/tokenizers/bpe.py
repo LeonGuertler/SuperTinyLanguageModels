@@ -12,7 +12,7 @@ from heapq import nlargest
 from tqdm import tqdm
 
 from models.components.tokenizers import utils
-from models.components.tokenizers.tokenizer import Tokenizer
+from models.components.tokenizers.base_class import Tokenizer
 from trainers.utils import load_data
 
 

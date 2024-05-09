@@ -6,7 +6,7 @@ standardize the interface for tokenization.
 import tiktoken
 import torch
 
-from models.components.tokenizers.tokenizer import Tokenizer
+from models.components.tokenizers.base_class import Tokenizer
 
 
 class GPT2Tokenizer(Tokenizer):
