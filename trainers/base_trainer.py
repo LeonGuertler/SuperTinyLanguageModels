@@ -3,7 +3,6 @@
 import time
 
 import torch
-import torchvision.models as models
 import wandb
 from omegaconf import OmegaConf
 from torch.profiler import ProfilerActivity, profile, record_function
@@ -229,9 +228,7 @@ class BaseTrainer:
             loss = self._run_step()
             end_time = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval:
-                lossf = (
-                    loss.item() * self.gradient_accumulation_steps
-                )  # TODO double check
+                lossf = loss.item() * self.gradient_accumulation_steps
                 print(
                     f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s"
                 )
