@@ -1,21 +1,22 @@
 """
 Simple, flexible core models.
 """
-import torch 
 
-from models.components.layers.transformer_blocks import (
-    GenericTransformerBlock
-)
+import torch
+
+from models.components.layers.transformer_blocks import GenericTransformerBlock
+
 
 class GenericTransformer(torch.nn.Module):
     """
-    Generic Transformer Class intended to be used for as 
+    Generic Transformer Class intended to be used for as
     broad a range of transformer models as possible.
     """
+
     def __init__(self, model_cfg):
         super().__init__()
 
-        # build the transformer 
+        # build the transformer
         self.transformer = torch.nn.ModuleDict(
             dict(
                 drop=torch.nn.Dropout(),
@@ -30,7 +31,7 @@ class GenericTransformer(torch.nn.Module):
                         )
                         for _ in range(model_cfg["num_layers"])
                     ]
-                )
+                ),
             )
         )
 
