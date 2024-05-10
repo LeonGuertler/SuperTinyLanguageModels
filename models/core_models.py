@@ -23,6 +23,7 @@ class GenericTransformer(torch.nn.Module):
                     [
                         GenericTransformerBlock(
                             hidden_dim=model_cfg["hidden_dim"],
+                            context_window=model_cfg["context_window"],
                             ffn_cfg=model_cfg["ffn"],
                             attn_cfg=model_cfg["attn"],
                             bias=model_cfg["bias"],

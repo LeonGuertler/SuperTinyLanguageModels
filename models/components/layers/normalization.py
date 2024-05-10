@@ -41,14 +41,16 @@ class RMSNorm(torch.nn.Module):
 
 
 NORMALIZATION_DICT = {
-    "rmsnorm": lambda dim, bias: RMSNorm(
+    "rms_norm": lambda dim, bias: RMSNorm(
         dim=dim
     ),
-    "layernorm": lambda dim, bias: LayerNorm(
+    "layer_norm": lambda dim, bias: LayerNorm(
         dim=dim, 
         bias=bias
     ),
+    "none": lambda dim, bias: torch.nn.Identity(),
 }
+
     
 
 def build_normalization(normalization_name, dim, bias=None):

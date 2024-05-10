@@ -87,7 +87,7 @@ class Attention(torch.nn.Module):
             key=k,
             value=v,
             attn_mask=None,
-            dropout_p=self.dropout_layer.p if self.training else 0,
+            dropout_p=self.attn_dropout.p if self.training else 0,
             is_causal=self.is_causal,
         )
         # pylint: enable=not-callable
@@ -96,7 +96,7 @@ class Attention(torch.nn.Module):
         )  # re-assemble all head outputs side by side
 
         # output projection
-        y = self.dropout_layer(self.c_proj(y))  # is this really necessary?
+        y = self.attn_dropout(self.c_proj(y))  # is this really necessary?
 
         return y
 

@@ -13,7 +13,10 @@ def get_tokenizer_path(tokenizer_type, vocab_size, dataset_name):
     """
     Get the path to the tokenizer.
     """
-    tokenizer_folder = hydra.utils.to_absolute_path("tokenizers")
+    tokenizer_folder = os.path.join(
+        "models", "components", "tokenizers", "tokenizer_models"
+    )
+    tokenizer_folder = hydra.utils.to_absolute_path(tokenizer_folder)
     tokenizer_full_path = os.path.join(
         tokenizer_folder, f"{tokenizer_type}_{dataset_name}_{vocab_size}.model"
     )

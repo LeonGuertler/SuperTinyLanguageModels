@@ -6,7 +6,7 @@ import torch
 
 from models.embedding_models import GenericEmbedder
 from models.core_models import GenericTransformer
-from models.model_heads import LMHead
+from models.model_heads import AutoregressiveLMHead
 
 from models.model_shell import ModelShell
 
@@ -72,7 +72,7 @@ def build_core_model(model_cfg):
     
 
 MODEL_HEAD_DICT = {
-    "lm_head": LMHead
+    "lm_head": AutoregressiveLMHead
 }
 
 def build_model_head(model_cfg):

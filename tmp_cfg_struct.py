@@ -24,6 +24,9 @@ model:
         group_size: int 
         bias: bool
 
+    model_head_norm: str "layer_norm"
+    lm_head_bias: bool
+
 
 
 
