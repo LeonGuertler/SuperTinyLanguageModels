@@ -1,11 +1,12 @@
 """
 Tests the different feedforward layers.
 """
-import pytest 
-import torch 
-from models.components.layers.feedforward import (
-    build_ffn
-)
+
+import pytest
+import torch
+
+from models.components.layers.feedforward import build_ffn
+
 
 def test_generic():
     """
@@ -17,13 +18,14 @@ def test_generic():
             "ffn_type": "generic",
             "ffn_dim": 128,
             "bias": False,
-            "activation": "relu"
-        }
+            "activation": "relu",
+        },
     )
     x = torch.randn(2, 16, 64)
     y = ffn(x)
 
     assert y.shape == (2, 16, 64)
+
 
 def test_swiglue():
     """
@@ -35,10 +37,9 @@ def test_swiglue():
             "ffn_type": "swiglue",
             "ffn_dim": 128,
             "bias": False,
-        }
+        },
     )
     x = torch.randn(2, 16, 64)
     y = ffn(x)
 
     assert y.shape == (2, 16, 64)
-

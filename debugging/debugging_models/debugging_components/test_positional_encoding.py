@@ -1,8 +1,9 @@
 """
 Test the positional encoding
 """
-import pytest 
-import torch 
+
+import pytest
+import torch
 
 from models.components.positional_encoding import build_positional_encodings
 
@@ -16,7 +17,7 @@ def test_learned_positional_encodings():
         model_cfg={
             "positional_encoding_type": "learned",
             "hidden_dim": 64,
-            "context_window": 16
+            "context_window": 16,
         }
     )
 

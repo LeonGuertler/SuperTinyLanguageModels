@@ -14,9 +14,7 @@ from models.components.layers.normalization import build_normalization
 def test_rms_norm():
     """Just test that it runs..."""
     normalization = build_normalization(
-        normalization_name="rms_norm",
-        dim=64,
-        bias=False
+        normalization_name="rms_norm", dim=64, bias=False
     )
     x = torch.rand(2, 10, 64)
     out = normalization(x)
@@ -27,9 +25,7 @@ def test_rms_norm():
 def test_layer_norm():
     """Just test that it runs..."""
     normalization = build_normalization(
-        normalization_name="layer_norm",
-        dim=64,
-        bias=False
+        normalization_name="layer_norm", dim=64, bias=False
     )
     x = torch.rand(2, 10, 64)
     out = normalization(x)

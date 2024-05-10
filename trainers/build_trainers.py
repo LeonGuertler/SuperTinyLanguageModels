@@ -3,7 +3,7 @@ Builds the individual components of the trainer,
 and the trainer itself.
 """
 
-from models.build_models import build_model
+from models.build_model import build_model
 from trainers.base_profiler import BaseProfiler
 
 # from trainers.standard_trainer import BaseTrainer

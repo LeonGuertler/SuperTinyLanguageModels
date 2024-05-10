@@ -1,12 +1,11 @@
 """
 Pytest for the full transformer blocks.
 """
-import pytest 
-import torch 
 
-from models.components.layers.transformer_blocks import (
-    GenericTransformerBlock
-)
+import pytest
+import torch
+
+from models.components.layers.transformer_blocks import GenericTransformerBlock
 
 
 def test_generic_transformer_block():
@@ -21,7 +20,7 @@ def test_generic_transformer_block():
             "ffn_dim": 128,
             "bias": False,
             "activation": "relu",
-            "normalization": "layer_norm"
+            "normalization": "layer_norm",
         },
         attn_cfg={
             "attn_type": "generic",
@@ -30,9 +29,9 @@ def test_generic_transformer_block():
             "use_rope": False,
             "is_causal": True,
             "group_size": 1,
-            "normalization": "rms_norm"
+            "normalization": "rms_norm",
         },
-        bias=False
+        bias=False,
     )
     x = torch.randn(2, 16, 64)
     y = block(x)

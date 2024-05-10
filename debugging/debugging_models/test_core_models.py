@@ -1,12 +1,12 @@
 """
 Pytest for core models.
 """
-import pytest 
-import torch 
 
-from models.build_model import (
-    build_core_model
-)
+import pytest
+import torch
+
+from models.build_model import build_core_model
+
 
 def test_generic_core_model():
     """
@@ -23,7 +23,7 @@ def test_generic_core_model():
                 "ffn_dim": 128,
                 "activation": "relu",
                 "normalization": "layer_norm",
-                "bias": True
+                "bias": True,
             },
             "attn": {
                 "attn_type": "generic",
