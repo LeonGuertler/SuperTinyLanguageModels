@@ -6,11 +6,11 @@ the tokenizer(s), token embeddings and positional encodings
 import torch 
 
 from models.components.tokenizers import build_tokenizer
-from models.components.positional_encodings import build_positional_encodings
+from models.components.positional_encoding import build_positional_encodings
 
 
 
-class GenericEmbedder(torch.nn.module):
+class GenericEmbedder(torch.nn.Module):
     """
     A simple and flexible embedding model
     """
@@ -50,7 +50,10 @@ class GenericEmbedder(torch.nn.module):
         return x
     
     def tokenize_input(self, input_string):
-        # TODO 
+        """
+        Tokenize an input string.
+        """
+        return self.tokenizer.encode(input_string)
     
     def inference(self, input_string):
         """
@@ -61,5 +64,5 @@ class GenericEmbedder(torch.nn.module):
         Returns:
             embeddings: torch.tensor(B, S, H)
         """
-        token_ids = self.tokenizer.encode(input_string)
+        token_ids = self.tokenize_input(input_string)
         return self.forward(token_ids)
