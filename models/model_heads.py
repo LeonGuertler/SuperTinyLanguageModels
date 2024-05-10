@@ -24,3 +24,20 @@ class AutoregressiveLMHead(torch.nn.Module):
             out_features=model_cfg["vocab_size"],
             bias=model_cfg["lm_head_bias"],
         )
+
+    def forward(self, x):
+        """
+        Pass the input through the model.
+        Args:
+            x: torch.tensor(B, S, H)
+        Returns:
+            x: torch.tensor(B, S, V)
+        """
+
+        # apply layer norm
+        x = self.layer_norm(x)
+
+        # pass through the linear layer
+        x = self.lm_head(x)
+
+        return x
