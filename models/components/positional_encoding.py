@@ -12,7 +12,9 @@ class LearnedPosEncoding(torch.nn.Module):
 
     def __init__(self, hidden_dim, context_window):
         super().__init__()
-        self.pe = torch.nn.Embedding(num_embeddings=context_window, embedding_dim=hidden_dim)
+        self.pe = torch.nn.Embedding(
+            num_embeddings=context_window, embedding_dim=hidden_dim
+        )
 
     def forward(self, x):
         """
@@ -38,6 +40,7 @@ class IdentityEncoding(torch.nn.Module):
     """
     In case RoPE is used, there is no need for an initial positional encoding.
     """
+
     def __init__(self):
         super().__init__()
 
@@ -48,14 +51,12 @@ class IdentityEncoding(torch.nn.Module):
         return x
 
 
-
 POS_ENCODING_DICT = {
     "learned": lambda dim, size: LearnedPosEncoding(
-        hidden_dim=dim, 
-        context_window=size
+        hidden_dim=dim, context_window=size
     ),
     "rope": lambda dim, size: IdentityEncoding(),
-    "none": lambda dim, size: IdentityEncoding()
+    "none": lambda dim, size: IdentityEncoding(),
 }
 
 
@@ -67,8 +68,6 @@ def build_positional_encodings(model_cfg):
     Returns:
         positional_encodings: positional_encodings_instance
     """
-    return POS_ENCODING_DICT[
-        model_cfg["positional_encoding_type"]](
-            dim=model_cfg["hidden_dim"],
-            size=model_cfg["context_window"]
-        )
+    return POS_ENCODING_DICT[model_cfg["positional_encoding_type"]](
+        dim=model_cfg["hidden_dim"], size=model_cfg["context_window"]
+    )

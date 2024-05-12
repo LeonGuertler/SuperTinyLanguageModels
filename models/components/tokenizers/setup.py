@@ -2,6 +2,7 @@
 A script for building the various tokenizers.
 """
 
+from models.components.tokenizers.base_class import Tokenizer
 from models.components.tokenizers.bpe import BPETokenizer
 from models.components.tokenizers.gpt2 import GPT2Tokenizer
 
@@ -13,7 +14,7 @@ TOKENIZER_DICT = {
 }
 
 
-def build_tokenizer(tokenizer_type, vocab_size, dataset_name):
+def build_tokenizer(tokenizer_type, vocab_size, dataset_name) -> Tokenizer:
     """
     Build the tokenizer.
     """

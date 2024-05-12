@@ -3,8 +3,6 @@ Contains the build functions for the embedder,
 core model, lm head and the model shell.
 """
 
-import torch
-
 from models.core_models import GenericTransformer
 from models.embedding_models import GenericEmbedder
 from models.model_heads import AutoregressiveLMHead

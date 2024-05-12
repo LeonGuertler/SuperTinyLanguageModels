@@ -37,6 +37,8 @@ class GenericEmbedder(torch.nn.Module):
         """
         Takes the token_ids as input
         and returns the embeddings.
+
+        To obtain the token ids, use `.tokenize_input()`
         Args:
             token_ids: torch.tensor(B, S)
         Returns:
@@ -46,7 +48,7 @@ class GenericEmbedder(torch.nn.Module):
         # get the token embeddings
         x = self.token_embedder(token_ids)
 
-        # apply the positional encoding
+        # apply the positional encoding, if any
         x = self.positional_encodings(x)
 
         return x

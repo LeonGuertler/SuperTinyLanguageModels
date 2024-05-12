@@ -3,4 +3,4 @@ defaults:
   - general: default
   - model_shell: autoregressive_byte_level
   - core_model: baseline
-  - trainer: byte
+  - trainer: baseline

@@ -76,7 +76,7 @@ def build_dropout_scheduler(trainer_cfg):
     )
 
 
-DATALODER_DICT = {
+DATALOADER_DICT = {
     "standard": StandardDataloader,
     "byte_pooling_dataloader": BytePoolingDataloader,
     "seq2seq": Seq2SeqDataloader,
@@ -87,7 +87,7 @@ def build_dataloader(cfg, tokenizer):
     """
     Given the config, build the dataloader
     """
-    return DATALODER_DICT[cfg["trainer"]["dataloader"]["name"]](
+    return DATALOADER_DICT[cfg["trainer"]["dataloader"]["name"]](
         cfg=cfg,
         data_dir=cfg["general"]["paths"]["data_path"],
         tokenizer=tokenizer,
@@ -135,7 +135,7 @@ def build_trainer(cfg):
     dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg["trainer"])
 
     # build dataloder
-    dataloader = build_dataloader(cfg=cfg, tokenizer=model.tokenizer)
+    dataloader = build_dataloader(cfg=cfg, tokenizer=model.embedding_model.tokenizer)
 
     # build loss function
     loss_fn = build_loss_fn(loss_fn_name=cfg["trainer"]["loss_fn"]["name"])
