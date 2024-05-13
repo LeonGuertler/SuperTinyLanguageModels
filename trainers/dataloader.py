@@ -53,13 +53,13 @@ class StandardDataloader:
         self.data_dir = data_dir
         self.dataset_path = os.path.join(
             self.data_dir,
-            self.cfg["trainer"]["dataset"],
-            f'{self.cfg["model_shell"]["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
-            self.cfg["trainer"]["dataloader"]["name"],
+            self.cfg["training"]["dataset"],
+            f'{self.cfg["model"]["tokenizer"]}-{self.cfg["model"]["vocab_size"]}',
+            self.cfg["training"]["dataloader"],
         )
 
-        self.context_window = self.cfg["model_shell"]["context_window"]
-        self.batch_size = self.cfg["trainer"]["training"]["batch_size"]
+        self.context_window = self.cfg["model"]["context_window"]
+        self.batch_size = self.cfg["training"]["batch_size"]
         self.device = self.cfg["general"]["device"]
 
     def get_batch(self, split="train"):
