@@ -68,6 +68,7 @@ training:
 
   optimizer:
     name: "nanoGPTadamW"
+    lr: 6e-4
     min_lr: 6e-5
     weight_decay: 1e-1
     beta1: 0.9
