@@ -17,7 +17,11 @@ class GenericEmbedder(torch.nn.Module):
     def __init__(self, model_cfg):
         super().__init__()
         # build the tokenizer
-        self.tokenizer = build_tokenizer(model_cfg=model_cfg)
+        self.tokenizer = build_tokenizer(
+            tokenizer_type=model_cfg["tokenizer_type"],
+            vocab_size=model_cfg["vocab_size"],
+            dataset_name=model_cfg["dataset_name"]
+        )
 
         # build the token embeddings
         self.token_embedder = torch.nn.Embedding(

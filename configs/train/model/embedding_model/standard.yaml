@@ -1,0 +1,2 @@
+embedding_model_type: "generic"
+tokenizer: "gpt2"

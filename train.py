@@ -5,15 +5,22 @@ The main training code
 import hydra
 
 from trainers.build_trainers import build_trainer
-from trainers.utils import create_folder_structure
+from trainers.utils import (
+    create_folder_structure,
+    flatten_omegaconf,
+)
 
 
-@hydra.main(config_path="configs/train", config_name="baseline")
+@hydra.main(config_path="configs/train", config_name="leon")
 def main(cfg):
     """Creates folder structure as necessary, and runs train"""
+    # flatten the config
+    cfg = flatten_omegaconf(cfg)
+    input(cfg)
+
     # set data path to absolute path
-    cfg["general"]["paths"]["data_dir"] = hydra.utils.to_absolute_path(
-        cfg["general"]["paths"]["data_dir"]
+    cfg["data_dir"] = hydra.utils.to_absolute_path(
+        cfg["data_dir"]
     )
     # create necessary folder structure
     create_folder_structure(path_config=cfg["general"]["paths"])
