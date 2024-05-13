@@ -20,6 +20,7 @@ model:
   positional_encoding_type: "rope"
 
   core_model_type: "generic"
+  hidden_dim: 768
   depth: 12
   ffn:
     ffn_type: "generic"
