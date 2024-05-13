@@ -107,7 +107,6 @@ def build_loss_fn(loss_fn_name):
 TRAINER_DICT = {
     "base_trainer": BaseTrainer,
     "byte_trainer": ByteTrainer,
-    "base_profiler": BaseProfiler,
 }
 
 
