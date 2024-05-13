@@ -7,7 +7,6 @@ import hydra
 from trainers.build_trainers import build_trainer
 from trainers.utils import (
     create_folder_structure,
-    flatten_omegaconf,
 )
 
 
