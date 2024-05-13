@@ -25,3 +25,10 @@ class AutoregressiveLMHead(torch.nn.Module):
         )
 
 
+    def forward(self, x):
+        """
+        Forward pass.
+        """
+        x = self.layer_norm(x)
+        x = self.linear(x)
+        return x
