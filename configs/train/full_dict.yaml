@@ -19,6 +19,8 @@ model:
   tokenizer_dataset: "simple_en_wiki"
   positional_encoding_type: "rope"
 
+  context_window: 512
+
   core_model_type: "generic"
   hidden_dim: 768
   depth: 12
