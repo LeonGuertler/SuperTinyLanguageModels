@@ -1,10 +1,10 @@
 logging:
   wandb_log: False
-  wandb_project: "TinyUniverse"
+  wandb_project: "SuperTinyLanguageModels"
 
 paths:
-  output_dir: "outputs"
-  data_path: "data"
+  output_dir: "output"
+  data_dir: "data"
   checkpoint_dir: "checkpoints"
 
 seed: 489

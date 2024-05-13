@@ -120,7 +120,7 @@ def build_trainer(cfg):
 
     # build model
     model = build_model( 
-        cfg=cfg,
+        model_cfg=cfg["model"],
     )
 
     # push model to device

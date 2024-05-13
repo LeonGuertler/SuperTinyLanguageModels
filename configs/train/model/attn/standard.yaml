@@ -1,0 +1,5 @@
+attn_type: "generic"
+num_heads: 12
+normalization: "rmsnorm"
+group_size: 1
+bias: false

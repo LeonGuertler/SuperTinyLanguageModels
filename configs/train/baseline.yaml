@@ -1,6 +1,5 @@
 defaults:
   - _self_
   - general: default
-  - model_shell: autoregressive_byte_level
-  - core_model: baseline
-  - trainer: byte
+  - model: default
+  - trainer: default

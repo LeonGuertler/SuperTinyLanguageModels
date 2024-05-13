@@ -1,0 +1,17 @@
+defaults:
+  - ffn: standard
+  - attn: standard
+
+embedding_model_type: "generic"
+core_model_type: "generic"
+model_head_type: "lm_head"
+model_shell_type: "standard"
+embedding_weight_tying: true
+
+vocab_size: 50304
+embedding_dim: 768
+hidden_dim: 768
+context_window: 512
+
+model_head_norm: "layer_norm"
+lm_head_bias: false
