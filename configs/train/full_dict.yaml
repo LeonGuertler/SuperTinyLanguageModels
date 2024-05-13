@@ -17,6 +17,7 @@ model:
   vocab_size: 50304
   embedding_dim: 768
   tokenizer_dataset: "simple_en_wiki"
+  positional_encoding_type: "rope"
 
   core_model_type: "generic"
   depth: 12
