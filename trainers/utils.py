@@ -18,8 +18,8 @@ def create_folder_structure(path_config):
     """
     Create all necessary folders for training.
     """
-    if not os.path.exists(path_config["data_path"]):
-        os.makedirs(path_config["data_path"])
+    if not os.path.exists(path_config["data_dir"]):
+        os.makedirs(path_config["data_dir"])
 
     if not os.path.exists(path_config["checkpoint_dir"]):
         os.makedirs(path_config["checkpoint_dir"])
