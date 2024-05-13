@@ -89,9 +89,9 @@ def build_dataloader(cfg):
     """
     Given the config, build the dataloader
     """
-    return DATALODER_DICT[cfg["trainer"]["dataloader"]["name"]](
+    return DATALODER_DICT[cfg["training"]["dataloader"]](
         cfg=cfg,
-        data_dir=cfg["general"]["paths"]["data_path"],
+        data_dir=cfg["general"]["paths"]["data_dir"],
     )
 
 
