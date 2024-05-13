@@ -125,7 +125,7 @@ class StandardDataloader:
             process,
             remove_columns=["text"],
             desc="tokenizing the splits",
-            num_proc=8,
+            num_proc=1,
         )
 
         # concatenate all the ids in each dataset into one large file we can use for training
