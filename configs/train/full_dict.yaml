@@ -23,7 +23,7 @@ model:
 
   core_model_type: "generic"
   hidden_dim: 768
-  depth: 12
+  num_layers: 12
   ffn:
     ffn_type: "generic"
     ffn_dim: 3072
