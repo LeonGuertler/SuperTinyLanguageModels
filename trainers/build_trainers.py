@@ -64,9 +64,9 @@ def build_dropout_scheduler(trainer_cfg):
     """
     Given the trainer config, build the dropout scheduler.
     """
-    if trainer_cfg["dropout_scheduler"]["name"] == "constant":
+    if trainer_cfg["dropout_scheduler"]["dropout_type"] == "constant":
         return DropoutScheduler(trainer_cfg["dropout_scheduler"]["dropout"])
-    if trainer_cfg["dropout_scheduler"]["name"] == "linear":
+    if trainer_cfg["dropout_scheduler"]["dropout_type"] == "linear":
         return LinearDropoutScheduler(
             start_dropout_p=trainer_cfg["dropout_scheduler"]["start_dropout_p"],
             end_dropout_p=trainer_cfg["dropout_scheduler"]["end_dropout_p"],
@@ -74,7 +74,7 @@ def build_dropout_scheduler(trainer_cfg):
             end_iter=trainer_cfg["dropout_scheduler"]["end_iter"],
         )
     raise NotImplementedError(
-        f"dropout scheduler {trainer_cfg['dropout_scheduler']['name']} not implemented."
+        f"dropout scheduler {trainer_cfg['dropout_scheduler']['dropout_type']} not implemented."
     )
 
 
