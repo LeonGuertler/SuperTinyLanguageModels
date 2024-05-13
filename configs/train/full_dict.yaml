@@ -33,6 +33,7 @@ model:
   attn:
     attn_type: "generic"
     normalization: "rms_norm"
+    group_size: 1
     is_causal: true
     num_heads: 12
     head_dim: 64
