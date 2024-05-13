@@ -128,24 +128,24 @@ def build_trainer(cfg):
 
     # build optimizer
     optimizer = build_optimizer(
-        model=model, optimizer_config=cfg["trainer"]["optimizer"]
+        model=model, optimizer_config=cfg["training"]["optimizer"]
     )
 
     # build LR scheduler
-    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg["trainer"])
+    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg["training"])
 
     # build dropout scheduler
-    dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg["trainer"])
+    dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg["training"])
 
     # build dataloder
     dataloader = build_dataloader(cfg=cfg)
 
     # build loss function
-    loss_fn = build_loss_fn(loss_fn_name=cfg["trainer"]["loss_fn"]["name"])
+    loss_fn = build_loss_fn(loss_fn_name=cfg["training"]["loss_fn"])
 
     # build the trainer
-    print(cfg["trainer"]["training"]["trainer"])
-    trainer = TRAINER_DICT[cfg["trainer"]["training"]["trainer"]](
+    print(cfg["training"]["trainer"])
+    trainer = TRAINER_DICT[cfg["training"]["trainer"]](
         cfg=cfg,
         model=model,
         optimizer=optimizer,
