@@ -31,7 +31,7 @@ def test_generic_transformer_block():
             "group_size": 1,
             "normalization": "rms_norm",
         },
-        bias=False,
+        norm_bias=False,
     )
     x = torch.randn(2, 16, 64)
     y = block(x)

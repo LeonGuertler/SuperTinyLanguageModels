@@ -63,7 +63,9 @@ def build_core_model(model_cfg):
     Returns:
         core_model: core_model_instance
     """
-    return CORE_MODEL_DICT[model_cfg["core_model_type"]](model_cfg=model_cfg)
+    return CORE_MODEL_DICT[model_cfg["core_model"]["core_model_type"]](
+        model_cfg=model_cfg
+    )
 
 
 MODEL_HEAD_DICT = {"lm_head": AutoregressiveLMHead}

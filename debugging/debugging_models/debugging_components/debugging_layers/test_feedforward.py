@@ -34,7 +34,7 @@ def test_swiglue():
     ffn = build_ffn(
         hidden_dim=64,
         ffn_cfg={
-            "ffn_type": "swiglue",
+            "ffn_type": "swiglu",
             "ffn_dim": 128,
             "bias": False,
         },
