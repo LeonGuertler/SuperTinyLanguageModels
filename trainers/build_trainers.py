@@ -4,7 +4,6 @@ and the trainer itself.
 """
 
 from models.build_models import build_model
-from trainers.base_profiler import BaseProfiler
 
 # from trainers.standard_trainer import BaseTrainer
 from trainers.base_trainer import BaseTrainer
