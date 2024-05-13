@@ -43,7 +43,7 @@ def build_optimizer(model, optimizer_config):
 SCHEDULER_DICT = {
     "cosine": lambda cfg: CosineLRScheduler(
         warmup_iters=cfg["warmup_iters"],
-        decay_iters=cfg["lr_decay_iters"],
+        decay_iters=cfg["max_iter"],
         lr=cfg["optimizer"]["lr"],
         min_lr=cfg["optimizer"]["min_lr"],
     ),
