@@ -8,7 +8,7 @@ from omegaconf import OmegaConf
 
 from trainers import utils
 
-
+torch.multiprocessing.set_start_method('spawn')
 # pylint: disable invalid-name
 class BaseTrainer:
     """Base Trainer Class

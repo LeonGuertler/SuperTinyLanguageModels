@@ -1,5 +1,0 @@
-defaults:
-  - _self_
-  - general: default
-  - model: default
-  - trainer: default

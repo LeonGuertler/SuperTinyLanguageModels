@@ -1,3 +1,0 @@
-embedding_model_type: "generic"
-tokenizer: "gpt2"
-vocab_size
