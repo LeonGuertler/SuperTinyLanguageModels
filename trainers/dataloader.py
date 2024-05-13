@@ -110,7 +110,7 @@ class StandardDataloader:
 
         # load the dataset
         split_dataset = load_data(
-            dataset_name=self.cfg["trainer"]["dataset"],
+            dataset_name=self.cfg["training"]["dataset"],
         )
 
         print(split_dataset.keys())
@@ -166,11 +166,11 @@ class Seq2SeqDataloader:
         self.data_dir = data_dir
         self.dataset_path = os.path.join(
             self.data_dir,
-            f'{self.cfg["model_shell"]["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
+            f'{self.cfg["model"]["tokenizer"]}-{self.cfg["model"]["vocab_size"]}',
         )
 
-        self.context_window = self.cfg["model_shell"]["context_window"]
-        self.batch_size = self.cfg["trainer"]["training"]["batch_size"]
+        self.context_window = self.cfg["model"]["context_window"]
+        self.batch_size = self.cfg["training"]["batch_size"]
         self.device = self.cfg["general"]["device"]
 
     def get_batch(self, split="train"):
@@ -223,7 +223,7 @@ class Seq2SeqDataloader:
 
         # load the dataset
         split_dataset = load_data(
-            dataset_name=self.cfg["trainer"]["dataset"],
+            dataset_name=self.cfg["training"]["dataset"],
         )
 
         print(split_dataset.keys())
@@ -288,18 +288,18 @@ class BytePoolingDataloader:
         self.data_dir = data_dir
         self.dataset_path = os.path.join(
             self.data_dir,
-            self.cfg["trainer"]["dataset"],
+            self.cfg["training"]["dataset"],
             "BytePooling",
             f'{self.cfg["model_shell"]["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
             (
                 f'{self.cfg["model_shell"]["pooling_tokenizer"]}'
                 f'-{self.cfg["model_shell"]["pooling_vocab_size"]}'
             ),
-            self.cfg["trainer"]["dataloader"]["name"],
+            self.cfg["training"]["dataloader"],
         )
 
         self.context_window = self.cfg["model_shell"]["context_window"]
-        self.batch_size = self.cfg["trainer"]["training"]["batch_size"]
+        self.batch_size = self.cfg["training"]["batch_size"]
         self.device = self.cfg["general"]["device"]
 
     def get_batch(self, split="train"):
@@ -350,7 +350,7 @@ class BytePoolingDataloader:
 
         # load the dataset
         split_dataset = load_data(
-            dataset_name=self.cfg["trainer"]["dataset"],
+            dataset_name=self.cfg["training"]["dataset"],
         )
 
         print(split_dataset.keys())
