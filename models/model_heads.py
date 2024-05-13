@@ -14,9 +14,9 @@ class AutoregressiveLMHead(torch.nn.Module):
     def __init__(self, model_cfg):
         super().__init__()
         self.layer_norm = build_normalization(
-            normalization_name=model_cfg["normalization"],
+            normalization_name=model_cfg["model_head_norm"],
             dim=model_cfg["hidden_dim"],
-            bias=model_cfg["bias"]
+            bias=model_cfg["lm_head_bias"]
         )
         self.lm_head = torch.nn.Linear(
             in_features=model_cfg["hidden_dim"],
