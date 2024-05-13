@@ -28,10 +28,11 @@ model:
     ffn_type: "generic"
     ffn_dim: 3072
     activation: "gelu"
-    normalization: "rmsnorm"
+    normalization: "rms_norm"
     bias: false
   attn:
     attn_type: "standard"
+    normalization: "rms_norm"
     num_heads: 12
     head_dim: 64
     bias: false
