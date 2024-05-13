@@ -5,7 +5,7 @@ Pytest for core models.
 import pytest
 import torch
 
-from models.build_model import build_core_model
+from models.build_models import build_core_model
 
 
 def test_generic_core_model():
