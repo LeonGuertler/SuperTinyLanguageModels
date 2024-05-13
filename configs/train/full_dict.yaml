@@ -15,6 +15,7 @@ model:
   embedding_model_type: "generic"
   tokenizer: "gpt2"
   vocab_size: 50304
+  tokenizer_dataset: "simple_en_wiki"
 
   core_model_type: "generic"
   depth: 12
