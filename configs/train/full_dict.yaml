@@ -31,7 +31,7 @@ model:
     normalization: "rms_norm"
     bias: false
   attn:
-    attn_type: "standard"
+    attn_type: "generic"
     normalization: "rms_norm"
     num_heads: 12
     head_dim: 64
