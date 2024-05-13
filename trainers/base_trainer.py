@@ -162,7 +162,7 @@ class BaseTrainer:
             # estimate the loss on the train/val sets
             if not iter_num % self.cfg.training.eval_interval:
                 losses, perplexities = self.estimate_performance(
-                    self.model, tokenizer=self.model.tokenizer
+                    self.model, tokenizer=self.model.embedding_model.tokenizer
                 )
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f},"
