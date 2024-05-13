@@ -18,7 +18,7 @@ class AutoregressiveLMHead(torch.nn.Module):
             dim=model_cfg["hidden_dim"],
             bias=model_cfg["lm_head_bias"]
         )
-        self.lm_head = torch.nn.Linear(
+        self.linear = torch.nn.Linear(
             in_features=model_cfg["hidden_dim"],
             out_features=model_cfg["vocab_size"],
             bias=model_cfg["lm_head_bias"]
