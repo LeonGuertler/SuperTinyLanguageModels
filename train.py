@@ -11,16 +11,12 @@ from trainers.utils import (
 )
 
 
-@hydra.main(config_path="configs/train", config_name="leon")
+@hydra.main(config_path="configs/train", config_name="full_dict")
 def main(cfg):
     """Creates folder structure as necessary, and runs train"""
-    # flatten the config
-    cfg = flatten_omegaconf(cfg)
-    input(cfg)
-
     # set data path to absolute path
-    cfg["data_dir"] = hydra.utils.to_absolute_path(
-        cfg["data_dir"]
+    cfg["general"]["paths"]["data_dir"] = hydra.utils.to_absolute_path(
+        cfg["general"]["paths"]["data_dir"]
     )
     # create necessary folder structure
     create_folder_structure(path_config=cfg["general"]["paths"])

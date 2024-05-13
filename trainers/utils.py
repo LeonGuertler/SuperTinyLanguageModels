@@ -5,7 +5,6 @@ import os
 import numpy as np
 import torch
 from datasets import load_dataset
-from omegaconf import OmegaConf
 
 
 def set_seed(seed):
@@ -26,18 +25,7 @@ def create_folder_structure(path_config):
         os.makedirs(path_config["checkpoint_dir"])
 
 
-def flatten_omegaconf(cfg):
-    """
-    Flatten the omegaconf config into a single-level dictionary.
-    """
-    return_dict = {}
-    for k, v in OmegaConf.to_container(cfg, resolve=True).items():
-        if isinstance(v, dict):
-            for k2, v2 in v.items():
-                return_dict[k2] = v2
-        else:
-            return_dict[k] = v
-    return return_dict
+
 
 DATASET_DICT = {
     "debug": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),

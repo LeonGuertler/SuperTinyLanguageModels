@@ -53,7 +53,9 @@ def build_embedding_model(model_cfg):
     Returns:
         embedding_model: embedding_model_instance
     """
-    return EMBEDDING_MODEL_DICT[model_cfg["embedding_model_type"]](model_cfg=model_cfg)
+    return EMBEDDING_MODEL_DICT[model_cfg["embedding_model_type"]](
+        model_cfg=model_cfg
+    )
 
 
 CORE_MODEL_DICT = {

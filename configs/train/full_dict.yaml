@@ -1,0 +1,37 @@
+general:
+  logging:
+    wandb_log: False
+    wandb_project: "SuperTinyLanguageModels"
+
+  paths:
+    output_dir: "output"
+    data_dir: "data"
+    checkpoint_dir: "checkpoints"
+
+  seed: 489
+  device: cuda
+
+model:
+  embedding_model_type: "generic"
+  tokenizer: "gpt2"
+  vocab_size: 50304
+
+  core_model_type: "generic"
+  depth: 12
+  ffn:
+    ffn_type: "generic"
+    ffn_dim: 3072
+    activation: "gelu"
+    normalization: "rmsnorm"
+    bias: false
+  attn:
+    attn_type: "standard"
+    num_heads: 12
+    head_dim: 64
+
+  model_head_type: "lm_head"
+  model_head_norm: "layer_norm"
+  lm_head_bias: false
+
+  model_shell_type: "standard"
+  embedding_weight_tying: true
