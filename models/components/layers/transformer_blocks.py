@@ -19,7 +19,6 @@ class GenericTransformerBlock(torch.nn.Module):
             context_window,
             ffn_cfg, 
             attn_cfg, 
-            bias
         ):
         super().__init__()
 
@@ -27,7 +26,7 @@ class GenericTransformerBlock(torch.nn.Module):
         self.attn_norm = build_normalization(
             normalization_name=attn_cfg["normalization"],
             dim=hidden_dim,
-            bias=bias
+            bias=attn_cfg["bias"]
         )
 
         # build the attention
@@ -42,7 +41,7 @@ class GenericTransformerBlock(torch.nn.Module):
         self.ffn_norm = build_normalization(
             normalization_name=ffn_cfg["normalization"],
             dim=hidden_dim,
-            bias=bias
+            bias=ffn_cfg["bias"]
         )
 
         # build the ffn block 

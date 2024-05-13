@@ -34,6 +34,7 @@ model:
     attn_type: "standard"
     num_heads: 12
     head_dim: 64
+    bias: false
 
   model_head_type: "lm_head"
   model_head_norm: "layer_norm"
