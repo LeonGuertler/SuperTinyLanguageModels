@@ -2,32 +2,26 @@
 A collection of transformer blocks that combine
 FFN, Attn and normalizatio
 """
+
 import torch
 
-from models.components.layers.normalization import build_normalization
-from models.components.layers.feedforward import build_ffn
 from models.components.layers.attention import build_attention
+from models.components.layers.feedforward import build_ffn
+from models.components.layers.normalization import build_normalization
+
 
 class GenericTransformerBlock(torch.nn.Module):
     """
-    A simple transformer block that combines 
+    A simple transformer block that combines
     FFN, Attn and normalization.
     """
-    def __init__(
-            self, 
-            hidden_dim, 
-            context_window,
-            ffn_cfg, 
-            attn_cfg, 
-            bias
-        ):
+
+    def __init__(self, hidden_dim, context_window, ffn_cfg, attn_cfg, norm_bias):
         super().__init__()
 
         # build the attn norm
         self.attn_norm = build_normalization(
-            normalization_name=attn_cfg["normalization"],
-            dim=hidden_dim,
-            bias=bias
+            normalization_name=attn_cfg["normalization"], dim=hidden_dim, bias=norm_bias
         )
 
         # build the attention
@@ -37,15 +31,12 @@ class GenericTransformerBlock(torch.nn.Module):
             attn_cfg=attn_cfg,
         )
 
-
         # build the ffn norm
         self.ffn_norm = build_normalization(
-            normalization_name=ffn_cfg["normalization"],
-            dim=hidden_dim,
-            bias=bias
+            normalization_name=ffn_cfg["normalization"], dim=hidden_dim, bias=norm_bias
         )
 
-        # build the ffn block 
+        # build the ffn block
         self.ffn = build_ffn(
             hidden_dim=hidden_dim,
             ffn_cfg=ffn_cfg,

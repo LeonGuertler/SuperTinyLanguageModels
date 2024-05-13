@@ -41,17 +41,11 @@ class RMSNorm(torch.nn.Module):
 
 
 NORMALIZATION_DICT = {
-    "rms_norm": lambda dim, bias: RMSNorm(
-        dim=dim
-    ),
-    "layer_norm": lambda dim, bias: LayerNorm(
-        dim=dim, 
-        bias=bias
-    ),
+    "rms_norm": lambda dim, bias: RMSNorm(dim=dim),
+    "layer_norm": lambda dim, bias: LayerNorm(dim=dim, bias=bias),
     "none": lambda dim, bias: torch.nn.Identity(),
 }
 
-    
 
 def build_normalization(normalization_name, dim, bias=None):
     """
@@ -59,7 +53,4 @@ def build_normalization(normalization_name, dim, bias=None):
     Available options: rmsnorm, layernorm
         - Bias is ignored for RMSNorm
     """
-    return NORMALIZATION_DICT[normalization_name](
-        dim=dim, 
-        bias=bias
-    )
+    return NORMALIZATION_DICT[normalization_name](dim=dim, bias=bias)

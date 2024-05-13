@@ -1,0 +1,6 @@
+hidden_dim: 512
+context_window: 512
+vocab_size: 50257
+core_model: baseline
+embedder: baseline
+lm_head: baseline

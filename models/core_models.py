@@ -25,11 +25,11 @@ class GenericTransformer(torch.nn.Module):
                         GenericTransformerBlock(
                             hidden_dim=model_cfg["hidden_dim"],
                             context_window=model_cfg["context_window"],
-                            ffn_cfg=model_cfg["ffn"],
-                            attn_cfg=model_cfg["attn"],
-                            bias=model_cfg["bias"],
+                            ffn_cfg=model_cfg["core_model"]["ffn"],
+                            attn_cfg=model_cfg["core_model"]["attn"],
+                            norm_bias=model_cfg["core_model"]["norm_bias"],
                         )
-                        for _ in range(model_cfg["num_layers"])
+                        for _ in range(model_cfg["core_model"]["num_layers"])
                     ]
                 ),
             )

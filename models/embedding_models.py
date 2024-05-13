@@ -27,7 +27,7 @@ class GenericEmbedder(torch.nn.Module):
         # build the token embeddings
         self.token_embedder = torch.nn.Embedding(
             num_embeddings=model_cfg["vocab_size"],
-            embedding_dim=model_cfg["embedding_dim"],
+            embedding_dim=model_cfg["hidden_dim"],
         )
 
         # build the positional encodings

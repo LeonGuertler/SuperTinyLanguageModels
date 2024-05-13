@@ -1,7 +1,0 @@
-core_model_type: "modern"
-hidden_dim: 512
-depth: 8
-num_heads: 8
-attn_group_size: 2
-ffn_dim: 2048
-bias: False
