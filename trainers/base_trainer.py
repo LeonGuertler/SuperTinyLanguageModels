@@ -184,9 +184,6 @@ class BaseTrainer:
                             "val/perplexity": perplexities["val"],
                         }
                     )
-            # save checkpoints
-            if not iter_num % self.cfg.training.checkpoint_interval:
-                self._save_model(iter_num)
 
             loss = self._run_step()
             end_time = time.time()
