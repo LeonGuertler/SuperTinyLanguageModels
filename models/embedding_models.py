@@ -22,6 +22,7 @@ class GenericEmbedder(torch.nn.Module):
             vocab_size=model_cfg["vocab_size"],
             dataset_name=model_cfg["tokenizer_dataset"]
         )
+        self.eot_token = self.tokenizer.eot_token
 
         # build the token embeddings
         self.token_embedder = torch.nn.Embedding(
@@ -34,6 +35,11 @@ class GenericEmbedder(torch.nn.Module):
             model_cfg=model_cfg
         )
 
+    def encode(self, input_string):
+        """
+        Tokenize an input string.
+        """
+        return self.tokenizer.encode(input_string)
 
     def forward(self, token_ids):
         """

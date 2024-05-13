@@ -98,7 +98,7 @@ class StandardDataloader:
         """
         return os.path.exists(self.dataset_path)
 
-    def prepare_data(self, tokenizer):
+    def prepare_data(self, embedding_model):
         """
         Tokenize and store the data
         """
@@ -116,8 +116,8 @@ class StandardDataloader:
         print(split_dataset.keys())
 
         def process(example):
-            ids = tokenizer.encode(example["text"])
-            ids.append(tokenizer.eot_token)
+            ids = embedding_model.encode(example["text"])
+            ids.append(embedding_model.eot_token)
             return {"ids": ids, "len": len(ids)}
 
         # tokenize the dataset
