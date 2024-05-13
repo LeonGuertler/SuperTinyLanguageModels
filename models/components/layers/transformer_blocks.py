@@ -17,6 +17,7 @@ class GenericTransformerBlock(torch.nn.Module):
             self, 
             hidden_dim, 
             context_window,
+            use_rope,
             ffn_cfg, 
             attn_cfg, 
         ):
@@ -33,6 +34,7 @@ class GenericTransformerBlock(torch.nn.Module):
         self.attn = build_attention(
             hidden_dim=hidden_dim,
             context_window=context_window,
+            use_rope=use_rope,
             attn_cfg=attn_cfg,
         )
 

@@ -134,24 +134,25 @@ def compute_freqs_cis(seq_len, head_dim):
 
 
 ATTENTION_DICT = {
-    "generic": lambda hidden_dim, context_window, attn_cfg: Attention(
+    "generic": lambda hidden_dim, context_window, use_rope, attn_cfg: Attention(
         hidden_dim=hidden_dim,
         num_heads=attn_cfg["num_heads"],
         bias=attn_cfg["bias"],
-        use_rope=attn_cfg["use_rope"],
+        use_rope=use_rope,
         context_window=context_window,
         is_causal=attn_cfg["is_causal"],
         group_size=attn_cfg["group_size"],
     )
 }
 
-def build_attention(hidden_dim, context_window, attn_cfg):
+def build_attention(hidden_dim, context_window, use_rope, attn_cfg):
     """
     Build an attention layer
     """
     return ATTENTION_DICT[attn_cfg["attn_type"]](
         hidden_dim=hidden_dim,
         context_window=context_window,
+        use_rope=use_rope,
         attn_cfg=attn_cfg,
     )
 
