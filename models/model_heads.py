@@ -31,4 +31,5 @@ class AutoregressiveLMHead(torch.nn.Module):
         """
         x = self.layer_norm(x)
         x = self.linear(x)
+        input(x.size())
         return x
