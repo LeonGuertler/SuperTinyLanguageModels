@@ -290,15 +290,15 @@ class BytePoolingDataloader:
             self.data_dir,
             self.cfg["training"]["dataset"],
             "BytePooling",
-            f'{self.cfg["model_shell"]["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
+            f'{self.cfg["model"]["pooling_tokenizer"]}-{self.cfg["model"]["pooling_vocab_size"]}',
             (
-                f'{self.cfg["model_shell"]["pooling_tokenizer"]}'
-                f'-{self.cfg["model_shell"]["pooling_vocab_size"]}'
+                f'{self.cfg["model"]["byte_tokenizer"]}'
+                f'-{self.cfg["model"]["byte_vocab_size"]}'
             ),
             self.cfg["training"]["dataloader"],
         )
 
-        self.context_window = self.cfg["model_shell"]["context_window"]
+        self.context_window = self.cfg["model"]["context_window"]
         self.batch_size = self.cfg["training"]["batch_size"]
         self.device = self.cfg["general"]["device"]
 
