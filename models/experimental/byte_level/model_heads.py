@@ -19,21 +19,15 @@ class ByteLevelDecoder(torch.nn.Module):
     LM (byte level) head only to the actual tokens, not 
     the latent ecoded ones.
     """
-    def __init__(
-        self, 
-        hidden_dim,
-        embedding_dim,
-        byte_vocab_size,
-        byte_context_window,    
-    ):
+    def __init__(self, model_cfg):
         super().__init__()
-        self.hidden_dim = hidden_dim
-        self.embedding_dim = embedding_dim
-        self.byte_vocab_size = byte_vocab_size
-        self.byte_context_window = byte_context_window
+        self.hidden_dim = model_cfg["hidden_dim"]
+        self.embedding_dim = model_cfg["embedding_dim"]
+        self.byte_vocab_size = model_cfg["byte_vocab_size"]
+        self.byte_context_window = model_cfg["byte_context_window"]
 
         self.projection = torch.nn.Linear(
-            in_features=hidden_dim,
+            in_features=self.hidden_dim,
             out_features=self.byte_context_window * self.embedding_dim,
             bias=False
         )
@@ -42,18 +36,18 @@ class ByteLevelDecoder(torch.nn.Module):
         self.transformer = torch.nn.ModuleList(
             [
                 ByteLevelTransformerBlock(
-                    input_dim=embedding_dim,
-                    output_dim=embedding_dim,
-                    ffn_dim=embedding_dim*4,
-                    context_window=byte_context_window,
+                    input_dim=self.embedding_dim,
+                    output_dim=self.embedding_dim,
+                    ffn_dim=self.embedding_dim*4,
+                    context_window=self.byte_context_window,
                     use_rope=False,
 
                 ),
                 ByteLevelTransformerBlock(
-                    input_dim=embedding_dim,
-                    output_dim=embedding_dim,
-                    ffn_dim=embedding_dim*4,
-                    context_window=byte_context_window,
+                    input_dim=self.embedding_dim,
+                    output_dim=self.embedding_dim,
+                    ffn_dim=self.embedding_dim*4,
+                    context_window=self.byte_context_window,
                     use_rope=False,
                 ),
             ]
@@ -61,8 +55,8 @@ class ByteLevelDecoder(torch.nn.Module):
 
 
         self.lm_head = torch.nn.Linear(
-            in_features=byte_context_window,
-            out_features=byte_vocab_size,
+            in_features=self.byte_context_window,
+            out_features=self.byte_vocab_size,
             bias=False
         )
 
