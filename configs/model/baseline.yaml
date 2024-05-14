@@ -1,7 +1,7 @@
 defaults:
-- core_model: baseline
-- embedder: baseline
-- lm_head: baseline
+  - core_model: baseline
+  - embedder: baseline
+  - lm_head: baseline
 
 hidden_dim: 512
 context_window: 512

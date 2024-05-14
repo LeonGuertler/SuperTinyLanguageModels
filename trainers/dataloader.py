@@ -14,21 +14,44 @@ from trainers.utils import load_data
 class BaseDataloader:
     """Abstract class for dataloaders"""
 
-    def __init__(self, cfg, data_dir, tokenizer, device=None, batch_size=None, context_window=None):
-        self.cfg = cfg
-        self.data_dir = data_dir
+    def __init__(
+        self,
+        model_cfg,
+        trainer_cfg,
+        tokenizer,
+    ):
+        """Arguments:
+        model_cfg: the model configuration
+            This is required to get the context window size among other things
+        trainer_cfg: the trainer configuration
+            This is required to get the batch size and the dataset name
+        tokenizer: the tokenizer object
+            This is required to pre-tokenize the data
+        """
+        self.model_cfg = model_cfg
+        self.trainer_cfg = trainer_cfg
+        self.tokenized_data_dir = trainer_cfg["tokinized_data_dir"]
         self.tokenizer = tokenizer
-        self.context_window = context_window
-        self.batch_size = batch_size
-        self.device = device
-        self.dataset_path = None  # to be set by child class
+        self.context_window = model_cfg["context_window"]
+        self.vocab_size = model_cfg["vocab_size"]
+        self.batch_size = trainer_cfg["batch_size"]
+        self.dataset_name = trainer_cfg["dataset"]
+        self.device = tokenizer.device
+        self.tokenized_data_path = os.path.join(
+            self.tokenized_data_dir,
+            self.dataset_name,
+            f'{self.model_cfg["tokenizer"]}-{self.model_cfg["vocab_size"]}',
+            self.model_cfg["embedder"]["tokenizer_type"],
+        )
 
     def get_batch(self, split="train"):
         """
         Get a train/val batch
         """
         data = np.memmap(
-            os.path.join(self.dataset_path, f"{split}.bin"), dtype=np.uint16, mode="r"
+            os.path.join(self.tokenized_data_path, f"{split}.bin"),
+            dtype=np.uint16,
+            mode="r",
         )
 
         idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
@@ -57,12 +80,12 @@ class BaseDataloader:
         """
         Check if the data has been preprocessed
         """
-        return os.path.exists(self.dataset_path)
+        return os.path.exists(self.tokenized_data_path)
 
     def _write_tokenized_data(self, tokenized):
         for split, dset in tokenized.items():
             arr_len = np.sum(dset["len"], dtype=np.uint64)
-            filename = os.path.join(self.dataset_path, f"{split}.bin")
+            filename = os.path.join(self.tokenized_data_path, f"{split}.bin")
             dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
             arr = np.memmap(filename, dtype=dtype, mode="w+", shape=(arr_len,))
             total_batches = 1024
@@ -84,14 +107,14 @@ class BaseDataloader:
         Tokenize and store the data
         """
         # create folder
-        if not os.path.exists(self.dataset_path):
-            os.makedirs(self.dataset_path)
+        if not os.path.exists(self.tokenized_data_path):
+            os.makedirs(self.tokenized_data_path)
         else:
             return  # already processed
 
         # load the dataset
         split_dataset = load_data(
-            dataset_name=self.cfg["dataset"],
+            dataset_name=self.dataset_name,
         )
 
         print(split_dataset.keys())
@@ -120,16 +143,6 @@ class StandardDataloader(BaseDataloader):
     necessary.
     """
 
-    def __init__(self, cfg, data_dir, tokenizer):
-        """Creates the standard dataloader, initializes the path"""
-        super().__init__(cfg, data_dir, tokenizer)
-        self.dataset_path = os.path.join(
-            self.data_dir,
-            self.cfg["dataset"],
-            f'{self.cfg["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
-            self.cfg["dataloader"]["name"],
-        )
-
 
 class Seq2SeqDataloader(BaseDataloader):
     """
@@ -142,23 +155,14 @@ class Seq2SeqDataloader(BaseDataloader):
         preprocess: whether to preprocess the data
     """
 
-    def __init__(self, cfg, data_dir, tokenizer):
-        super().__init__(cfg, data_dir, tokenizer)
-        self.dataset_path = os.path.join(
-            self.data_dir,
-            f'{self.cfg["model_shell"]["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
-        )
-
-        self.context_window = self.cfg["model_shell"]["context_window"]
-        self.batch_size = self.cfg["trainer"]["training"]["batch_size"]
-        self.device = self.cfg["general"]["device"]
-
     def get_batch(self, split="train"):
         """
         Get a train/val batch
         """
         data = np.memmap(
-            os.path.join(self.dataset_path, f"{split}.bin"), dtype=np.uint16, mode="r"
+            os.path.join(self.tokenized_data_path, f"{split}.bin"),
+            dtype=np.uint16,
+            mode="r",
         )
 
         idxs = torch.randint(len(data) - 2 * self.context_window, (self.batch_size,))
@@ -199,16 +203,14 @@ class BytePoolingDataloader(BaseDataloader):
     def __init__(self, cfg, data_dir, pooling_tokenizer, byte_tokenizer):
         super().__init__(cfg, data_dir, tokenizer=pooling_tokenizer)
         self.byte_tokenizer = byte_tokenizer
-        self.dataset_path = os.path.join(
-            self.data_dir,
-            self.cfg["trainer"]["dataset"],
+        self.tokenized_data_path = os.path.join(
+            self.tokenized_data_dir,
+            self.dataset_name,
             "BytePooling",
-            f'{self.cfg["model_shell"]["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
-            (
-                f'{self.cfg["model_shell"]["pooling_tokenizer"]}'
-                f'-{self.cfg["model_shell"]["pooling_vocab_size"]}'
+            f"{self.model_cfg['tokenizer']}-{self.model_cfg['vocab_size']}"(
+                f'{self.model_cfg["embedder"]["pooling_tokenizer"]}'
+                f'-{self.model_cfg["embedder"]["pooling_vocab_size"]}'
             ),
-            self.cfg["trainer"]["dataloader"]["name"],
         )
 
     def prepare_data(self):
@@ -216,14 +218,14 @@ class BytePoolingDataloader(BaseDataloader):
         Tokenize and store the data
         """
         # create folder
-        if not os.path.exists(self.dataset_path):
-            os.makedirs(self.dataset_path)
+        if not os.path.exists(self.tokenized_data_path):
+            os.makedirs(self.tokenized_data_path)
         else:
             return  # already processed
 
         # load the dataset
         split_dataset = load_data(
-            dataset_name=self.cfg["trainer"]["dataset"],
+            dataset_name=self.dataset_name,
         )
 
         print(split_dataset.keys())
