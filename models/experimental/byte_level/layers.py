@@ -112,5 +112,6 @@ class ByteLevelTransformerBlock(torch.nn.Module):
             x: the output tensor (b, s, h)
         """
         x = x + self.attn(self.attn_norm(x), attention_mask)
-        x = x + self.ffn(self.ffn_norm(x))
+        #x = x + self.ffn(self.ffn_norm(x))
+        x = self.ffn(self.ffn_norm(x))
         return x
