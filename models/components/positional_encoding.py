@@ -24,7 +24,9 @@ class LearnedPosEncoding(torch.nn.Module):
         """
         # check device
         input(x.size())
+        input(x.device)
         input(self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0).to(x.device).size())
+        input(self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0).to(x.device).device)
         input(
             (x+self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0).to(x.device)).size()
         )
