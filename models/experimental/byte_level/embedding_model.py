@@ -12,6 +12,7 @@ from models.experimental.byte_level.layers import (
     ProjectingFFN,
     ByteLevelTransformerBlock,
 )
+from models.components.positional_encoding import LearnedPosEncoding
 
 
 
@@ -38,6 +39,12 @@ class ByteLevelEmbedder(torch.nn.Module):
             tokenizer_type=model_cfg["pooling_tokenizer"],
             vocab_size=model_cfg["pooling_vocab_size"],
             dataset_name=model_cfg["tokenizer_dataset"],
+        )
+
+        # positional encodings
+        self.pos_encoder = LearnedPosEncoding(
+            hidden_dim=self.embedding_dim,
+            context_window=self.byte_context_window
         )
 
         # build the token embeddings
@@ -73,6 +80,9 @@ class ByteLevelEmbedder(torch.nn.Module):
         """
         # get the byte embeddings
         x = self.byte_token_embedder(x)
+
+        # positional encoding 
+        x = self.pos_encoder(x)
 
         # pass through transformer
         for block in self.transformer:

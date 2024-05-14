@@ -10,6 +10,8 @@ from models.experimental.byte_level.layers import (
     ByteLevelTransformerBlock,
 )
 
+from models.components.positional_encoding import LearnedPosEncoding
+
 
 class ByteLevelDecoder(torch.nn.Module):
     """
@@ -31,6 +33,12 @@ class ByteLevelDecoder(torch.nn.Module):
             out_features=self.byte_context_window * self.embedding_dim,
             bias=False
         )
+
+        self.pos_encoder = LearnedPosEncoding(
+            hidden_dim=self.embedding_dim,
+            context_window=self.byte_context_window
+        )
+
 
         # build transformer block
         self.transformer = torch.nn.ModuleList(
