@@ -43,8 +43,8 @@ class ByteLevelEmbedder(torch.nn.Module):
 
         # positional encodings
         self.pos_encoder = LearnedPosEncoding(
-            hidden_dim=self.embedding_dim,
-            context_window=self.byte_context_window
+            hidden_dim=model_cfg["embedding_dim"],
+            context_window=model_cfg["byte_context_window"],
         )
 
         # build the token embeddings
