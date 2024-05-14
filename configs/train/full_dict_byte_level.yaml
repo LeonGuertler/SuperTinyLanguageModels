@@ -63,7 +63,7 @@ training:
   eval_interval: 2000
   log_interval: 100
 
-  dataloader: "standard"
+  dataloader: "byte_pooling_dataloader"
   loss_fn: "cross_entropy"
 
   dropout_scheduler:
