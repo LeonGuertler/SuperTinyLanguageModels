@@ -50,3 +50,24 @@ def load_data(dataset_name, shuffle=True):
 
     # return the training and validation datasets
     return split_dataset
+
+
+def profilize(model, module_name=None):
+    """Recursively add hooks to the model for recording PyTorch profiler traces with module names"""
+    for idx, module in enumerate(model.children()):
+        if isinstance(module, torch.nn.Module):
+            child_module_name = f"{module_name}.{idx}" if module_name else str(idx)
+            profilize(module, child_module_name)
+
+    if hasattr(model, "forward"):
+
+        def forward_wrapper(*args, **kwargs):
+            try:
+                nested_module_name = module_name or model.__class__.__name__
+                torch.ops.profiler.record_function(f"{nested_module_name}.forward")
+                output = model.forward(*args, **kwargs)
+            finally:
+                torch.ops.profiler.record_function("# End: {module_name}.forward")
+            return output
+
+        model.forward = forward_wrapper
