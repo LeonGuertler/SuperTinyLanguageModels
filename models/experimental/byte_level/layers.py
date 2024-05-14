@@ -96,7 +96,7 @@ class ByteLevelTransformerBlock(torch.nn.Module):
             ffn_dim=ffn_dim,
             output_dim=output_dim,
             bias=False,
-            ffn_activation="glue"
+            ffn_activation="gelu"
         )
 
 
