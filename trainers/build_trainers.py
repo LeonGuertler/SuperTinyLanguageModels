@@ -11,6 +11,7 @@ from trainers.dataloader import (
     BytePoolingDataloader,
     Seq2SeqDataloader,
     StandardDataloader,
+    BaseDataloader
 )
 from trainers.loss_fn import cross_entropy_loss_fn
 from trainers.optimizer import configure_nanoGPT_optimizer
@@ -76,21 +77,23 @@ def build_dropout_scheduler(trainer_cfg):
     )
 
 
-DATALOADER_DICT = {
+DATALOADER_DICT: Dict[str, BaseDataloader] = {
     "standard": StandardDataloader,
     "byte_pooling_dataloader": BytePoolingDataloader,
     "seq2seq": Seq2SeqDataloader,
 }
 
 
-def build_dataloader(cfg, tokenizer):
+def build_dataloader(cfg, model):
     """
     Given the config, build the dataloader
     """
     return DATALOADER_DICT[cfg["trainer"]["dataloader"]["name"]](
         cfg=cfg,
         data_dir=cfg["general"]["paths"]["data_path"],
-        tokenizer=tokenizer,
+        tokenizer=model.embedder.tokenizer,
+        device=cfg["general"]["device"],
+        batch_size=cfg["trainer"]["dataloader"]["batch_size"],
     )
 
 
@@ -109,40 +112,32 @@ TRAINER_DICT = {
 }
 
 
-def build_trainer(cfg):
+def build_trainer(cfg, model):
     """
     Given a config, this function builds a trainer
     and all relevant components of it.
     """
 
-    # build model
-    model = build_model(
-        model_cfg=cfg,
-    )
-
-    # push model to device
-    model.to(cfg["general"]["device"])
-
     # build optimizer
     optimizer = build_optimizer(
-        model=model, optimizer_config=cfg["trainer"]["optimizer"]
+        model=model, optimizer_config=cfg["optimizer"]
     )
 
     # build LR scheduler
-    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg["trainer"])
+    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg)
 
     # build dropout scheduler
-    dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg["trainer"])
+    dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg)
 
     # build dataloder
-    dataloader = build_dataloader(cfg=cfg, tokenizer=model.embedding_model.tokenizer)
+    dataloader = build_dataloader(cfg=cfg, model=model)
 
     # build loss function
-    loss_fn = build_loss_fn(loss_fn_name=cfg["trainer"]["loss_fn"]["name"])
+    loss_fn = build_loss_fn(loss_fn_name=cfg["loss_fn"]["name"])
 
     # build the trainer
-    print(cfg["trainer"]["training"]["trainer"])
-    trainer = TRAINER_DICT[cfg["trainer"]["training"]["trainer"]](
+    print(cfg["training"]["trainer_type"])
+    trainer = TRAINER_DICT[cfg["training"]["trainer_type"]](
         cfg=cfg,
         model=model,
         optimizer=optimizer,
@@ -150,7 +145,7 @@ def build_trainer(cfg):
         dropout_scheduler=dropout_scheduler,
         dataloader=dataloader,
         loss_fn=loss_fn,
-        run_profile=cfg["trainer"]["training"]["run_profile"],
+        run_profile=cfg["training"]["run_profile"],
     )
 
     return trainer

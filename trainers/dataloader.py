@@ -14,13 +14,13 @@ from trainers.utils import load_data
 class BaseDataloader:
     """Abstract class for dataloaders"""
 
-    def __init__(self, cfg, data_dir, tokenizer):
+    def __init__(self, cfg, data_dir, tokenizer, device=None, batch_size=None, context_window=None):
         self.cfg = cfg
         self.data_dir = data_dir
         self.tokenizer = tokenizer
-        self.context_window = self.cfg["model_shell"]["context_window"]
-        self.batch_size = self.cfg["trainer"]["training"]["batch_size"]
-        self.device = self.cfg["general"]["device"]
+        self.context_window = context_window
+        self.batch_size = batch_size
+        self.device = device
         self.dataset_path = None  # to be set by child class
 
     def get_batch(self, split="train"):
@@ -91,7 +91,7 @@ class BaseDataloader:
 
         # load the dataset
         split_dataset = load_data(
-            dataset_name=self.cfg["trainer"]["dataset"],
+            dataset_name=self.cfg["dataset"],
         )
 
         print(split_dataset.keys())
@@ -125,9 +125,9 @@ class StandardDataloader(BaseDataloader):
         super().__init__(cfg, data_dir, tokenizer)
         self.dataset_path = os.path.join(
             self.data_dir,
-            self.cfg["trainer"]["dataset"],
-            f'{self.cfg["model_shell"]["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
-            self.cfg["trainer"]["dataloader"]["name"],
+            self.cfg["dataset"],
+            f'{self.cfg["tokenizer"]}-{self.cfg["model_shell"]["vocab_size"]}',
+            self.cfg["dataloader"]["name"],
         )
 
 

@@ -17,6 +17,7 @@ def build_model(model_cfg=None, checkpoint=None):
     Args:
         model_cfg: model_configuration
         model_checkpoint: model_checkpoint_dict
+        dataset_name: the dataset for the tokenizer
     Returns:
         model: model instance
     """
@@ -49,7 +50,7 @@ def build_embedding_model(model_cfg):
     Returns:
         embedding_model: embedding_model_instance
     """
-    return EMBEDDING_MODEL_DICT[model_cfg["embedding_model_type"]](model_cfg=model_cfg)
+    return EMBEDDING_MODEL_DICT[model_cfg["embedder"]["embedding_model_type"]](model_cfg=model_cfg)
 
 
 CORE_MODEL_DICT = {"generic": GenericTransformer}
@@ -68,7 +69,7 @@ def build_core_model(model_cfg):
     )
 
 
-MODEL_HEAD_DICT = {"lm_head": AutoregressiveLMHead}
+MODEL_HEAD_DICT = {"generic": AutoregressiveLMHead}
 
 
 def build_model_head(model_cfg):
@@ -79,7 +80,7 @@ def build_model_head(model_cfg):
     Returns:
         model_head: model_head_instance
     """
-    return MODEL_HEAD_DICT[model_cfg["model_head_type"]](model_cfg=model_cfg)
+    return MODEL_HEAD_DICT[model_cfg["lm_head"]["lm_head_type"]](model_cfg=model_cfg)
 
 
 MODEL_SHELL_DICT = {"standard": ModelShell}

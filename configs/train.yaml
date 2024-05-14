@@ -1,2 +1,4 @@
-model: baseline
-trainer: baseline
+defaults:
+- model: baseline
+- trainer: baseline
+- general: default
