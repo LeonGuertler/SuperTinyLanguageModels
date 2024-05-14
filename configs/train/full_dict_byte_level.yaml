@@ -52,7 +52,7 @@ model:
 
 training:
   dataset: "simple_en_wiki"
-  trainer: "base_trainer"
+  trainer: "byte_trainer"
 
   batch_size: 24
   gradient_accumulation_steps: 20
