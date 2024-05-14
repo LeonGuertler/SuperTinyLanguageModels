@@ -25,7 +25,7 @@ class ByteTrainer:
         self.loss_fn = loss_fn
         self.cfg = cfg
         self.gradient_accumulation_steps = (
-            cfg.trainer.training.gradient_accumulation_steps
+            cfg.training.gradient_accumulation_steps
         )
         self.scaler = None
         self.use_wandb = cfg.general.logging.wandb_log
@@ -43,7 +43,7 @@ class ByteTrainer:
         # set run name
         run_name = (
             f"{self.cfg.core_model.core_model_type}_{self.cfg.model_shell.shell_type}"
-            f"_{self.cfg.trainer.dataset}_{self.cfg.model_shell.tokenizer}"
+            f"_{self.cfg.training.dataset}_{self.cfg.model_shell.tokenizer}"
             f"_{self.cfg.model_shell.vocab_size}"
         )
         wandb.init(
@@ -111,7 +111,7 @@ class ByteTrainer:
                     loss += aux_loss
                 loss = loss / self.gradient_accumulation_steps
             self.scaler.scale(loss).backward()
-        grad_clip = self.cfg.trainer.optimizer.grad_clip
+        grad_clip = self.cfg.training.optimizer.grad_clip
         if grad_clip != 0.0:
             self.scaler.unscale_(self.optimizer)
             torch.nn.utils.clip_grad_norm_(
@@ -140,11 +140,11 @@ class ByteTrainer:
 
     def run_training_loop(self):
         """Run the training loop"""
-        for iter_num in range(self.cfg.trainer.training.max_iters):
+        for iter_num in range(self.cfg.training.max_iters):
             t0 = time.time()
             lr = self.scheduler.step(self.optimizer, iter_num)
             # estimate the loss on the train/val sets
-            if not iter_num % self.cfg.trainer.training.eval_interval:
+            if not iter_num % self.cfg.training.eval_interval:
                 losses = self.estimate_loss(self.model)
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f}, "
@@ -160,12 +160,12 @@ class ByteTrainer:
                         }
                     )
             # save checkpoints
-            if not iter_num % self.cfg.trainer.training.checkpoint_interval:
+            if not iter_num % self.cfg.training.checkpoint_interval:
                 self._save_model(iter_num)
 
             loss = self._run_step()
             t1 = time.time()
-            if not iter_num % self.cfg.trainer.training.log_interval:
+            if not iter_num % self.cfg.training.log_interval:
                 lossf = (
                     loss.item() * self.gradient_accumulation_steps
                 )  # TODO double check
