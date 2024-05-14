@@ -67,11 +67,11 @@ class ByteLevelDecoder(torch.nn.Module):
 
         # project the latent embeddings
         x = self.projection(x)
-        x = x.view(x.size(0), x.size(1), self.byte_context_window, self.byte_hidden_dim)
+        x = x.view(x.size(0), x.size(1), self.byte_context_window, self.embedding_dim)
 
         # pass through model and deocde 
         B, S, _, _ = x.size()
-        x = x.view(B*S, self.byte_context_window, self.byte_hidden_dim)
+        x = x.view(B*S, self.byte_context_window, self.embedding_dim)
 
         # positional encoding
         x = x + self.pos_encoder(x)
