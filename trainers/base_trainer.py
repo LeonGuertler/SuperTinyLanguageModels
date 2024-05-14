@@ -187,7 +187,7 @@ class BaseTrainer:
 
             loss = self._run_step()
             end_time = time.time()
-            if not (iter_num+1)\ % self.cfg.training.log_interval:
+            if not (iter_num+1) % self.cfg.training.log_interval:
                 lossf = (
                     loss.item() * self.gradient_accumulation_steps
                 )  # TODO double check
