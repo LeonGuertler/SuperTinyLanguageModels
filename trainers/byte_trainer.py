@@ -15,11 +15,13 @@ class ByteTrainer:
     Uses subcomponents: optimizer, scheduler,
     model, dataloader, loss functions, logger"""
 
-    def __init__(self, cfg, model, optimizer, scheduler, dataloader, loss_fn) -> None:
+    def __init__(self, cfg, model, optimizer, lr_scheduler, dropout_scheduler, dataloader, loss_fn) -> None:
         self.model = model
         self.optimizer = optimizer
-        self.scheduler = scheduler
+        self.scheduler = lr_scheduler
+        self.dropout_scheduler = dropout_scheduler
         self.dataloader = dataloader
+        self.lr_scheduler = lr_scheduler
         self.loss_fn = loss_fn
         self.cfg = cfg
         self.gradient_accumulation_steps = (
