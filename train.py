@@ -24,8 +24,8 @@ def main(cfg):
 
     # load the relevant trainer
     trainer = build_trainer(
-        cfg=cfg["trainer"],
-        model=model
+        cfg=cfg,
+        model=model,
     )
     # preprocess the training data
     trainer.preprocess_data()

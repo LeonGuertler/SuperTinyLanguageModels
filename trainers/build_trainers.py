@@ -23,11 +23,11 @@ from trainers.scheduler import (
 )
 
 OPTIMIZER_DICT = {
-    "nanoGPTadamW": lambda model, cfg: configure_nanoGPT_optimizer(
+    "nanoGPTadamW": lambda model, trainer_cfg: configure_nanoGPT_optimizer(
         model=model,
-        weight_decay=cfg["weight_decay"],
-        learning_rate=cfg["lr"],
-        betas=(cfg["beta1"], cfg["beta2"]),
+        weight_decay=trainer_cfg["weight_decay"],
+        learning_rate=trainer_cfg["lr"],
+        betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
     )
 }
 
@@ -36,18 +36,18 @@ def build_optimizer(model, optimizer_config):
     """
     Given the optimizer config, build the optimizer
     """
-    return OPTIMIZER_DICT[optimizer_config["name"]](model=model, cfg=optimizer_config)
+    return OPTIMIZER_DICT[optimizer_config["name"]](model=model, trainer_cfg=optimizer_config)
 
 
 SCHEDULER_DICT = {
-    "cosine": lambda cfg: CosineLRScheduler(
-        warmup_iters=cfg["training"]["warmup_iters"],
-        decay_iters=cfg["training"]["lr_decay_iters"],
-        lr=cfg["optimizer"]["lr"],
-        min_lr=cfg["optimizer"]["min_lr"],
+    "cosine": lambda trainer_cfg: CosineLRScheduler(
+        warmup_iters=trainer_cfg["training"]["warmup_iters"],
+        decay_iters=trainer_cfg["training"]["lr_decay_iters"],
+        lr=trainer_cfg["optimizer"]["lr"],
+        min_lr=trainer_cfg["optimizer"]["min_lr"],
     ),
-    "constant": lambda cfg: LRScheduler(
-        lr=cfg["optimizer"]["lr"],
+    "constant": lambda trainer_cfg: LRScheduler(
+        lr=trainer_cfg["optimizer"]["lr"],
     ),
 }
 
@@ -56,7 +56,7 @@ def build_lr_scheduler(trainer_cfg):
     """
     Given the trainer config, build the LR scheduler.build_model
     """
-    return SCHEDULER_DICT[trainer_cfg["lr_scheduler"]["name"]](cfg=trainer_cfg)
+    return SCHEDULER_DICT[trainer_cfg["lr_scheduler"]["name"]](trainer_cfg=trainer_cfg)
 
 
 def build_dropout_scheduler(trainer_cfg):
@@ -77,23 +77,20 @@ def build_dropout_scheduler(trainer_cfg):
     )
 
 
-DATALOADER_DICT: Dict[str, BaseDataloader] = {
+DATALOADER_DICT: dict[str, BaseDataloader] = {
     "standard": StandardDataloader,
     "byte_pooling_dataloader": BytePoolingDataloader,
     "seq2seq": Seq2SeqDataloader,
 }
 
 
-def build_dataloader(cfg, model):
+def build_dataloader(cfg, tokenizer):
     """
     Given the config, build the dataloader
     """
-    return DATALOADER_DICT[cfg["trainer"]["dataloader"]["name"]](
+    return DATALOADER_DICT[cfg.trainer["dataloader"]["name"]](
         cfg=cfg,
-        data_dir=cfg["general"]["paths"]["data_path"],
-        tokenizer=model.embedder.tokenizer,
-        device=cfg["general"]["device"],
-        batch_size=cfg["trainer"]["dataloader"]["batch_size"],
+        tokenizer=tokenizer,
     )
 
 
@@ -120,24 +117,25 @@ def build_trainer(cfg, model):
 
     # build optimizer
     optimizer = build_optimizer(
-        model=model, optimizer_config=cfg["optimizer"]
+        model=model, optimizer_config=cfg.trainer["optimizer"]
     )
 
     # build LR scheduler
-    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg)
+    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg.trainer)
 
     # build dropout scheduler
-    dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg)
+    dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg.trainer)
 
     # build dataloder
-    dataloader = build_dataloader(cfg=cfg, model=model)
+    dataloader = build_dataloader(cfg=cfg, tokenizer = model.embedding_model.tokenizer)
+    dataloader.prepare_data()
 
     # build loss function
-    loss_fn = build_loss_fn(loss_fn_name=cfg["loss_fn"]["name"])
+    loss_fn = build_loss_fn(loss_fn_name=cfg.trainer["loss_fn"]["name"])
 
     # build the trainer
-    print(cfg["training"]["trainer_type"])
-    trainer = TRAINER_DICT[cfg["training"]["trainer_type"]](
+    print(cfg.trainer["training"]["trainer_type"])
+    trainer = TRAINER_DICT[cfg.trainer["training"]["trainer_type"]](
         cfg=cfg,
         model=model,
         optimizer=optimizer,
@@ -145,7 +143,6 @@ def build_trainer(cfg, model):
         dropout_scheduler=dropout_scheduler,
         dataloader=dataloader,
         loss_fn=loss_fn,
-        run_profile=cfg["training"]["run_profile"],
     )
 
     return trainer

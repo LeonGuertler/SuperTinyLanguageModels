@@ -38,6 +38,6 @@ class AutoregressiveLMHead(torch.nn.Module):
         x = self.layer_norm(x)
 
         # pass through the linear layer
-        x = self.lm_head(x)
+        x = self.linear(x)
 
-        return x
+        return x, None

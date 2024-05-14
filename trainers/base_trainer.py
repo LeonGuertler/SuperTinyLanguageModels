@@ -26,7 +26,6 @@ class BaseTrainer:
         loss_fn,
         lr_scheduler=None,
         dropout_scheduler=None,
-        run_profile=False,
     ) -> None:
         self.model = model
         self.optimizer = optimizer
@@ -36,26 +35,27 @@ class BaseTrainer:
         self.loss_fn = loss_fn
         self.cfg = cfg
         self.gradient_accumulation_steps = (
-            cfg.trainer.training.gradient_accumulation_steps
+            self.cfg.trainer.training.gradient_accumulation_steps
         )
         self.scaler = None
-        self.use_wandb = cfg.general.logging.wandb_log
-        self.checkpoint_dir = cfg.general.paths.checkpoint_dir
+        self.use_wandb = self.cfg.general.logging.wandb_log
+        self.checkpoint_dir = self.cfg.general.paths.checkpoint_dir
 
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
         self.ctx = self._setup_ctx()
         if self.use_wandb:
             self._setup_logging()
-        if run_profile:
+        if cfg.trainer.training.run_profiler:
             self.run_profile()
 
     def _setup_logging(self):
         # set run name
         run_name = (
-            f"{self.cfg.core_model.core_model_type}_{self.cfg.model_shell.shell_type}"
-            f"_{self.cfg.trainer.dataset}_{self.cfg.model_shell.tokenizer}"
-            f"_{self.cfg.model_shell.vocab_size}"
+            f"{self.cfg.model['model_shell_type']}"
+            f"_{self.cfg.model['core_model']['core_model_type']}"
+            f"_{self.cfg.trainer['dataset']}_{self.cfg.model['embedder']['embedding_model_type']}"
+            f"_{self.cfg.model['vocab_size']}"
         )
         wandb.init(
             project=self.cfg.general.logging.wandb_project,
@@ -150,7 +150,7 @@ class BaseTrainer:
             with_stack=True,
         ) as prof:
             for i in range(10):
-                if i > 1:
+                if i <= 3:
                     self._run_step()
                 else:
                     with record_function("_run_step"):
@@ -189,7 +189,7 @@ class BaseTrainer:
 
     def run_training_loop(self):
         """Run the training loop"""
-        for iter_num in range(self.cfg.trainer.training.max_iters):
+        for iter_num in range(self.cfg.training.max_iters):
             start_time = time.time()
             if self.lr_scheduler is not None:
                 lr = self.lr_scheduler.step(self.optimizer, iter_num)
@@ -197,7 +197,7 @@ class BaseTrainer:
                 lr = self.optimizer.param_groups[0]["lr"]
             dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
-            if not iter_num % self.cfg.trainer.training.eval_interval:
+            if not iter_num % self.cfg.training.eval_interval:
                 losses, perplexities = self.estimate_performance(
                     self.model, tokenizer=self.model.tokenizer
                 )
@@ -222,12 +222,12 @@ class BaseTrainer:
                         }
                     )
             # save checkpoints
-            if not iter_num % self.cfg.trainer.training.checkpoint_interval:
+            if not iter_num % self.cfg.training.checkpoint_interval:
                 self._save_model(iter_num)
 
             loss = self._run_step()
             end_time = time.time()
-            if not iter_num % self.cfg.trainer.training.log_interval:
+            if not iter_num % self.cfg.training.log_interval:
                 lossf = loss.item() * self.gradient_accumulation_steps
                 print(
                     f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s"

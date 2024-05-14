@@ -16,32 +16,27 @@ class BaseDataloader:
 
     def __init__(
         self,
-        model_cfg,
-        trainer_cfg,
+        cfg,
         tokenizer,
     ):
         """Arguments:
-        model_cfg: the model configuration
-            This is required to get the context window size among other things
-        trainer_cfg: the trainer configuration
-            This is required to get the batch size and the dataset name
+        cfg: the train script cfg,
         tokenizer: the tokenizer object
             This is required to pre-tokenize the data
         """
-        self.model_cfg = model_cfg
-        self.trainer_cfg = trainer_cfg
-        self.tokenized_data_dir = trainer_cfg["tokinized_data_dir"]
+        self.model_cfg = cfg.model
+        self.trainer_cfg = cfg.trainer
+        self.tokenized_data_dir = self.trainer_cfg["dataloader"]["tokenized_data_dir"]
         self.tokenizer = tokenizer
-        self.context_window = model_cfg["context_window"]
-        self.vocab_size = model_cfg["vocab_size"]
-        self.batch_size = trainer_cfg["batch_size"]
-        self.dataset_name = trainer_cfg["dataset"]
-        self.device = tokenizer.device
+        self.context_window = self.model_cfg["context_window"]
+        self.vocab_size = self.model_cfg["vocab_size"]
+        self.batch_size = self.trainer_cfg["training"]["batch_size"]
+        self.dataset_name = self.trainer_cfg["dataset"]
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.tokenized_data_path = os.path.join(
             self.tokenized_data_dir,
             self.dataset_name,
-            f'{self.model_cfg["tokenizer"]}-{self.model_cfg["vocab_size"]}',
-            self.model_cfg["embedder"]["tokenizer_type"],
+            f'{self.model_cfg["embedder"]["tokenizer_type"]}-{self.model_cfg["vocab_size"]}'
         )
 
     def get_batch(self, split="train"):
