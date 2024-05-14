@@ -8,7 +8,7 @@ import torch
 from models.components.tokenizers import build_tokenizer
 from models.components.positional_encoding import build_positional_encodings
 
-from models.components.experimental.byte_level.layers import (
+from models.experimental.byte_level.layers import (
     ProjectingFFN,
     ByteLevelTransformerBlock,
 )

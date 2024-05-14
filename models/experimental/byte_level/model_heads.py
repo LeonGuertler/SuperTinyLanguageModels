@@ -5,7 +5,7 @@ import torch
 
 
 from models.components.layers.normalization import build_normalization
-from models.components.experimental.byte_level.layers import (
+from models.experimental.byte_level.layers import (
     ProjectingFFN,
     ByteLevelTransformerBlock,
 )
