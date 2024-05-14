@@ -48,7 +48,7 @@ model:
   #lm_head_bias: false
 
   model_shell_type: "standard"
-  embedding_weight_tying: true
+  embedding_weight_tying: false
 
 training:
   dataset: "simple_en_wiki"
