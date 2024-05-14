@@ -23,6 +23,7 @@ class LearnedPosEncoding(torch.nn.Module):
             x: torch.tensor(B, S, H)
         """
         # check device
+        input(x.size())
 
         if len(x.shape) >= 2:
             return x + (
