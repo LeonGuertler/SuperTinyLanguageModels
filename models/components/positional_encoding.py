@@ -30,7 +30,7 @@ class LearnedPosEncoding(torch.nn.Module):
             return x + (
                 self.pe(torch.arange(x.size(1), device=x.device))
                 .unsqueeze(0)
-                .to(x.device)
+                #.to(x.device)
             )
         else:
             return x + self.pe(torch.arange(x.size(1), device=x.device))
