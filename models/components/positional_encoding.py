@@ -25,11 +25,13 @@ class LearnedPosEncoding(torch.nn.Module):
         # check device
         input(x.size())
         input(self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0).to(x.device).size())
+        input(
+            (x+self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0).to(x.device)).size()
+        )
 
         if len(x.shape) >= 2:
             return x + (
-                self.pe(torch.arange(x.size(1), device=x.device))
-                .unsqueeze(0)
+                self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0)
                 #.to(x.device)
             )
         else:
