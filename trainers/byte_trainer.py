@@ -141,7 +141,7 @@ class ByteTrainer:
 
     def run_training_loop(self):
         """Run the training loop"""
-        for iter_num in range(self.cfg.training.max_iters):
+        for iter_num in range(self.cfg.training.max_iter):
             t0 = time.time()
             lr = self.scheduler.step(self.optimizer, iter_num)
             # estimate the loss on the train/val sets
