@@ -386,7 +386,7 @@ class BytePoolingDataloader:
         for split, dset in tokenized.items():
             arr_len = np.sum(dset["len"], dtype=np.uint64)
             filename = os.path.join(self.dataset_path, f"{split}.bin")
-            arr = np.memmap(filename, dtype="S", mode="w+", shape=(arr_len,))
+            arr = np.memmap(filename, dtype=np.uint16, mode="w+", shape=(arr_len,))
             total_batches = 1024
 
             idx = 0
