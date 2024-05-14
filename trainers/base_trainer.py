@@ -160,7 +160,7 @@ class BaseTrainer:
                 lr = self.optimizer.param_groups[0]["lr"]
             dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
-            if not iter_num % self.cfg.training.eval_interval:
+            if not (iter_num+1) % self.cfg.training.eval_interval:
                 losses, perplexities = self.estimate_performance(
                     self.model, tokenizer=self.model.embedding_model.tokenizer
                 )
@@ -187,7 +187,7 @@ class BaseTrainer:
 
             loss = self._run_step()
             end_time = time.time()
-            if not iter_num % self.cfg.training.log_interval:
+            if not (iter_num+1)\ % self.cfg.training.log_interval:
                 lossf = (
                     loss.item() * self.gradient_accumulation_steps
                 )  # TODO double check

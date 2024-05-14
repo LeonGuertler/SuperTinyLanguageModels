@@ -5,7 +5,17 @@ core model, lm head and the model shell.
 import torch 
 
 from models.embedding_models import GenericEmbedder
-from models.core_models import GenericTransformer
+from models.core_models import (
+    GenericTransformer
+)
+from models.experimental.byte_level.embedding_model import (
+    ByteLevelEmbedder
+)
+from models.experimental.byte_level.model_heads import (
+    ByteLevelDecoder
+)
+
+
 from models.model_heads import AutoregressiveLMHead
 
 from models.model_shell import ModelShell
@@ -43,7 +53,8 @@ def build_model(model_cfg=None, checkpoint=None):
 
 
 EMBEDDING_MODEL_DICT = {
-    "generic": GenericEmbedder
+    "generic": GenericEmbedder,
+    "byte_level_embedder": ByteLevelEmbedder
 }
 def build_embedding_model(model_cfg):
     """
@@ -74,7 +85,8 @@ def build_core_model(model_cfg):
     
 
 MODEL_HEAD_DICT = {
-    "lm_head": AutoregressiveLMHead
+    "lm_head": AutoregressiveLMHead,
+    "byte_level_decoder": ByteLevelDecoder
 }
 
 def build_model_head(model_cfg):
