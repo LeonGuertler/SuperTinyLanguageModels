@@ -14,7 +14,7 @@ training:
   log_interval: 1
   eval_iters: 200
   checkpoint_interval: 1e9
-  run_profiler: True
+  run_profiler: false
 
 optimizer:
   name: "nanoGPTadamW"
