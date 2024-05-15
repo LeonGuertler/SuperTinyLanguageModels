@@ -18,13 +18,14 @@ class GenericTransformer(torch.nn.Module):
 
         # build the transformer
         self.transformer = torch.nn.ModuleDict(
-            dict(
-                drop=torch.nn.Dropout(),
-                h=torch.nn.ModuleList(
+            {
+                "drop": torch.nn.Dropout(),
+                "h": torch.nn.ModuleList(
                     [
                         GenericTransformerBlock(
                             hidden_dim=model_cfg["hidden_dim"],
                             context_window=model_cfg["context_window"],
+                            use_rope=model_cfg["positional_encoding_type"] == "rope",
                             ffn_cfg=model_cfg["core_model"]["ffn"],
                             attn_cfg=model_cfg["core_model"]["attn"],
                             norm_bias=model_cfg["core_model"]["norm_bias"],
@@ -32,7 +33,7 @@ class GenericTransformer(torch.nn.Module):
                         for _ in range(model_cfg["core_model"]["num_layers"])
                     ]
                 ),
-            )
+            }
         )
 
     def forward(self, x):

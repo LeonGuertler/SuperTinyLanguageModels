@@ -13,5 +13,4 @@ attn:
   normalization: "rms_norm"
   group_size: 4
   bias: True
-  use_rope: False
   is_causal: False
