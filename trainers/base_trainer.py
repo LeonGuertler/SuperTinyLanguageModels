@@ -9,6 +9,8 @@ from torch.profiler import ProfilerActivity, profile, record_function
 
 from trainers import utils
 
+torch.multiprocessing.set_start_method("spawn")
+
 
 # pylint: disable invalid-name
 class BaseTrainer:
@@ -34,12 +36,12 @@ class BaseTrainer:
         self.dataloader = dataloader
         self.loss_fn = loss_fn
         self.cfg = cfg
-        self.gradient_accumulation_steps = (
-            self.cfg.trainer.training.gradient_accumulation_steps
-        )
+        self.gradient_accumulation_steps = cfg["training"][
+            "gradient_accumulation_steps"
+        ]
         self.scaler = None
-        self.use_wandb = self.cfg.general.logging.wandb_log
-        self.checkpoint_dir = self.cfg.general.paths.checkpoint_dir
+        self.use_wandb = cfg["general"]["logging"]["wandb_log"]
+        self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
 
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
@@ -127,7 +129,7 @@ class BaseTrainer:
                     loss += aux_loss
                 loss = loss / self.gradient_accumulation_steps
             self.scaler.scale(loss).backward()
-        grad_clip = self.cfg.trainer.optimizer.grad_clip
+        grad_clip = self.cfg.training.optimizer.grad_clip
         if grad_clip != 0.0:
             self.scaler.unscale_(self.optimizer)
             torch.nn.utils.clip_grad_norm_(
