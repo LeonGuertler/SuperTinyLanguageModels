@@ -8,10 +8,10 @@ from models.build_model import build_model
 # from trainers.standard_trainer import BaseTrainer
 from trainers.base_trainer import BaseTrainer
 from trainers.dataloader import (
+    BaseDataloader,
     BytePoolingDataloader,
     Seq2SeqDataloader,
     StandardDataloader,
-    BaseDataloader
 )
 from trainers.loss_fn import cross_entropy_loss_fn
 from trainers.optimizer import configure_nanoGPT_optimizer
@@ -36,7 +36,9 @@ def build_optimizer(model, optimizer_config):
     """
     Given the optimizer config, build the optimizer
     """
-    return OPTIMIZER_DICT[optimizer_config["name"]](model=model, trainer_cfg=optimizer_config)
+    return OPTIMIZER_DICT[optimizer_config["name"]](
+        model=model, trainer_cfg=optimizer_config
+    )
 
 
 SCHEDULER_DICT = {
@@ -63,9 +65,9 @@ def build_dropout_scheduler(trainer_cfg):
     """
     Given the trainer config, build the dropout scheduler.
     """
-    if trainer_cfg["dropout_scheduler"]["name"] == "constant":
+    if trainer_cfg["dropout_scheduler"]["dropout_type"] == "constant":
         return DropoutScheduler(trainer_cfg["dropout_scheduler"]["dropout"])
-    if trainer_cfg["dropout_scheduler"]["name"] == "linear":
+    if trainer_cfg["dropout_scheduler"]["dropout_type"] == "linear":
         return LinearDropoutScheduler(
             start_dropout_p=trainer_cfg["dropout_scheduler"]["start_dropout_p"],
             end_dropout_p=trainer_cfg["dropout_scheduler"]["end_dropout_p"],
@@ -73,7 +75,7 @@ def build_dropout_scheduler(trainer_cfg):
             end_iter=trainer_cfg["dropout_scheduler"]["end_iter"],
         )
     raise NotImplementedError(
-        f"dropout scheduler {trainer_cfg['dropout_scheduler']['name']} not implemented."
+        f"dropout scheduler {trainer_cfg['dropout_scheduler']['dropout_type']} not implemented."
     )
 
 
@@ -116,9 +118,7 @@ def build_trainer(cfg, model):
     """
 
     # build optimizer
-    optimizer = build_optimizer(
-        model=model, optimizer_config=cfg.trainer["optimizer"]
-    )
+    optimizer = build_optimizer(model=model, optimizer_config=cfg.trainer["optimizer"])
 
     # build LR scheduler
     lr_scheduler = build_lr_scheduler(trainer_cfg=cfg.trainer)
@@ -127,7 +127,7 @@ def build_trainer(cfg, model):
     dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg.trainer)
 
     # build dataloder
-    dataloader = build_dataloader(cfg=cfg, tokenizer = model.embedding_model.tokenizer)
+    dataloader = build_dataloader(cfg=cfg, tokenizer=model.embedding_model.tokenizer)
     dataloader.prepare_data()
 
     # build loss function
