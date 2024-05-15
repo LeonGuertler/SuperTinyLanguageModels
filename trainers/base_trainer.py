@@ -7,6 +7,8 @@ import wandb
 from omegaconf import OmegaConf
 from torch.profiler import ProfilerActivity, profile, record_function
 
+from models import model_shell
+from trainers import dataloader as train_dataloader
 from trainers import utils
 
 torch.multiprocessing.set_start_method("spawn")
@@ -22,9 +24,9 @@ class BaseTrainer:
     def __init__(
         self,
         cfg,
-        model,
+        model: model_shell.ModelShell,
         optimizer,
-        dataloader,
+        dataloader: train_dataloader.BaseDataloader,
         loss_fn,
         lr_scheduler=None,
         dropout_scheduler=None,
@@ -93,12 +95,12 @@ class BaseTrainer:
         self.dataloader.prepare_data()
 
     @torch.no_grad()
-    def estimate_performance(self, model, eval_iters=1000):
+    def estimate_performance(self, eval_iters=1000):
         """Estimate the loss"""
         loss = {}
         perplexity = {}
-        model.eval()
-        tokenizer = model.embedding_model.tokenizer
+        self.model.eval()
+        tokenizer = self.model.embedding_model.tokenizer
         for split in ["train", "val"]:
             losses = torch.zeros(eval_iters)
             perplexities = torch.zeros(eval_iters)
@@ -108,14 +110,14 @@ class BaseTrainer:
                 token_lengths = [x.size(1) for _ in range(x.size(0))]
                 char_lengths = [len(decoded_x) for decoded_x in decoded_xs]
                 with self.ctx:
-                    output, _ = model(x)
+                    output, _ = self.model(x)
                     losses[i] = self.loss_fn(output, y)
                     perplexities[i] = torch.exp(
                         losses[i] * sum(token_lengths) / sum(char_lengths)
                     )
             loss[split] = losses.mean().item()
             perplexity[split] = perplexities.mean().item()
-        model.train()
+        self.model.train()
         return loss, perplexity
 
     def _run_step(self):
@@ -172,9 +174,9 @@ class BaseTrainer:
             profile_memory=True,
             with_stack=True,
         ) as prof:
-            self.estimate_performance(self.model, eval_iters=1)
+            self.estimate_performance(eval_iters=1)
             with record_function("estimate_performance"):
-                self.estimate_performance(self.model, eval_iters=10)
+                self.estimate_performance(eval_iters=10)
             # place profile in dictionary
         forwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
         print(forwards_prof)

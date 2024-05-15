@@ -5,6 +5,8 @@ core model and LM head.
 
 import torch
 
+from models import core_models, embedding_models, model_heads
+
 
 class ModelShell(torch.nn.Module):
     """
@@ -13,7 +15,13 @@ class ModelShell(torch.nn.Module):
     and prints basic model statistics.
     """
 
-    def __init__(self, embedding_model, core_model, model_head, weight_init_func=None):
+    def __init__(
+        self,
+        embedding_model: embedding_models.GenericEmbedder,
+        core_model: core_models.GenericTransformer,
+        model_head: model_heads.AutoregressiveLMHead,
+        weight_init_func=None,
+    ):
         super().__init__()
         self.embedding_model = embedding_model
         self.core_model = core_model
