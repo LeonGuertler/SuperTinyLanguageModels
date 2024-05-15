@@ -13,6 +13,8 @@ from trainers.utils import create_folder_structure
 def main(cfg):
     """Creates folder structure as necessary, and runs train"""
     # set data path to absolute path
+    if "full_configs" in cfg:
+        cfg = cfg["full_configs"]
     cfg["general"]["paths"]["data_dir"] = hydra.utils.to_absolute_path(
         cfg["general"]["paths"]["data_dir"]
     )

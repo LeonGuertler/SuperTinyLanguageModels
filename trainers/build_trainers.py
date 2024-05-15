@@ -6,7 +6,7 @@ and the trainer itself.
 from trainers.base_trainer import BaseTrainer
 from trainers.dataloader import (
     BaseDataloader,
-    BytePoolingDataloader,
+    # BytePoolingDataloader,
     Seq2SeqDataloader,
     StandardDataloader,
 )
@@ -78,18 +78,18 @@ def build_dropout_scheduler(trainer_cfg):
 
 DATALOADER_DICT: dict[str, BaseDataloader] = {
     "standard": StandardDataloader,
-    "byte_pooling_dataloader": BytePoolingDataloader,
+    # "byte_pooling": BytePoolingDataloader,
     "seq2seq": Seq2SeqDataloader,
 }
 
 
-def build_dataloader(cfg, tokenizer):
+def build_dataloader(cfg, embedder):
     """
     Given the config, build the dataloader
     """
     return DATALOADER_DICT[cfg.trainer["dataloader"]["name"]](
         cfg=cfg,
-        tokenizer=tokenizer,
+        embedder=embedder,
     )
 
 
@@ -124,7 +124,7 @@ def build_trainer(cfg, model):
     dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg.trainer)
 
     # build dataloder
-    dataloader = build_dataloader(cfg=cfg, tokenizer=model.embedding_model.tokenizer)
+    dataloader = build_dataloader(cfg=cfg, embedder=model.embedding_model)
     dataloader.prepare_data()
 
     # build loss function

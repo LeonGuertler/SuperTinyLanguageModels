@@ -20,7 +20,7 @@ class ByteLevelDecoder(torch.nn.Module):
     def __init__(self, model_cfg):
         super().__init__()
         self.hidden_dim = model_cfg["hidden_dim"]
-        self.embedding_dim = model_cfg["embedding_dim"]
+        self.embedding_dim = model_cfg["byte_embedding_dim"]
         self.byte_vocab_size = model_cfg["byte_vocab_size"]
         self.byte_context_window = model_cfg["byte_context_window"]
 

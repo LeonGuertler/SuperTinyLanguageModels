@@ -12,7 +12,9 @@ from models.components.tokenizers import build_tokenizer
 
 class GenericEmbedder(torch.nn.Module):
     """
-    A simple and flexible embedding model
+    A simple and flexible embedding model.
+
+    All embedders should inherit from this class.
     """
 
     def __init__(self, model_cfg):
@@ -57,7 +59,7 @@ class GenericEmbedder(torch.nn.Module):
         """
         Tokenize an input string.
         """
-        return self.tokenizer.encode(input_string)
+        return self.tokenizer.encode(input_string) + [(self.tokenizer.eot_token)]
 
     def inference(self, input_string):
         """

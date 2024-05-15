@@ -11,7 +11,7 @@ from models import model_shell
 from trainers import dataloader as train_dataloader
 from trainers import utils
 
-torch.multiprocessing.set_start_method("spawn")
+# torch.multiprocessing.set_start_method("spawn")
 
 
 # pylint: disable invalid-name
@@ -230,7 +230,10 @@ class BaseTrainer:
                         }
                     )
             # save checkpoints
-            if not iter_num % self.cfg.trainer.training.checkpoint_interval and iter_num > 0:
+            if (
+                not iter_num % self.cfg.trainer.training.checkpoint_interval
+                and iter_num > 0
+            ):
                 self._save_model(iter_num)
 
             loss = self._run_step()

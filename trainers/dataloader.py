@@ -8,6 +8,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
+from models.embedding_models import GenericEmbedder
 from trainers.utils import load_data
 
 
@@ -17,7 +18,7 @@ class BaseDataloader:
     def __init__(
         self,
         cfg,
-        tokenizer,
+        embedder,
     ):
         """Arguments:
         cfg: the train script cfg,
@@ -27,7 +28,7 @@ class BaseDataloader:
         self.model_cfg = cfg.model
         self.trainer_cfg = cfg.trainer
         self.tokenized_data_dir = cfg["general"]["paths"]["data_dir"]
-        self.tokenizer = tokenizer
+        self.embedder: GenericEmbedder = embedder
         self.context_window = self.model_cfg["context_window"]
         self.vocab_size = self.model_cfg["vocab_size"]
         self.batch_size = self.trainer_cfg["training"]["batch_size"]
@@ -115,20 +116,26 @@ class BaseDataloader:
         print(split_dataset.keys())
 
         def process(example):
-            ids = self.tokenizer.encode(example["text"])
-            ids.append(self.tokenizer.eot_token)
+            ids = self.embedder.tokenize_input(example["text"])
+            # FIX SHOULD JUST BE DOING THE PADDING STUFF??
+            print([np.array(id).shape for id in ids])
             return {"ids": ids, "len": len(ids)}
 
-        # tokenize the dataset
-        tokenized = split_dataset.map(
-            process,
-            remove_columns=["text"],
-            desc="tokenizing the splits",
-            num_proc=8,
-        )
+        try:
+            # tokenize the dataset
+            tokenized = split_dataset.map(
+                process,
+                remove_columns=["text"],
+                desc="tokenizing the splits",
+                num_proc=1,
+            )
 
-        # concatenate all the ids in each dataset into one large file we can use for training
-        self._write_tokenized_data(tokenized)
+            # concatenate all the ids in each dataset into one large file we can use for training
+            self._write_tokenized_data(tokenized)
+        except RuntimeError as exc:
+            # if we fail, destroy the file
+            os.removedirs(self.tokenized_data_path)
+            raise SystemExit from exc
 
 
 class StandardDataloader(BaseDataloader):
@@ -185,70 +192,70 @@ class Seq2SeqDataloader(BaseDataloader):
         return X, y
 
 
-class BytePoolingDataloader(BaseDataloader):
-    """
-    A basic dataloader that preprocesses a dataset via
-    tokenization, and then randomly loads batches as
-    necessary.
-    Args:
-        cfg: the data config
-        preprocess: whether to preprocess the data
-    """
+# class BytePoolingDataloader(BaseDataloader):
+#     """
+#     A basic dataloader that preprocesses a dataset via
+#     tokenization, and then randomly loads batches as
+#     necessary.
+#     Args:
+#         cfg: the data config
+#         preprocess: whether to preprocess the data
+#     """
 
-    def __init__(self, cfg, pooling_tokenizer, byte_tokenizer):
-        super().__init__(cfg, tokenizer=pooling_tokenizer)
-        self.byte_tokenizer = byte_tokenizer
-        self.tokenized_data_path = os.path.join(
-            self.tokenized_data_dir,
-            self.dataset_name,
-            "BytePooling",
-            f"{self.model_cfg['tokenizer']}-{self.model_cfg['vocab_size']}"(
-                f'{self.model_cfg["embedder"]["pooling_tokenizer"]}'
-                f'-{self.model_cfg["embedder"]["pooling_vocab_size"]}'
-            ),
-        )
+#     def __init__(self, cfg, pooling_tokenizer, byte_tokenizer):
+#         super().__init__(cfg, tokenizer=pooling_tokenizer)
+#         self.byte_tokenizer = byte_tokenizer
+#         self.tokenized_data_path = os.path.join(
+#             self.tokenized_data_dir,
+#             self.dataset_name,
+#             "BytePooling",
+#             f"{self.model_cfg['tokenizer']}-{self.model_cfg['vocab_size']}"(
+#                 f'{self.model_cfg["embedder"]["pooling_tokenizer"]}'
+#                 f'-{self.model_cfg["embedder"]["pooling_vocab_size"]}'
+#             ),
+#         )
 
-    def prepare_data(self):
-        """
-        Tokenize and store the data
-        """
-        # create folder
-        if not os.path.exists(self.tokenized_data_path):
-            os.makedirs(self.tokenized_data_path)
-        else:
-            return  # already processed
+#     def prepare_data(self):
+#         """
+#         Tokenize and store the data
+#         """
+#         # create folder
+#         if not os.path.exists(self.tokenized_data_path):
+#             os.makedirs(self.tokenized_data_path)
+#         else:
+#             return  # already processed
 
-        # load the dataset
-        split_dataset = load_data(
-            dataset_name=self.dataset_name,
-        )
+#         # load the dataset
+#         split_dataset = load_data(
+#             dataset_name=self.dataset_name,
+#         )
 
-        print(split_dataset.keys())
+#         print(split_dataset.keys())
 
-        def process(example):
-            """
-            First use the pooling_tokenizer to get the sub-word units,
-            decode them, re-encode them using the byte level tokenizer
-            and store those as sub-world lists of byte tokens.
-            """
-            pooling_ids = self.tokenizer.encode(example["text"])
-            example_tokens = []
-            for pool_id in pooling_ids:
-                # decode individual ids, re-encode them using the byte tokenizer
-                sub_word_text = self.tokenizer.decode([pool_id])
-                byte_token_ids = self.byte_tokenizer.encode(sub_word_text)
-                example_tokens.append(byte_token_ids)
+#         def process(example):
+#             """
+#             First use the pooling_tokenizer to get the sub-word units,
+#             decode them, re-encode them using the byte level tokenizer
+#             and store those as sub-world lists of byte tokens.
+#             """
+#             pooling_ids = self.tokenizer.encode(example["text"])
+#             example_tokens = []
+#             for pool_id in pooling_ids:
+#                 # decode individual ids, re-encode them using the byte tokenizer
+#                 sub_word_text = self.tokenizer.decode([pool_id])
+#                 byte_token_ids = self.byte_tokenizer.encode(sub_word_text)
+#                 example_tokens.append(byte_token_ids)
 
-            # At this point, the structure of example_tokens is a list of lists of byte tokens,
-            # which are in the same size as gpt-2 tokenizer sub-word units.
+#             # At this point, the structure of example_tokens is a list of lists of byte tokens,
+#             # which are in the same size as gpt-2 tokenizer sub-word units.
 
-            return {"ids": example_tokens, "len": len(example_tokens)}
+#             return {"ids": example_tokens, "len": len(example_tokens)}
 
-        # tokenize the dataset
-        tokenized = split_dataset.map(
-            process,
-            remove_columns=["text"],
-            desc="tokenizing the splits",
-            num_proc=8,
-        )
-        self._write_tokenized_data(tokenized)
+#         # tokenize the dataset
+#         tokenized = split_dataset.map(
+#             process,
+#             remove_columns=["text"],
+#             desc="tokenizing the splits",
+#             num_proc=8,
+#         )
+#         self._write_tokenized_data(tokenized)
