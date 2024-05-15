@@ -8,7 +8,6 @@ import pkgutil
 import numpy as np
 import torch
 from datasets import load_dataset
-from torch import nn
 
 
 def set_seed(seed):
@@ -69,7 +68,7 @@ def get_classes_from_module(module_name):
     module = importlib.import_module(module_name)
     classes = []
 
-    for name, obj in inspect.getmembers(module, inspect.isclass):
+    for _, obj in inspect.getmembers(module, inspect.isclass):
         if inspect.getmodule(obj) == module:
             classes.append(obj)
 
@@ -122,7 +121,7 @@ def profilize(model, classes=None):
             for sub_module in module.values():
                 profilize(sub_module, classes=classes)
         if isinstance(module, torch.nn.ModuleList):
-            for i, sub_module in enumerate(module):
+            for sub_module in module:
                 profilize(sub_module, classes=classes)
 
     if (
@@ -130,7 +129,7 @@ def profilize(model, classes=None):
         and any(isinstance(model, cls) for cls in classes)
         and not hasattr(model, "_forward")
     ):
-        model._forward = model.forward
+        model.old_forward = model.forward
         print(f"added forward profiling wrapper for {model.__class__.__name__}")
 
         def forward_wrapper(*args, **kwargs):
@@ -138,7 +137,7 @@ def profilize(model, classes=None):
             with torch.autograd.profiler.record_function(
                 f"{nested_module_name}.forward"
             ):
-                outputs = model._forward(*args, **kwargs)
+                outputs = model.old_forward(*args, **kwargs)
             if isinstance(outputs, (list, tuple)):
                 for output in outputs:
                     register_backward_hooks(output, nested_module_name)
