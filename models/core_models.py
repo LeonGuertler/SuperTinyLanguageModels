@@ -28,7 +28,6 @@ class GenericTransformer(torch.nn.Module):
                             use_rope=model_cfg["positional_encoding_type"] == "rope",
                             ffn_cfg=model_cfg["core_model"]["ffn"],
                             attn_cfg=model_cfg["core_model"]["attn"],
-                            norm_bias=model_cfg["core_model"]["norm_bias"],
                         )
                         for _ in range(model_cfg["core_model"]["num_layers"])
                     ]
