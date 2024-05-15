@@ -95,8 +95,10 @@ class BaseTrainer:
         self.dataloader.prepare_data()
 
     @torch.no_grad()
-    def estimate_performance(self, eval_iters=1000):
+    def estimate_performance(self, eval_iters=None):
         """Estimate the loss"""
+        if eval_iters is None:
+            eval_iters = self.cfg.trainer.training.eval_iters
         loss = {}
         perplexity = {}
         self.model.eval()
@@ -206,7 +208,7 @@ class BaseTrainer:
             dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
             if not iter_num % self.cfg.trainer.training.eval_interval and iter_num > 0:
-                losses, perplexities = self.estimate_performance(self.model)
+                losses, perplexities = self.estimate_performance()
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f},"
                     f" val loss {losses['val']:.4f}"
