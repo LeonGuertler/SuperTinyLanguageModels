@@ -172,9 +172,7 @@ class BaseTrainer:
         ) as prof:
             self.estimate_performance(self.model, eval_iters=1)
             with record_function("estimate_performance"):
-                self.estimate_performance(
-                    self.model, eval_iters=10
-                )
+                self.estimate_performance(self.model, eval_iters=10)
             # place profile in dictionary
         forwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
         print(forwards_prof)
@@ -203,10 +201,8 @@ class BaseTrainer:
                 lr = self.optimizer.param_groups[0]["lr"]
             dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
-            if not iter_num % self.cfg.training.eval_interval:
-                losses, perplexities = self.estimate_performance(
-                    self.model, tokenizer=self.model.tokenizer
-                )
+            if not iter_num % self.cfg.training.eval_interval and iter_num > 0:
+                losses, perplexities = self.estimate_performance(self.model)
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f},"
                     f" val loss {losses['val']:.4f}"
@@ -228,12 +224,12 @@ class BaseTrainer:
                         }
                     )
             # save checkpoints
-            if not iter_num % self.cfg.training.checkpoint_interval:
+            if not iter_num % self.cfg.training.checkpoint_interval and iter_num > 0:
                 self._save_model(iter_num)
 
             loss = self._run_step()
             end_time = time.time()
-            if not iter_num % self.cfg.training.log_interval:
+            if not iter_num % self.cfg.training.log_interval and iter_num > 0:
                 lossf = loss.item() * self.gradient_accumulation_steps
                 print(
                     f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s"
