@@ -5,6 +5,8 @@ core model, lm head and the model shell.
 
 from models.core_models import GenericTransformer
 from models.embedding_models import GenericEmbedder
+from models.experimental.byte_level.embedding_model import ByteLevelEmbedder
+from models.experimental.byte_level.model_heads import ByteLevelDecoder
 from models.model_heads import AutoregressiveLMHead
 from models.model_shell import ModelShell
 
@@ -39,7 +41,7 @@ def build_model(model_cfg=None, checkpoint=None):
     return model
 
 
-EMBEDDING_MODEL_DICT = {"generic": GenericEmbedder}
+EMBEDDING_MODEL_DICT = {"generic": GenericEmbedder, "byte_level": ByteLevelEmbedder}
 
 
 def build_embedding_model(model_cfg):
@@ -50,7 +52,9 @@ def build_embedding_model(model_cfg):
     Returns:
         embedding_model: embedding_model_instance
     """
-    return EMBEDDING_MODEL_DICT[model_cfg["embedder"]["embedding_model_type"]](model_cfg=model_cfg)
+    return EMBEDDING_MODEL_DICT[model_cfg["embedder"]["embedding_model_type"]](
+        model_cfg=model_cfg
+    )
 
 
 CORE_MODEL_DICT = {"generic": GenericTransformer}
@@ -69,7 +73,7 @@ def build_core_model(model_cfg):
     )
 
 
-MODEL_HEAD_DICT = {"generic": AutoregressiveLMHead}
+MODEL_HEAD_DICT = {"generic": AutoregressiveLMHead, "byte_level": ByteLevelDecoder}
 
 
 def build_model_head(model_cfg):
