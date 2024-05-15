@@ -38,7 +38,7 @@ class BaseTrainer:
         self.dataloader = dataloader
         self.loss_fn = loss_fn
         self.cfg = cfg
-        self.gradient_accumulation_steps = cfg["training"][
+        self.gradient_accumulation_steps = cfg["trainer"]["training"][
             "gradient_accumulation_steps"
         ]
         self.scaler = None
@@ -131,7 +131,7 @@ class BaseTrainer:
                     loss += aux_loss
                 loss = loss / self.gradient_accumulation_steps
             self.scaler.scale(loss).backward()
-        grad_clip = self.cfg.training.optimizer.grad_clip
+        grad_clip = self.cfg.trainer.optimizer.grad_clip
         if grad_clip != 0.0:
             self.scaler.unscale_(self.optimizer)
             torch.nn.utils.clip_grad_norm_(
@@ -197,7 +197,7 @@ class BaseTrainer:
 
     def run_training_loop(self):
         """Run the training loop"""
-        for iter_num in range(self.cfg.training.max_iters):
+        for iter_num in range(self.cfg.trainer.training.max_iters):
             start_time = time.time()
             if self.lr_scheduler is not None:
                 lr = self.lr_scheduler.step(self.optimizer, iter_num)
@@ -205,7 +205,7 @@ class BaseTrainer:
                 lr = self.optimizer.param_groups[0]["lr"]
             dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
-            if not iter_num % self.cfg.training.eval_interval and iter_num > 0:
+            if not iter_num % self.cfg.trainer.training.eval_interval and iter_num > 0:
                 losses, perplexities = self.estimate_performance(self.model)
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f},"
@@ -228,12 +228,12 @@ class BaseTrainer:
                         }
                     )
             # save checkpoints
-            if not iter_num % self.cfg.training.checkpoint_interval and iter_num > 0:
+            if not iter_num % self.cfg.trainer.training.checkpoint_interval and iter_num > 0:
                 self._save_model(iter_num)
 
             loss = self._run_step()
             end_time = time.time()
-            if not iter_num % self.cfg.training.log_interval and iter_num > 0:
+            if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
                 lossf = loss.item() * self.gradient_accumulation_steps
                 print(
                     f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s"

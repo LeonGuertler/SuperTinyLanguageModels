@@ -46,11 +46,11 @@ class IdentityEncoding(torch.nn.Module):
 
 
 POS_ENCODING_DICT = {
-    "learned": lambda dim, size: LearnedPosEncoding(
-        hidden_dim=dim, context_window=size
+    "learned": lambda dim, **kwargs: LearnedPosEncoding(
+        hidden_dim=dim, **kwargs
     ),
-    "rope": lambda dim, _: IdentityEncoding(),
-    "none": lambda dim, _: IdentityEncoding(),
+    "rope": lambda dim, **_: IdentityEncoding(),
+    "none": lambda dim, **_: IdentityEncoding(),
 }
 
 

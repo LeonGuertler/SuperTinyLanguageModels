@@ -26,7 +26,7 @@ class BaseDataloader:
         """
         self.model_cfg = cfg.model
         self.trainer_cfg = cfg.trainer
-        self.tokenized_data_dir = self.trainer_cfg["dataloader"]["tokenized_data_dir"]
+        self.tokenized_data_dir = cfg["general"]["paths"]["data_dir"]
         self.tokenizer = tokenizer
         self.context_window = self.model_cfg["context_window"]
         self.vocab_size = self.model_cfg["vocab_size"]
