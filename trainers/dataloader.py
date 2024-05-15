@@ -36,7 +36,7 @@ class BaseDataloader:
         self.tokenized_data_path = os.path.join(
             self.tokenized_data_dir,
             self.dataset_name,
-            f'{self.model_cfg["embedder"]["tokenizer_type"]}-{self.model_cfg["vocab_size"]}'
+            f'{self.model_cfg["embedder"]["tokenizer_type"]}-{self.model_cfg["vocab_size"]}',
         )
 
     def get_batch(self, split="train"):
@@ -195,8 +195,8 @@ class BytePoolingDataloader(BaseDataloader):
         preprocess: whether to preprocess the data
     """
 
-    def __init__(self, cfg, data_dir, pooling_tokenizer, byte_tokenizer):
-        super().__init__(cfg, data_dir, tokenizer=pooling_tokenizer)
+    def __init__(self, cfg, pooling_tokenizer, byte_tokenizer):
+        super().__init__(cfg, tokenizer=pooling_tokenizer)
         self.byte_tokenizer = byte_tokenizer
         self.tokenized_data_path = os.path.join(
             self.tokenized_data_dir,
@@ -231,7 +231,6 @@ class BytePoolingDataloader(BaseDataloader):
             decode them, re-encode them using the byte level tokenizer
             and store those as sub-world lists of byte tokens.
             """
-            # TODO: This should be handled in the "embedder"
             pooling_ids = self.tokenizer.encode(example["text"])
             example_tokens = []
             for pool_id in pooling_ids:
