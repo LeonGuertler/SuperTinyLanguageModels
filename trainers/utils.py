@@ -4,8 +4,11 @@ import os
 
 import numpy as np
 import torch
+from torch import nn
 from datasets import load_dataset
-
+import inspect
+import importlib
+import pkgutil
 
 def set_seed(seed):
     """Setup the trainer"""
@@ -51,23 +54,84 @@ def load_data(dataset_name, shuffle=True):
     # return the training and validation datasets
     return split_dataset
 
+def get_classes_from_module(module_name):
+    """
+    Get a list of classes defined in a module or package.
+    
+    Args:
+        module_name (str): The name of the module or package.
+    
+    Returns:
+        list: A list of classes defined in the module or package.
+    """
+    module = importlib.import_module(module_name)
+    classes = []
+    
+    for name, obj in inspect.getmembers(module, inspect.isclass):
+        if inspect.getmodule(obj) == module:
+            classes.append(obj)
+    
+    return classes
 
-def profilize(model, module_name=None):
+def get_classes_from_package(package_name):
+    """
+    Get a list of classes defined in a package and its subpackages.
+    
+    Args:
+        package_name (str): The name of the package.
+    
+    Returns:
+        list: A list of classes defined in the package and its subpackages.
+    """
+    package = importlib.import_module(package_name)
+    classes = get_classes_from_module(package_name)
+    
+    for _, module_name, _ in pkgutil.walk_packages(package.__path__, package.__name__ + '.'):
+        classes.extend(get_classes_from_module(module_name))
+    
+    return classes
+
+def register_backward_hooks(tensor, module_name):
+    """Registers hooks to profile the backward pass of a tensor."""
+    if isinstance(tensor,torch.tensor) and tensor.requires_grad:
+        def backward_hook(grad):
+            with torch.autograd.profiler.record_function(f"{module_name}.backward"):
+                return grad
+
+        tensor.register_hook(backward_hook)
+
+def profilize(model, classes=None):
     """Recursively add hooks to the model for recording PyTorch profiler traces with module names"""
-    for idx, module in enumerate(model.children()):
+    if classes is None:
+        classes = get_classes_from_package("models")
+        classes += get_classes_from_package("models.components.layers")
+        print(classes)
+        print(list(model.children()))
+
+    for module in model.children():
         if isinstance(module, torch.nn.Module):
-            child_module_name = f"{module_name}.{idx}" if module_name else str(idx)
-            profilize(module, child_module_name)
+            profilize(module, classes=classes)
+        if isinstance(module, torch.nn.ModuleDict):
+            for sub_module in module.values():
+                profilize(sub_module, classes=classes)
+        if isinstance(module, torch.nn.ModuleList):
+            for i, sub_module in enumerate(module):
+                profilize(sub_module, classes=classes)
 
-    if hasattr(model, "forward"):
-
+    if hasattr(model, "forward") and any(isinstance(model, cls) for cls in classes) and not hasattr(model, "_forward"):
+        model._forward = model.forward
+        print(f"added forward wrapper for {model.__class__.__name__}")
         def forward_wrapper(*args, **kwargs):
-            try:
-                nested_module_name = module_name or model.__class__.__name__
-                torch.ops.profiler.record_function(f"{nested_module_name}.forward")
-                output = model.forward(*args, **kwargs)
-            finally:
-                torch.ops.profiler.record_function("# End: {module_name}.forward")
-            return output
+            nested_module_name = model.__class__.__name__
+            with torch.autograd.profiler.record_function(f"{nested_module_name}.forward"):
+                outputs = model._forward(*args, **kwargs)
+            if isinstance(outputs, (list, tuple)):
+                for output in outputs:
+                    register_backward_hooks(output, nested_module_name)
+            else:
+                register_backward_hooks(outputs, nested_module_name)
+            return outputs
+
 
         model.forward = forward_wrapper
+

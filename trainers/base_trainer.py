@@ -48,6 +48,7 @@ class BaseTrainer:
             self._setup_logging()
         if cfg.trainer.training.run_profiler:
             self.run_profile()
+            raise SystemExit
 
     def _setup_logging(self):
         # set run name
@@ -90,11 +91,12 @@ class BaseTrainer:
         self.dataloader.prepare_data()
 
     @torch.no_grad()
-    def estimate_performance(self, model, tokenizer, eval_iters=1000):
+    def estimate_performance(self, model, eval_iters=1000):
         """Estimate the loss"""
         loss = {}
         perplexity = {}
         model.eval()
+        tokenizer = model.embedding_model.tokenizer
         for split in ["train", "val"]:
             losses = torch.zeros(eval_iters)
             perplexities = torch.zeros(eval_iters)
@@ -140,6 +142,7 @@ class BaseTrainer:
 
     def run_profile(self):
         """Run the profiler"""
+        utils.profilize(self.model)
         with profile(
             activities=[
                 ProfilerActivity.CPU,
@@ -156,7 +159,7 @@ class BaseTrainer:
                     with record_function("_run_step"):
                         self._run_step()
             # place profile in dictionary
-            backwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
+        backwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
         print(backwards_prof)
         with profile(
             activities=[
@@ -167,13 +170,13 @@ class BaseTrainer:
             profile_memory=True,
             with_stack=True,
         ) as prof:
-            self.estimate_performance(self.model, self.model.tokenizer, eval_iters=1)
+            self.estimate_performance(self.model, eval_iters=1)
             with record_function("estimate_performance"):
                 self.estimate_performance(
-                    self.model, self.model.tokenizer, eval_iters=10
+                    self.model, eval_iters=10
                 )
             # place profile in dictionary
-            forwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
+        forwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
         print(forwards_prof)
 
     def _save_model(self, iter_num=0):
