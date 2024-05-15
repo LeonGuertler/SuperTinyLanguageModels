@@ -17,7 +17,7 @@ def test_generic_core_model():
             "hidden_dim": 64,
             "context_window": 64,
             "vocab_size": 50257,
-            "positional_embedding_type": "rope",
+            "positional_encoding_type": "rope",
             "core_model": {
                 "core_model_type": "generic",
                 "norm_bias": True,
