@@ -105,8 +105,7 @@ def profilize(model, classes=None):
     if classes is None:
         classes = get_classes_from_package("models")
         classes += get_classes_from_package("models.components.layers")
-        print(classes)
-        print(list(model.children()))
+        print(f"Found classes for profiling: {classes}")
 
     for module in model.children():
         if isinstance(module, torch.nn.Module):
@@ -120,7 +119,7 @@ def profilize(model, classes=None):
 
     if hasattr(model, "forward") and any(isinstance(model, cls) for cls in classes) and not hasattr(model, "_forward"):
         model._forward = model.forward
-        print(f"added forward wrapper for {model.__class__.__name__}")
+        print(f"added forward profiling wrapper for {model.__class__.__name__}")
         def forward_wrapper(*args, **kwargs):
             nested_module_name = model.__class__.__name__
             with torch.autograd.profiler.record_function(f"{nested_module_name}.forward"):
