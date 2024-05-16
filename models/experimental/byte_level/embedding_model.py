@@ -84,6 +84,17 @@ class ByteLevelEmbedder(GenericEmbedder):
             self.byte_tokenizer.encode(self.pooling_tokenizer.decode([pool_id]))
             for pool_id in pooling_ids
         ]
+        # truncate
+        tokens = [
+            token_seq[: self.model_cfg["byte_context_window"]] for token_seq in tokens
+        ]
+        # pad
+        tokens = [
+            token_seq
+            + [self.byte_tokenizer.pad_token]
+            * (self.model_cfg["byte_context_window"] - len(token_seq))
+            for token_seq in tokens
+        ]
         return tokens
 
     def forward(self, token_ids):

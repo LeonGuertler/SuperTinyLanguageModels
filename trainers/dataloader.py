@@ -113,12 +113,8 @@ class BaseDataloader:
             dataset_name=self.dataset_name,
         )
 
-        print(split_dataset.keys())
-
         def process(example):
             ids = self.embedder.tokenize_input(example["text"])
-            # FIX SHOULD JUST BE DOING THE PADDING STUFF??
-            print([np.array(id).shape for id in ids])
             return {"ids": ids, "len": len(ids)}
 
         try:
@@ -192,70 +188,42 @@ class Seq2SeqDataloader(BaseDataloader):
         return X, y
 
 
-# class BytePoolingDataloader(BaseDataloader):
-#     """
-#     A basic dataloader that preprocesses a dataset via
-#     tokenization, and then randomly loads batches as
-#     necessary.
-#     Args:
-#         cfg: the data config
-#         preprocess: whether to preprocess the data
-#     """
+class BytePoolingDataloader(BaseDataloader):
+    """
+    A basic dataloader that preprocesses a dataset via
+    tokenization, and then randomly loads batches as
+    necessary.
+    Args:
+        cfg: the data config
+        preprocess: whether to preprocess the data
+    """
 
-#     def __init__(self, cfg, pooling_tokenizer, byte_tokenizer):
-#         super().__init__(cfg, tokenizer=pooling_tokenizer)
-#         self.byte_tokenizer = byte_tokenizer
-#         self.tokenized_data_path = os.path.join(
-#             self.tokenized_data_dir,
-#             self.dataset_name,
-#             "BytePooling",
-#             f"{self.model_cfg['tokenizer']}-{self.model_cfg['vocab_size']}"(
-#                 f'{self.model_cfg["embedder"]["pooling_tokenizer"]}'
-#                 f'-{self.model_cfg["embedder"]["pooling_vocab_size"]}'
-#             ),
-#         )
+    def __init__(self, cfg, embedder):
+        super().__init__(cfg, embedder=embedder)
+        self.tokenized_data_path += f"-BytePooling"
 
-#     def prepare_data(self):
-#         """
-#         Tokenize and store the data
-#         """
-#         # create folder
-#         if not os.path.exists(self.tokenized_data_path):
-#             os.makedirs(self.tokenized_data_path)
-#         else:
-#             return  # already processed
+    def _write_tokenized_data(self, tokenized):
+        for split, dset in tokenized.items():
+            arr_len = np.sum(dset["len"], dtype=np.uint64)
+            filename = os.path.join(self.tokenized_data_path, f"{split}.bin")
+            dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
+            arr = np.memmap(
+                filename,
+                dtype=dtype,
+                mode="w+",
+                shape=(arr_len, self.model_cfg.embedder.byte_context_window),
+            )
+            total_batches = 1024
 
-#         # load the dataset
-#         split_dataset = load_data(
-#             dataset_name=self.dataset_name,
-#         )
-
-#         print(split_dataset.keys())
-
-#         def process(example):
-#             """
-#             First use the pooling_tokenizer to get the sub-word units,
-#             decode them, re-encode them using the byte level tokenizer
-#             and store those as sub-world lists of byte tokens.
-#             """
-#             pooling_ids = self.tokenizer.encode(example["text"])
-#             example_tokens = []
-#             for pool_id in pooling_ids:
-#                 # decode individual ids, re-encode them using the byte tokenizer
-#                 sub_word_text = self.tokenizer.decode([pool_id])
-#                 byte_token_ids = self.byte_tokenizer.encode(sub_word_text)
-#                 example_tokens.append(byte_token_ids)
-
-#             # At this point, the structure of example_tokens is a list of lists of byte tokens,
-#             # which are in the same size as gpt-2 tokenizer sub-word units.
-
-#             return {"ids": example_tokens, "len": len(example_tokens)}
-
-#         # tokenize the dataset
-#         tokenized = split_dataset.map(
-#             process,
-#             remove_columns=["text"],
-#             desc="tokenizing the splits",
-#             num_proc=8,
-#         )
-#         self._write_tokenized_data(tokenized)
+            idx = 0
+            for batch_idx in tqdm(range(total_batches), desc=f"writing {filename}"):
+                # Batch together samples for faster write
+                batch = dset.shard(
+                    num_shards=total_batches, index=batch_idx, contiguous=True
+                ).with_format("numpy")
+                arr_batch = np.concatenate(batch["ids"])
+                print(arr_batch.shape)
+                # Write into mmap
+                arr[idx : idx + len(arr_batch)] = arr_batch
+                idx += len(arr_batch)
+            arr.flush()

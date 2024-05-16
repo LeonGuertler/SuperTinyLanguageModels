@@ -66,7 +66,7 @@ trainer:
   lr_scheduler:
     name: cosine
   dataloader:
-    name: standard
+    name: byte_pooling
   loss_fn:
     name: cross_entropy
 general:

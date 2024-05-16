@@ -11,8 +11,6 @@ from models import model_shell
 from trainers import dataloader as train_dataloader
 from trainers import utils
 
-# torch.multiprocessing.set_start_method("spawn")
-
 
 # pylint: disable invalid-name
 class BaseTrainer:

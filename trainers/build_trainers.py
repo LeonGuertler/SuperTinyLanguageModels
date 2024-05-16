@@ -6,7 +6,7 @@ and the trainer itself.
 from trainers.base_trainer import BaseTrainer
 from trainers.dataloader import (
     BaseDataloader,
-    # BytePoolingDataloader,
+    BytePoolingDataloader,
     Seq2SeqDataloader,
     StandardDataloader,
 )
@@ -78,7 +78,7 @@ def build_dropout_scheduler(trainer_cfg):
 
 DATALOADER_DICT: dict[str, BaseDataloader] = {
     "standard": StandardDataloader,
-    # "byte_pooling": BytePoolingDataloader,
+    "byte_pooling": BytePoolingDataloader,
     "seq2seq": Seq2SeqDataloader,
 }
 
