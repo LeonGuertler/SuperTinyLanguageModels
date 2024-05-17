@@ -18,12 +18,13 @@ model:
     tokenizer_type: "gpt2"
     byte_tokenizer_type: "bpe"
     embedding_model_type: byte_level
+    byte_context_window: 12
     dataset_name: simple_en_wiki
   lm_head:
     normalization: rms_norm
     bias: false
     lm_head_type: byte_level
-    
+
   hidden_dim: 512
   context_window: 512
   vocab_size: 50257
