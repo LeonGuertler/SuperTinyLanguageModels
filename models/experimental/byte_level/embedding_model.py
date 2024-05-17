@@ -121,4 +121,6 @@ class ByteLevelEmbedder(GenericEmbedder):
         x = x.mean(dim=-2)
         x = x.view(B, S, -1)
 
+        input(x.size())
+
         return x

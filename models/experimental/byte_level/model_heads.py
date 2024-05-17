@@ -67,7 +67,9 @@ class ByteLevelDecoder(torch.nn.Module):
 
         # project the latent embeddings
         x = self.projection(x)
+        input(x.size())
         x = x.view(x.size(0), x.size(1), self.byte_context_window, self.embedding_dim)
+        input(x.size())
 
         # pass through model and deocde
         B, S, _, _ = x.size()
