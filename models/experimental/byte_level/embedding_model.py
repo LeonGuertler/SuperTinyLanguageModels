@@ -40,9 +40,9 @@ class ByteLevelEmbedder(GenericEmbedder):
         )
 
         # positional encodings
-        self.pos_encoder = LearnedPosEncoding(
-            hidden_dim=model_cfg["byte_embedding_dim"],
-            context_window=model_cfg["byte_context_window"],
+        self.pos_encoder = torch.nn.Embedding(
+            num_embeddings=model_cfg["byte_context_window"],
+            embedding_dim=model_cfg["byte_embedding_dim"],
         )
 
         # build the token embeddings
@@ -107,7 +107,7 @@ class ByteLevelEmbedder(GenericEmbedder):
         input(x.size())
 
         # positional encoding
-        x = self.pos_encoder(x)
+        x = x + self.pos_encoder(x)
 
         # pass through transformer
         for block in self.transformer:
