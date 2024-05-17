@@ -111,7 +111,9 @@ class BaseDataloader:
         # load the dataset
         split_dataset = load_data(
             dataset_name=self.dataset_name,
-        )[:10]
+        )
+        split_dataset["train"] = split_dataset["train"].select(range(2048))
+        split_dataset["val"] = split_dataset["val"].select(range(2048))
 
         def process(example):
             ids = self.embedder.tokenize_input(example["text"])
