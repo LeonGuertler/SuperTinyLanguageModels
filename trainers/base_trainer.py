@@ -106,9 +106,9 @@ class BaseTrainer:
             perplexities = torch.zeros(eval_iters)
             for i in range(eval_iters):
                 x, y = self.dataloader.get_batch(split)
-                decoded_xs = [tokenizer.decode(x[i].tolist()) for i in range(x.size(0))]
-                token_lengths = [x.size(1) for _ in range(x.size(0))]
-                char_lengths = [len(decoded_x) for decoded_x in decoded_xs]
+                #decoded_xs = [tokenizer.decode(x[i].tolist()) for i in range(x.size(0))]
+                #token_lengths = [x.size(1) for _ in range(x.size(0))]
+                #char_lengths = [len(decoded_x) for decoded_x in decoded_xs]
                 with self.ctx:
                     output, _ = self.model(x)
                     losses[i] = self.loss_fn(output, y)
