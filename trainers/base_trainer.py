@@ -112,11 +112,11 @@ class BaseTrainer:
                 with self.ctx:
                     output, _ = self.model(x)
                     losses[i] = self.loss_fn(output, y)
-                    perplexities[i] = torch.exp(
-                        losses[i] * sum(token_lengths) / sum(char_lengths)
-                    )
+                    #perplexities[i] = torch.exp(
+                    #    losses[i] * sum(token_lengths) / sum(char_lengths)
+                    #)
             loss[split] = losses.mean().item()
-            perplexity[split] = perplexities.mean().item()
+            #perplexity[split] = perplexities.mean().item()
         self.model.train()
         return loss, perplexity
 
