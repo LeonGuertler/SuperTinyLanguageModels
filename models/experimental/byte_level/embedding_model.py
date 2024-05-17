@@ -40,9 +40,9 @@ class ByteLevelEmbedder(GenericEmbedder):
         )
 
         # positional encodings
-        self.pos_encoder = torch.nn.Embedding(
-            num_embeddings=model_cfg["byte_context_window"],
-            embedding_dim=model_cfg["byte_embedding_dim"],
+        self.pos_encoder = LearnedPosEncoding(
+            hidden_dim=model_cfg["byte_embedding_dim"],
+            context_window=model_cfg["byte_context_window"],
         )
 
         # build the token embeddings
@@ -101,18 +101,23 @@ class ByteLevelEmbedder(GenericEmbedder):
         """
         Forward pass.
         """
-        print(token_ids.size())
         # get the byte embeddings
         x = self.byte_token_embedder(token_ids)
-        input(x.size())
+
+        # collapse the text sequence and batch dim
+        B, S, S_c, H = x.size()
+        x = x.view(B * S, S_c, H)
 
         # positional encoding
-        x = x + self.pos_encoder(torch.arange(x.size(-2), device=x.device)).unsqueeze(0)
-
-        input(x.size())
+        x = self.pos_encoder(x)
 
         # pass through transformer
         for block in self.transformer:
             x = block(x)
+
+        # un-collapse the text sequence and batch dim
+        # mean pool the tokens
+        x = x.mean(dim=-2)
+        x = x.view(B, S, H)
 
         return x
