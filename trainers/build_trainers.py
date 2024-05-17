@@ -3,12 +3,9 @@ Builds the individual components of the trainer,
 and the trainer itself.
 """
 
-from models.build_models import build_model
-
-# from trainers.standard_trainer import BaseTrainer
 from trainers.base_trainer import BaseTrainer
-from trainers.byte_trainer import ByteTrainer
 from trainers.dataloader import (
+    BaseDataloader,
     BytePoolingDataloader,
     Seq2SeqDataloader,
     StandardDataloader,
@@ -23,11 +20,11 @@ from trainers.scheduler import (
 )
 
 OPTIMIZER_DICT = {
-    "nanoGPTadamW": lambda model, cfg: configure_nanoGPT_optimizer(
+    "nanoGPTadamW": lambda model, trainer_cfg: configure_nanoGPT_optimizer(
         model=model,
-        weight_decay=cfg["weight_decay"],
-        learning_rate=cfg["lr"],
-        betas=(cfg["beta1"], cfg["beta2"]),
+        weight_decay=trainer_cfg["weight_decay"],
+        learning_rate=trainer_cfg["lr"],
+        betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
     )
 }
 
@@ -36,18 +33,20 @@ def build_optimizer(model, optimizer_config):
     """
     Given the optimizer config, build the optimizer
     """
-    return OPTIMIZER_DICT[optimizer_config["name"]](model=model, cfg=optimizer_config)
+    return OPTIMIZER_DICT[optimizer_config["name"]](
+        model=model, trainer_cfg=optimizer_config
+    )
 
 
 SCHEDULER_DICT = {
-    "cosine": lambda cfg: CosineLRScheduler(
-        warmup_iters=cfg["warmup_iters"],
-        decay_iters=cfg["max_iter"],
-        lr=cfg["optimizer"]["lr"],
-        min_lr=cfg["optimizer"]["min_lr"],
+    "cosine": lambda trainer_cfg: CosineLRScheduler(
+        warmup_iters=trainer_cfg["training"]["warmup_iters"],
+        decay_iters=trainer_cfg["training"]["lr_decay_iters"],
+        lr=trainer_cfg["optimizer"]["lr"],
+        min_lr=trainer_cfg["optimizer"]["min_lr"],
     ),
-    "constant": lambda cfg: LRScheduler(
-        lr=cfg["optimizer"]["lr"],
+    "constant": lambda trainer_cfg: LRScheduler(
+        lr=trainer_cfg["optimizer"]["lr"],
     ),
 }
 
@@ -56,7 +55,7 @@ def build_lr_scheduler(trainer_cfg):
     """
     Given the trainer config, build the LR scheduler.build_model
     """
-    return SCHEDULER_DICT[trainer_cfg["lr_scheduler"]["name"]](cfg=trainer_cfg)
+    return SCHEDULER_DICT[trainer_cfg["lr_scheduler"]["name"]](trainer_cfg=trainer_cfg)
 
 
 def build_dropout_scheduler(trainer_cfg):
@@ -77,20 +76,20 @@ def build_dropout_scheduler(trainer_cfg):
     )
 
 
-DATALODER_DICT = {
+DATALOADER_DICT: dict[str, BaseDataloader] = {
     "standard": StandardDataloader,
-    "byte_pooling_dataloader": BytePoolingDataloader,
+    "byte_pooling": BytePoolingDataloader,
     "seq2seq": Seq2SeqDataloader,
 }
 
 
-def build_dataloader(cfg):
+def build_dataloader(cfg, embedder):
     """
     Given the config, build the dataloader
     """
-    return DATALODER_DICT[cfg["training"]["dataloader"]](
+    return DATALOADER_DICT[cfg.trainer["dataloader"]["name"]](
         cfg=cfg,
-        data_dir=cfg["general"]["paths"]["data_dir"],
+        embedder=embedder,
     )
 
 
@@ -106,44 +105,34 @@ def build_loss_fn(loss_fn_name):
 
 TRAINER_DICT = {
     "base_trainer": BaseTrainer,
-    "byte_trainer": ByteTrainer,
 }
 
 
-def build_trainer(cfg):
+def build_trainer(cfg, model):
     """
     Given a config, this function builds a trainer
     and all relevant components of it.
     """
 
-    # build model
-    model = build_model( 
-        model_cfg=cfg["model"],
-    )
-
-    # push model to device
-    model.to(cfg["general"]["device"])
-
     # build optimizer
-    optimizer = build_optimizer(
-        model=model, optimizer_config=cfg["training"]["optimizer"]
-    )
+    optimizer = build_optimizer(model=model, optimizer_config=cfg.trainer["optimizer"])
 
     # build LR scheduler
-    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg["training"])
+    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg.trainer)
 
     # build dropout scheduler
-    dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg["training"])
+    dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg.trainer)
 
     # build dataloder
-    dataloader = build_dataloader(cfg=cfg)
+    dataloader = build_dataloader(cfg=cfg, embedder=model.embedding_model)
+    dataloader.prepare_data()
 
     # build loss function
-    loss_fn = build_loss_fn(loss_fn_name=cfg["training"]["loss_fn"])
+    loss_fn = build_loss_fn(loss_fn_name=cfg.trainer["loss_fn"]["name"])
 
     # build the trainer
-    print(cfg["training"]["trainer"])
-    trainer = TRAINER_DICT[cfg["training"]["trainer"]](
+    print(cfg.trainer["training"]["trainer_type"])
+    trainer = TRAINER_DICT[cfg.trainer["training"]["trainer_type"]](
         cfg=cfg,
         model=model,
         optimizer=optimizer,

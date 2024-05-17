@@ -1,0 +1,11 @@
+logging:
+  wandb_log: False
+  wandb_project: "TinyUniverse"
+
+paths:
+  output_dir: "outputs"
+  data_dir: "data"
+  checkpoint_dir: "checkpoints"
+
+seed: 489
+device: cuda

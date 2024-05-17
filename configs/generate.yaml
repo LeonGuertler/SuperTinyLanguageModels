@@ -1,0 +1,2 @@
+model_ckpt: "checkpoints/ckpt.pth"
+input_text: "The earth is the third planet from the sun."

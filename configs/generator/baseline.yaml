@@ -1,0 +1,4 @@
+generate_config:
+  temperature: 0.8
+  top_k: 10
+  max_new_tokens: 100

@@ -1,0 +1,2 @@
+dropout_type: "constant"
+dropout: 0.1

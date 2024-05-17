@@ -1,6 +1,12 @@
 # Super Tiny Language Models
 This repository is WIP and highly subject to change
 
+## Running & Recreating
+See the full_configs folder and run using:
+```bash
+python train.py --config-name full_configs/...
+```
+You can omit the .yaml ending.
 
 ## Contribution & Setup
 Please install a linter, formatter, and pre-commit hooks before contributing. You can do this by running the following commands:

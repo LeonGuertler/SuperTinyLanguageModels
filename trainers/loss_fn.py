@@ -23,8 +23,6 @@ def compute_perplexity(logits, y, lengths: list[int]):
     )
     return torch.exp(loss / sum(lengths))
 
-    # now
-
 
 def build_loss_fn(loss_fn_type: str):
     """Build the loss function"""

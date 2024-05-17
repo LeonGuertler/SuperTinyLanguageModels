@@ -35,7 +35,7 @@ class BPETokenizer(Tokenizer):
 
         assert self.vocab_size >= 256 + len(
             self.special_tokens
-        ), "Vocab size too small! Must be > 256+len(special_tokens))"
+        ), f"Vocab size too small! Must be > {256+len(self.special_tokens)})"
 
         if not utils.check_if_tokenizer_exists(
             tokenizer_type="bpe", vocab_size=vocab_size, dataset_name=dataset_name

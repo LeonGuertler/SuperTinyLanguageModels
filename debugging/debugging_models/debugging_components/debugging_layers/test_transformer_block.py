@@ -15,6 +15,7 @@ def test_generic_transformer_block():
     block = GenericTransformerBlock(
         hidden_dim=64,
         context_window=16,
+        use_rope=True,
         ffn_cfg={
             "ffn_type": "generic",
             "ffn_dim": 128,
@@ -26,12 +27,10 @@ def test_generic_transformer_block():
             "attn_type": "generic",
             "num_heads": 8,
             "bias": False,
-            "use_rope": False,
             "is_causal": True,
             "group_size": 1,
             "normalization": "rms_norm",
         },
-        bias=False,
     )
     x = torch.randn(2, 16, 64)
     y = block(x)

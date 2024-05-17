@@ -14,27 +14,30 @@ def test_generic_core_model():
     """
     model = build_core_model(
         model_cfg={
-            "core_model_type": "generic",
             "hidden_dim": 64,
-            "context_window": 16,
-            "bias": True,
-            "ffn": {
-                "ffn_type": "generic",
-                "ffn_dim": 128,
-                "activation": "relu",
-                "normalization": "layer_norm",
-                "bias": True,
+            "context_window": 64,
+            "vocab_size": 50257,
+            "positional_encoding_type": "rope",
+            "core_model": {
+                "core_model_type": "generic",
+                "norm_bias": True,
+                "ffn": {
+                    "ffn_type": "generic",
+                    "ffn_dim": 128,
+                    "activation": "relu",
+                    "normalization": "layer_norm",
+                    "bias": True,
+                },
+                "attn": {
+                    "attn_type": "generic",
+                    "num_heads": 8,
+                    "group_size": 8,
+                    "bias": True,
+                    "is_causal": False,
+                    "normalization": "rms_norm",
+                },
+                "num_layers": 2,
             },
-            "attn": {
-                "attn_type": "generic",
-                "num_heads": 8,
-                "normalization": "layer_norm",
-                "group_size": 8,
-                "bias": True,
-                "use_rope": False,
-                "is_causal": False,
-            },
-            "num_layers": 2,
         }
     )
 

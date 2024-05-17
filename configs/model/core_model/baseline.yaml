@@ -1,0 +1,14 @@
+core_model_type: "generic"
+num_layers: 10
+ffn:
+  ffn_type: "swiglu"
+  ffn_dim: 1536
+  normalization: "rms_norm"
+  bias: False
+attn:
+  attn_type: "generic"
+  num_heads: 16
+  normalization: "rms_norm"
+  group_size: 4
+  bias: True
+  is_causal: False

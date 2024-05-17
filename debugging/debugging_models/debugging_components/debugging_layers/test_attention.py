@@ -16,11 +16,11 @@ def test_normal_causal_attention():
     attention = build_attention(
         hidden_dim=64,
         context_window=16,
+        use_rope=True,
         attn_cfg={
             "attn_type": "generic",
             "num_heads": 8,
             "bias": False,
-            "use_rope": False,
             "is_causal": True,
             "group_size": 1,
         },
@@ -39,11 +39,11 @@ def test_rope_causal_attention():
     attention = build_attention(
         hidden_dim=64,
         context_window=16,
+        use_rope=True,
         attn_cfg={
             "attn_type": "generic",
             "num_heads": 8,
             "bias": False,
-            "use_rope": True,
             "is_causal": True,
             "group_size": 1,
         },
@@ -62,11 +62,11 @@ def test_normal_bidirectional_attention():
     attention = build_attention(
         hidden_dim=64,
         context_window=16,
+        use_rope=True,
         attn_cfg={
             "attn_type": "generic",
             "num_heads": 8,
             "bias": False,
-            "use_rope": True,
             "is_causal": False,
             "group_size": 1,
         },
@@ -85,11 +85,11 @@ def test_grouped_bidirectional_attention():
     attention = build_attention(
         hidden_dim=64,
         context_window=16,
+        use_rope=True,
         attn_cfg={
             "attn_type": "generic",
             "num_heads": 8,
             "bias": False,
-            "use_rope": False,
             "is_causal": False,
             "group_size": 2,
         },
@@ -108,11 +108,11 @@ def test_grouped_roped_attention():
     attention = build_attention(
         hidden_dim=64,
         context_window=16,
+        use_rope=True,
         attn_cfg={
             "attn_type": "generic",
             "num_heads": 8,
             "bias": False,
-            "use_rope": True,
             "is_causal": True,
             "group_size": 2,
         },

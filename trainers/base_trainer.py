@@ -5,10 +5,13 @@ import time
 import torch
 import wandb
 from omegaconf import OmegaConf
+from torch.profiler import ProfilerActivity, profile, record_function
 
+from models import model_shell
+from trainers import dataloader as train_dataloader
 from trainers import utils
 
-torch.multiprocessing.set_start_method('spawn')
+
 # pylint: disable invalid-name
 class BaseTrainer:
     """Base Trainer Class
@@ -19,9 +22,9 @@ class BaseTrainer:
     def __init__(
         self,
         cfg,
-        model,
+        model: model_shell.ModelShell,
         optimizer,
-        dataloader,
+        dataloader: train_dataloader.BaseDataloader,
         loss_fn,
         lr_scheduler=None,
         dropout_scheduler=None,
@@ -33,9 +36,9 @@ class BaseTrainer:
         self.dataloader = dataloader
         self.loss_fn = loss_fn
         self.cfg = cfg
-        self.gradient_accumulation_steps = (
-            cfg["training"]["gradient_accumulation_steps"]
-        )
+        self.gradient_accumulation_steps = cfg["trainer"]["training"][
+            "gradient_accumulation_steps"
+        ]
         self.scaler = None
         self.use_wandb = cfg["general"]["logging"]["wandb_log"]
         self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
@@ -45,13 +48,17 @@ class BaseTrainer:
         self.ctx = self._setup_ctx()
         if self.use_wandb:
             self._setup_logging()
+        if cfg.trainer.training.run_profiler:
+            self.run_profile()
+            raise SystemExit
 
     def _setup_logging(self):
         # set run name
         run_name = (
-            f"{self.cfg.model.embedding_model_type}_{self.cfg.model.core_model_type}_{self.cfg.model.lm_head_type}"+
-            f"_{self.cfg.training.dataset}_{self.cfg.model.tokenizer}"+
-            f"_{self.cfg.model.vocab_size}"
+            f"{self.cfg.model['model_shell_type']}"
+            f"_{self.cfg.model['core_model']['core_model_type']}"
+            f"_{self.cfg.trainer['dataset']}_{self.cfg.model['embedder']['embedding_model_type']}"
+            f"_{self.cfg.model['vocab_size']}"
         )
         wandb.init(
             project=self.cfg.general.logging.wandb_project,
@@ -83,16 +90,17 @@ class BaseTrainer:
         Preprocess the data
         """
         print("Preprocessing the training data")
-        self.dataloader.prepare_data(
-            embedding_model=self.model.embedding_model
-        )
+        self.dataloader.prepare_data()
 
     @torch.no_grad()
-    def estimate_performance(self, model, tokenizer, eval_iters=1000):
+    def estimate_performance(self, eval_iters=None):
         """Estimate the loss"""
+        if eval_iters is None:
+            eval_iters = self.cfg.trainer.training.eval_iters
         loss = {}
         perplexity = {}
-        model.eval()
+        self.model.eval()
+        tokenizer = self.model.embedding_model.tokenizer
         for split in ["train", "val"]:
             losses = torch.zeros(eval_iters)
             perplexities = torch.zeros(eval_iters)
@@ -102,14 +110,14 @@ class BaseTrainer:
                 token_lengths = [x.size(1) for _ in range(x.size(0))]
                 char_lengths = [len(decoded_x) for decoded_x in decoded_xs]
                 with self.ctx:
-                    output, _ = model(x)
+                    output, _ = self.model(x)
                     losses[i] = self.loss_fn(output, y)
                     perplexities[i] = torch.exp(
                         losses[i] * sum(token_lengths) / sum(char_lengths)
                     )
             loss[split] = losses.mean().item()
             perplexity[split] = perplexities.mean().item()
-        model.train()
+        self.model.train()
         return loss, perplexity
 
     def _run_step(self):
@@ -123,7 +131,7 @@ class BaseTrainer:
                     loss += aux_loss
                 loss = loss / self.gradient_accumulation_steps
             self.scaler.scale(loss).backward()
-        grad_clip = self.cfg.training.optimizer.grad_clip
+        grad_clip = self.cfg.trainer.optimizer.grad_clip
         if grad_clip != 0.0:
             self.scaler.unscale_(self.optimizer)
             torch.nn.utils.clip_grad_norm_(
@@ -135,6 +143,43 @@ class BaseTrainer:
 
         self.optimizer.zero_grad(set_to_none=True)
         return loss
+
+    def run_profile(self):
+        """Run the profiler"""
+        utils.profilize(self.model)
+        with profile(
+            activities=[
+                ProfilerActivity.CPU,
+                ProfilerActivity.CUDA,
+            ],
+            record_shapes=True,
+            profile_memory=True,
+            with_stack=True,
+        ) as prof:
+            for i in range(10):
+                if i <= 3:
+                    self._run_step()
+                else:
+                    with record_function("_run_step"):
+                        self._run_step()
+            # place profile in dictionary
+        backwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
+        print(backwards_prof)
+        with profile(
+            activities=[
+                ProfilerActivity.CPU,
+                ProfilerActivity.CUDA,
+            ],
+            record_shapes=True,
+            profile_memory=True,
+            with_stack=True,
+        ) as prof:
+            self.estimate_performance(eval_iters=1)
+            with record_function("estimate_performance"):
+                self.estimate_performance(eval_iters=10)
+            # place profile in dictionary
+        forwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
+        print(forwards_prof)
 
     def _save_model(self, iter_num=0):
         """
@@ -152,7 +197,7 @@ class BaseTrainer:
 
     def run_training_loop(self):
         """Run the training loop"""
-        for iter_num in range(self.cfg.training.max_iter):
+        for iter_num in range(self.cfg.trainer.training.max_iters):
             start_time = time.time()
             if self.lr_scheduler is not None:
                 lr = self.lr_scheduler.step(self.optimizer, iter_num)
@@ -160,10 +205,8 @@ class BaseTrainer:
                 lr = self.optimizer.param_groups[0]["lr"]
             dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
-            if not (iter_num+1) % self.cfg.training.eval_interval:
-                losses, perplexities = self.estimate_performance(
-                    self.model, tokenizer=self.model.embedding_model.tokenizer
-                )
+            if not iter_num % self.cfg.trainer.training.eval_interval and iter_num > 0:
+                losses, perplexities = self.estimate_performance()
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f},"
                     f" val loss {losses['val']:.4f}"
@@ -184,13 +227,17 @@ class BaseTrainer:
                             "val/perplexity": perplexities["val"],
                         }
                     )
+            # save checkpoints
+            if (
+                not iter_num % self.cfg.trainer.training.checkpoint_interval
+                and iter_num > 0
+            ):
+                self._save_model(iter_num)
 
             loss = self._run_step()
             end_time = time.time()
-            if not (iter_num+1) % self.cfg.training.log_interval:
-                lossf = (
-                    loss.item() * self.gradient_accumulation_steps
-                )  # TODO double check
+            if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
+                lossf = loss.item() * self.gradient_accumulation_steps
                 print(
                     f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s"
                 )

@@ -1,0 +1,4 @@
+defaults:
+- model: baseline
+- trainer: baseline
+- general: default

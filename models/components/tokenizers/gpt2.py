@@ -17,6 +17,7 @@ class GPT2Tokenizer(Tokenizer):
         self.tokenizer = tiktoken.get_encoding("gpt2")
         self.eot_token = self.tokenizer.eot_token
         self.pad_token = self.tokenizer.eot_token
+        self.vocab_size = self.tokenizer.max_token_value + 1
 
     def encode(self, text):
         """Encode a string into tokens."""

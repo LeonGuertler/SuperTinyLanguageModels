@@ -1,8 +1,8 @@
 """
 A collection of common activation functions.
 """
-import torch 
 
+import torch
 
 ACTIVATIONS_DICT = {
     "gelu": torch.nn.GELU(),
@@ -14,6 +14,7 @@ ACTIVATIONS_DICT = {
     "none": torch.nn.Identity(),
 }
 
+
 def build_activation(activation_name: str):
     """
     Given the name of the activation function,
@@ -24,4 +25,3 @@ def build_activation(activation_name: str):
         activation: torch.nn.Module
     """
     return ACTIVATIONS_DICT[activation_name.lower()]
-

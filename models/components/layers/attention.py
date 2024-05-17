@@ -1,13 +1,15 @@
 """
 A collection of attention layers.
 """
-import torch 
+
+import torch
 
 
 class Attention(torch.nn.Module):
     """
     Basic but flexible attention module.
     """
+
     def __init__(
         self,
         hidden_dim,
@@ -23,17 +25,11 @@ class Attention(torch.nn.Module):
 
         # key, query, value projections for all heads
         self.c_attn = torch.nn.Linear(
-            hidden_dim, 
-            hidden_dim + 2 * hidden_dim // group_size,
-            bias=bias
+            hidden_dim, hidden_dim + 2 * hidden_dim // group_size, bias=bias
         )
 
         # output projection
-        self.c_proj = torch.nn.Linear(
-            hidden_dim, 
-            hidden_dim,
-            bias=bias
-        )
+        self.c_proj = torch.nn.Linear(hidden_dim, hidden_dim, bias=bias)
 
         # attention dropout
         self.attn_dropout = torch.nn.Dropout()
@@ -47,16 +43,14 @@ class Attention(torch.nn.Module):
         if self.use_rope:
             assert context_window % 2 == 0
             self.freqs_cis = compute_freqs_cis(
-                seq_len=context_window,
-                head_dim=hidden_dim // num_heads
+                seq_len=context_window, head_dim=hidden_dim // num_heads
             )
-
 
     def forward(self, x, attention_mask=None):
         """
         Forward pass
         """
-        assert attention_mask is  None, "Not implemented yet"
+        assert attention_mask is None, "Not implemented yet"
         B, S, H = x.size()
         num_grouped_heads = self.num_heads // self.group_size
         group_hidden_dim = H // self.group_size
@@ -132,7 +126,6 @@ def compute_freqs_cis(seq_len, head_dim):
     return freqs_cis
 
 
-
 ATTENTION_DICT = {
     "generic": lambda hidden_dim, context_window, use_rope, attn_cfg: Attention(
         hidden_dim=hidden_dim,
@@ -145,9 +138,16 @@ ATTENTION_DICT = {
     )
 }
 
+
 def build_attention(hidden_dim, context_window, use_rope, attn_cfg):
     """
     Build an attention layer
+
+    Args:
+        hidden_dim: hidden dimension
+        context_window: context window
+        use_rope: whether to use rope
+        attn_cfg: attention config
     """
     return ATTENTION_DICT[attn_cfg["attn_type"]](
         hidden_dim=hidden_dim,
@@ -155,4 +155,3 @@ def build_attention(hidden_dim, context_window, use_rope, attn_cfg):
         use_rope=use_rope,
         attn_cfg=attn_cfg,
     )
-

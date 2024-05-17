@@ -9,6 +9,7 @@ class Tokenizer:
     def __init__(self, **_):
         self.eot_token = 0
         self.pad_token = 0
+        self.vocab_size = ...
 
     def encode(self, text):
         """Encode a text into tokens."""
