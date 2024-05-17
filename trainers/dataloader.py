@@ -203,6 +203,7 @@ class BytePoolingDataloader(BaseDataloader):
     def __init__(self, cfg, embedder):
         super().__init__(cfg, embedder=embedder)
         self.tokenized_data_path += f"-BytePooling"
+        self.loading_shape = None
 
     def _write_tokenized_data(self, tokenized):
         for split, dset in tokenized.items():
@@ -233,10 +234,19 @@ class BytePoolingDataloader(BaseDataloader):
         """
         Get a train/val batch
         """
+        if self.loading_shape is None:
+            data = np.memmap(
+                os.path.join(self.tokenized_data_path, f"{split}.bin"),
+                dtype=np.uint16,
+                mode="r",
+            )
+            self.loading_shape = (len(data)// self.model_cfg.embedder.byte_context_window, self.model_cfg.embedder.byte_context_window)
+
         data = np.memmap(
             os.path.join(self.tokenized_data_path, f"{split}.bin"),
             dtype=np.uint16,
             mode="r",
+            shape=self.loading_shape,
         )
         input(np.shape(data))
 
