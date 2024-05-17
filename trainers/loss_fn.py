@@ -8,6 +8,8 @@ import torch
 
 def cross_entropy_loss_fn(logits, y):
     """Cross Entropy Loss Function"""
+    print(logits.size())
+    input(y.size())
     logits = logits.view(-1, logits.size(-1))
     y = y.view(-1)
     return torch.nn.functional.cross_entropy(logits, y, ignore_index=-1)
