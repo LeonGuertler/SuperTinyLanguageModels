@@ -204,7 +204,7 @@ class BytePoolingDataloader(BaseDataloader):
     def __init__(self, cfg, embedder):
         super().__init__(cfg, embedder=embedder)
         self.tokenized_data_path += f"-BytePooling"
-        self.loading_shapes = {"train": None, "test": None}
+        self.loading_shapes = {"train": None, "val": None}
 
     def _write_tokenized_data(self, tokenized):
         for split, dset in tokenized.items():
