@@ -109,6 +109,8 @@ class ByteLevelEmbedder(GenericEmbedder):
         # positional encoding
         x = x + self.pos_encoder(torch.arange(x.size(-2), device=x.device)).unsqueeze(0)
 
+        input(x.size())
+
         # pass through transformer
         for block in self.transformer:
             x = block(x)
