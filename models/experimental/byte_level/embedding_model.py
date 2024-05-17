@@ -95,7 +95,6 @@ class ByteLevelEmbedder(GenericEmbedder):
             * (self.model_cfg["byte_context_window"] - len(token_seq))
             for token_seq in tokens
         ]
-        input(tokens)
         return tokens
 
     def forward(self, token_ids):
