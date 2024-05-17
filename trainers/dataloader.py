@@ -227,5 +227,6 @@ class BytePoolingDataloader(BaseDataloader):
                 input(np.shape(arr_batch))
                 # Write into mmap
                 arr[idx : idx + len(arr_batch)] = arr_batch
+                input(np.shape(arr))
                 idx += len(arr_batch)
             arr.flush()
