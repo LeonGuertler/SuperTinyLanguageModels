@@ -204,7 +204,7 @@ class BytePoolingDataloader(BaseDataloader):
     def __init__(self, cfg, embedder):
         super().__init__(cfg, embedder=embedder)
         self.tokenized_data_path += f"-BytePooling"
-        self.loading_shape = None
+        self.loading_shapes = {"train": None, "test": None}
 
     def _write_tokenized_data(self, tokenized):
         for split, dset in tokenized.items():
@@ -235,19 +235,19 @@ class BytePoolingDataloader(BaseDataloader):
         """
         Get a train/val batch
         """
-        if self.loading_shape is None:
+        if self.loading_shapes[split] is None:
             data = np.memmap(
                 os.path.join(self.tokenized_data_path, f"{split}.bin"),
                 dtype=np.uint16,
                 mode="r",
             )
-            self.loading_shape = (len(data)// self.model_cfg.embedder.byte_context_window, self.model_cfg.embedder.byte_context_window)
-
+            self.loading_shapes[split] = (len(data)// self.model_cfg.embedder.byte_context_window, self.model_cfg.embedder.byte_context_window)
+            
         data = np.memmap(
             os.path.join(self.tokenized_data_path, f"{split}.bin"),
             dtype=np.uint16,
             mode="r",
-            shape=self.loading_shape,
+            shape=self.loading_shapes[split],
         )
 
         idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
