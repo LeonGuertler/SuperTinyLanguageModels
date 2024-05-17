@@ -24,10 +24,10 @@ class LearnedPosEncoding(torch.nn.Module):
         Returns:
             x: torch.tensor(B, S, H)
         """
-        print(x.size(), x.device)
-        print((self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0)).size(), (self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0)).device)
-        input()
         if len(x.shape) >= 2:
+            print(x.size(), x.device)
+            print((self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0)).size(), (self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0)).device)
+            input()
             return x + (self.pe(torch.arange(x.size(1), device=x.device)).unsqueeze(0))
         else:
             return x + self.pe(torch.arange(x.size(1), device=x.device))
