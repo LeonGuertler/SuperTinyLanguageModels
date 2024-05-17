@@ -248,7 +248,6 @@ class BytePoolingDataloader(BaseDataloader):
             mode="r",
             shape=self.loading_shape,
         )
-        input(np.shape(data))
 
         idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
         X = torch.stack(
