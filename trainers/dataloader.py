@@ -224,9 +224,40 @@ class BytePoolingDataloader(BaseDataloader):
                     num_shards=total_batches, index=batch_idx, contiguous=True
                 ).with_format("numpy")
                 arr_batch = np.concatenate(batch["ids"])
-                input(np.shape(arr_batch))
                 # Write into mmap
                 arr[idx : idx + len(arr_batch)] = arr_batch
-                input(np.shape(arr))
                 idx += len(arr_batch)
             arr.flush()
+
+    def get_batch(self, split="train"):
+        """
+        Get a train/val batch
+        """
+        data = np.memmap(
+            os.path.join(self.tokenized_data_path, f"{split}.bin"),
+            dtype=np.uint16,
+            mode="r",
+        )
+        input(np.shape(data))
+
+        idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
+        X = torch.stack(
+            [
+                torch.from_numpy((data[i : i + self.context_window]).astype(np.int64))
+                for i in idxs
+            ]
+        )
+        y = torch.stack(
+            [
+                torch.from_numpy(
+                    (data[i + 1 : i + 1 + self.context_window]).astype(np.int64)
+                )
+                for i in idxs
+            ]
+        )
+
+        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
+            self.device, non_blocking=True
+        )
+
+        return X, y
