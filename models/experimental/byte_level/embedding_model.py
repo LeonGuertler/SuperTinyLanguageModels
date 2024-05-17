@@ -101,8 +101,10 @@ class ByteLevelEmbedder(GenericEmbedder):
         """
         Forward pass.
         """
+        print(token_ids.size())
         # get the byte embeddings
         x = self.byte_token_embedder(token_ids)
+        input(x.size())
 
         # positional encoding
         x = self.pos_encoder(x)
