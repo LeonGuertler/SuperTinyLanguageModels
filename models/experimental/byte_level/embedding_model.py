@@ -104,11 +104,22 @@ class ByteLevelEmbedder(GenericEmbedder):
         # get the byte embeddings
         x = self.byte_token_embedder(token_ids)
 
+        # collapse the text sequence and batch dim
+        B, S, S_c, H_c = x.size()
+        x = x.view(B * S, S_c, H_c)
+
         # positional encoding
         x = self.pos_encoder(x)
+
 
         # pass through transformer
         for block in self.transformer:
             x = block(x)
+
+        # un-collapse the text sequence and batch dim
+        # mean pool the tokens
+        x = x.mean(dim=-2)
+        x = x.view(B, S, -1)
+
 
         return x

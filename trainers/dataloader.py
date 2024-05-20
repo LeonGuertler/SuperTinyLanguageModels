@@ -112,6 +112,9 @@ class BaseDataloader:
         split_dataset = load_data(
             dataset_name=self.dataset_name,
         )
+        # can be used for debugging
+        #split_dataset["train"] = split_dataset["train"].select(range(2048))
+        #split_dataset["val"] = split_dataset["val"].select(range(2048))
 
         def process(example):
             ids = self.embedder.tokenize_input(example["text"])
@@ -201,6 +204,7 @@ class BytePoolingDataloader(BaseDataloader):
     def __init__(self, cfg, embedder):
         super().__init__(cfg, embedder=embedder)
         self.tokenized_data_path += f"-BytePooling"
+        self.loading_shapes = {"train": None, "val": None}
 
     def _write_tokenized_data(self, tokenized):
         for split, dset in tokenized.items():
@@ -222,8 +226,48 @@ class BytePoolingDataloader(BaseDataloader):
                     num_shards=total_batches, index=batch_idx, contiguous=True
                 ).with_format("numpy")
                 arr_batch = np.concatenate(batch["ids"])
-                print(arr_batch.shape)
                 # Write into mmap
                 arr[idx : idx + len(arr_batch)] = arr_batch
                 idx += len(arr_batch)
             arr.flush()
+
+    def get_batch(self, split="train"):
+        """
+        Get a train/val batch
+        """
+        if self.loading_shapes[split] is None:
+            data = np.memmap(
+                os.path.join(self.tokenized_data_path, f"{split}.bin"),
+                dtype=np.uint16,
+                mode="r",
+            )
+            self.loading_shapes[split] = (len(data)// self.model_cfg.embedder.byte_context_window, self.model_cfg.embedder.byte_context_window)
+            
+        data = np.memmap(
+            os.path.join(self.tokenized_data_path, f"{split}.bin"),
+            dtype=np.uint16,
+            mode="r",
+            shape=self.loading_shapes[split],
+        )
+
+        idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
+        X = torch.stack(
+            [
+                torch.from_numpy((data[i : i + self.context_window]).astype(np.int64))
+                for i in idxs
+            ]
+        )
+        y = torch.stack(
+            [
+                torch.from_numpy(
+                    (data[i + 1 : i + 1 + self.context_window]).astype(np.int64)
+                )
+                for i in idxs
+            ]
+        )
+
+        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
+            self.device, non_blocking=True
+        )
+
+        return X, y

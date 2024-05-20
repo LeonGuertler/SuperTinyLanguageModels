@@ -55,7 +55,7 @@ class ByteLevelDecoder(torch.nn.Module):
         )
 
         self.lm_head = torch.nn.Linear(
-            in_features=self.byte_context_window,
+            in_features=self.embedding_dim,
             out_features=self.byte_vocab_size,
             bias=False,
         )
@@ -86,4 +86,4 @@ class ByteLevelDecoder(torch.nn.Module):
         # reshape and return
         x = x.view(B, S, self.byte_context_window, self.byte_vocab_size)
 
-        return x
+        return x, None
