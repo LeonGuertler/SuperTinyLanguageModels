@@ -30,11 +30,8 @@ model:
   positional_encoding_type: rope
 trainer:
   dropout_scheduler:
-    dropout_type: linear
-    start_dropout_p: 0.0
-    end_dropout_p: 0.1
-    start_iter: 0
-    end_iter: 10000
+    dropout_type: constant
+    dropout_p: 0.1
   dataset: simple_en_wiki
   training:
     trainer_type: base_trainer
@@ -43,7 +40,7 @@ trainer:
     max_iters: 25000
     lr_decay_iters: 25000
     warmup_iters: 5000
-    eval_interval: 10
+    eval_interval: 1000
     log_interval: 1
     eval_iters: 200
     checkpoint_interval: 1000000000.0
