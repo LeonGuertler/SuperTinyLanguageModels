@@ -10,5 +10,5 @@ attn:
   num_heads: 16
   normalization: "rms_norm"
   group_size: 4
-  bias: True
-  is_causal: False
+  bias: False
+  is_causal: True

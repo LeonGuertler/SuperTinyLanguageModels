@@ -13,7 +13,7 @@ model:
       normalization: rms_norm
       group_size: 4
       bias: true
-      is_causal: false
+      is_causal: True
   embedder:
     tokenizer_type: gpt2
     embedding_model_type: generic
@@ -31,7 +31,7 @@ model:
 trainer:
   dropout_scheduler:
     dropout_type: constant
-    dropout_p: 0.1
+    dropout: 0.1
   dataset: simple_en_wiki
   training:
     trainer_type: base_trainer
@@ -63,7 +63,7 @@ trainer:
     name: cross_entropy
 general:
   logging:
-    wandb_log: false
+    wandb_log: True
     wandb_project: TinyUniverse
   paths:
     output_dir: outputs
