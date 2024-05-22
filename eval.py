@@ -20,10 +20,14 @@ def main(cfg):
     model = build_model(checkpoint=torch.load(cfg["model_ckpt"]))
 
     # load the evaluator
-    evaluator = load_evaluator(evaluator_name=cfg["evaluator_name"], model=model)
+    evaluator = load_evaluator(
+        evaluator_name=cfg["testing"]["evaluator_name"], model=model
+    )
 
     # run the evaluator
-    evaluator.evaluate(benchmark_names=cfg["benchmarks"])
+    benchmark_names = cfg["testing"]["benchmarks"]
+    benchmark_names = [str(benchmark_name) for benchmark_name in benchmark_names]
+    evaluator.evaluate(benchmark_names=benchmark_names)
 
 
 if __name__ == "__main__":

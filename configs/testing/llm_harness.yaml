@@ -1,7 +1,8 @@
 benchmarks:
   - "winogrande"
   - "hellaswag"
-  - "arc"
+  - "arc_easy"
   - "mmlu"
+  - "bigbench/vitaminc_fact_verification"
 
 evaluator_name: "llm_harness"

@@ -6,4 +6,4 @@ benchmarks:
   # - "nonsense"
   - "vitaminc"
   - "winograd"
-evaluator_name: "mcqs"
+evaluator_name: "mcq"

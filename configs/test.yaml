@@ -1,5 +1,6 @@
+defaults:
+  - testing: "llm_harness"
 model_ckpt: "checkpoints/ckpt.pth"
 generate_config:
   temperature: 0.8
   top_k: 10
-testing: baseline
