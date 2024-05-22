@@ -4,7 +4,7 @@ Evaluator class for evaluating models.
 
 import torch
 
-from evals.mcqs.load_benchmaks import load_benchmark
+from evals.mcqs.load_benchmarks import load_benchmark
 from evals.metrics import MCQ_METRIC_DICT
 
 
