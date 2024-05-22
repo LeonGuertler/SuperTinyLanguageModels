@@ -4,6 +4,7 @@ import torch
 from lm_eval import evaluator, tasks
 from lm_eval.api import instance, model
 
+from evals import evaluator_interface
 from models import model_shell
 
 
@@ -99,7 +100,9 @@ class LMEvalWrappedModel(model.LM):
             yield context_str + generated_text
 
 
-class LLMHarness:
+class LLMHarness(evaluator_interface.EvaluationInterface):
+    """Uses LLM harness to evaluate a model."""
+
     def __init__(self, base_model: model_shell.ModelShell):
         self.base_model = base_model
         self.lm = LMEvalWrappedModel(base_model)

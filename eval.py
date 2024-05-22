@@ -20,9 +20,7 @@ def main(cfg):
     model = build_model(checkpoint=torch.load(cfg["model_ckpt"]))
 
     # load the evaluator
-    evaluator = load_evaluator(
-        evaluator_name=cfg["evaluator_name"], cfg=cfg, model=model
-    )
+    evaluator = load_evaluator(evaluator_name=cfg["evaluator_name"], model=model)
 
     # run the evaluator
     evaluator.evaluate(benchmark_names=cfg["benchmarks"])
