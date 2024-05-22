@@ -9,15 +9,15 @@ from evals.load_evaluators import load_evaluator
 from models.build_models import build_model
 
 
-@hydra.main(config_path="configs/eval", config_name="baseline")
+@hydra.main(config_path="configs", config_name="test")
 def main(cfg):
     """run the main eval loop"""
 
     # set the checkpoint path to absolute path
-    cfg["ckpt_path"] = hydra.utils.to_absolute_path(cfg["ckpt_path"])
+    cfg["model_ckpt"] = hydra.utils.to_absolute_path(cfg["model_ckpt"])
 
     # load checkpoint from the path
-    model = build_model(checkpoint=torch.load(cfg["ckpt_path"]))
+    model = build_model(checkpoint=torch.load(cfg["model_ckpt"]))
 
     # load the evaluator
     evaluator = load_evaluator(
