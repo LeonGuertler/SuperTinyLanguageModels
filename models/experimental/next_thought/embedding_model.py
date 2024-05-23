@@ -69,7 +69,7 @@ class HierarchicalEncoder(GenericEmbedder):
 
     def forward(self, token_ids):
         # embed the input 
-        x = self.embedding(token_ids)
+        x = self.token_embedder(token_ids)
 
         # apply positional encoding 
         x = x + self.positional_encoding(x)
