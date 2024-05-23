@@ -310,7 +310,7 @@ class NextTokenMLMDataloader(BaseDataloader):
         )
 
         # mask out some tokens
-        mask = torch.uniform(0, 1, X.size()) < masking_pct
+        mask = torch.rand(X.size()) < masking_pct
         X[mask] = 0
 
         return X, (y, mask)
