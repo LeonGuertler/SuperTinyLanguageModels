@@ -49,7 +49,6 @@ class BPETokenizer(Tokenizer):
             self._load()
 
         self.eot_token = self.special_tokens["<|endoftext|>"]
-        self.pad_token = self.special_tokens["<|pad|>"]
 
     def encode(self, text):
         """

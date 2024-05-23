@@ -136,8 +136,8 @@ class ByteLevelEmbedder(GenericEmbedder):
         # flatten across S dim, remove pad tokens and eos tokens
         x = x.view(-1)
     
-        pad_mask = x == self.byte_tokenizer.pad_token_id
-        eos_mask = x == self.byte_tokenizer.eos_token_id
+        pad_mask = x == self.byte_tokenizer.pad_token       
+        eos_mask = x == self.byte_tokenizer.eot_token
         mask = pad_mask | eos_mask
         x = x[~mask]
     
