@@ -133,23 +133,32 @@ class ByteLevelEmbedder(GenericEmbedder):
         Args:
             x: torch.tensor(B, S, S_c)
         """
-        # flatten across S dim, remove pad tokens and eos tokens
-        x = x.view(x.size(0), -1)
-        input(x.size())
-    
-        pad_mask = x == self.byte_tokenizer.pad_token       
-        eos_mask = x == self.byte_tokenizer.eot_token
-        mask = pad_mask | eos_mask
-    
-        # Calculate token lengths (number of non-padding tokens)
-        token_length = (x != 0).sum(dim=1)
-    
-        # Decode tokens and calculate character lengths
-        sequence = self.byte_tokenizer.decode_batch(x)
-        char_length = len(sequence)
+        # flatten along S, S_c
+        B, S, S_c = x.size()
+        x = x.view(B, S * S_c)
 
-        input(token_length)
-        input(char_length)
-    
-    
-        return token_length, char_length, mask
+
+        token_lengths = []
+        # first we decode each token
+        for batch in x:
+            batch_token_lengths = []
+            for token in batch:
+                token_lengths.append(len(self.byte_tokenizer.decode(token)))
+            token_lengths.append(batch_token_lengths)
+
+
+        sequence_char_lengths = []
+        # then we decode everything
+        # batch decode
+        sequences = self.byte_tokenizer.decode_batch(x)
+        for seq in sequences:
+            sequence_char_lengths.append(len(seq))
+
+
+        # obtain the mask for end-of-word and pad tokens
+        mask = x != self.byte_tokenizer.pad_token
+        mask = mask & (x != self.byte_tokenizer.eot_token)
+
+
+        return token_lengths, sequence_char_lengths, mask
+

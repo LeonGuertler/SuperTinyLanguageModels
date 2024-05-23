@@ -81,13 +81,22 @@ class GenericEmbedder(torch.nn.Module):
         Args:
             x: torch.tensor(B, S)
         """
-        # Calculate token lengths (number of non-padding tokens)
-        token_lengths = (x != 0).sum(dim=1)
+        token_lengths = []
+        # first we decode each token
+        for batch in x:
+            batch_token_lengths = []
+            for token in batch:
+                batch_token_lengths.append(len(self.byte_tokenizer.decode(token)))
+            token_lengths.append(batch_token_lengths)
 
-        # Decode tokens and calculate character lengths
+        sequence_char_lengths = []
+        # then we decode everything
+        # batch decode
         sequences = self.tokenizer.decode_batch(x)
-        char_lengths = torch.tensor([len(seq) for seq in sequences])
+        for seq in sequences:
+            sequence_char_lengths.append(len(seq))
 
-        return token_lengths, char_lengths, None
+        return token_lengths, sequence_char_lengths, None 
+
 
 

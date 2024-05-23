@@ -36,51 +36,36 @@ def next_token_mlm_loss_fn(logits, y_mask, masked_loss=True):
     return cross_entropy_loss_fn(logits, y)
 
 def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
-    """Compute perplexity"""
+    """
+    Compute perplexity
+    Args:
+        logits: torch.tensor(B, S, H) or torch.tensor(B, S, S_c, H_c)
+        y: torch.tensor(B, S) or torch.tensor(B, S, S_c)
+        token_lengths: List[List[int]]
+        char_lengths: List[int]
+    Returns:
+        perplexity: torch.tensor(1)
+    """
 
-    # reshape logits and y if extra dim (byte level)
+    # check if logits is byte-level
     if len(logits.size()) > 3:
         B, S, S_c = y.size()
         logits = logits.view(B, S*S_c, -1)
         y = y.view(B, S*S_c)
 
-    # if mask is provided, apply it 
-    if mask is not None:
-        logits = logits[mask]
-        y = y[mask]
-    else:
-        logits = logits.view(-1, logits.size(-1))
-        y = y.view(-1)
+    # B, S, H / B, S, 1
     # calculate non-reduced loss
     loss = torch.nn.functional.cross_entropy(logits, y, ignore_index=-1, reduction="none")
-    input(loss.size())
-    input('oik')
-    # check size
-    input(logits.size())
-    input(y.size())
-    input('oik')
+    # B, S, 1
 
-    input(logits.size())
-    input(y.size())
-    input(mask.size())
-    input(token_lengths.size())
-    input(char_lengths.size())
-    # get token level loss (masking as necessary)
+    # multiply by the token lengths
+    loss = loss * torch.tensor(token_lengths).float()
 
-    loss = torch.nn.functional.cross
-    loss = cross_entropy_loss_fn(logits, y, mask=mask)
+    # sum and divide by character length
+    loss = loss.sum() / torch.tensor(char_lengths).sum()
+
     return torch.exp(loss)
 
-
-#def compute_perplexity(logits, y, lengths: list[int]):
-#    """Compute perplexity
-
-#    The lengths are character lengths of the input sequences rather than
-#    of the tokenized sequences."""
-#    loss = torch.nn.functional.cross_entropy(
-#        logits, y, ignore_index=-1, reduction="sum"
-#    )
-#    return torch.exp(loss / sum(lengths))
 
 
 def build_loss_fn(loss_fn_type: str):
