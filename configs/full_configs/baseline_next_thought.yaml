@@ -4,7 +4,7 @@ model:
 
   embedder:
     tokenizer_type: gpt2
-    embedding_model_type: hierarchical
+    embedding_model_type: hierarchical_encoder
     dataset_name: simple_en_wiki
     pooling_layers: 5
     pooling_dims: [768, 1920, 1920, 1920, 4800]
