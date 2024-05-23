@@ -216,10 +216,11 @@ class BaseTrainer:
             dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
             if not iter_num % self.cfg.trainer.training.eval_interval and iter_num > 0:
+                s0 = time.time()
                 losses, perplexities = self.estimate_performance()
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f},"
-                    f" val loss {losses['val']:.4f}"
+                    f" val loss {losses['val']:.4f}, dt {time.time()-s0:.1f}s"
                 )
                 print(
                     f"step {iter_num}: train perplexity {perplexities['train']:.4f},"
