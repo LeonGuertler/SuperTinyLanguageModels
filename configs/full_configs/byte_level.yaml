@@ -49,8 +49,8 @@ trainer:
     max_iters: 25000
     lr_decay_iters: 25000
     warmup_iters: 5000
-    eval_interval: 10
-    log_interval: 1
+    eval_interval: 5000
+    log_interval: 100
     eval_iters: 200
     checkpoint_interval: 1000000000.0
     run_profiler: false
