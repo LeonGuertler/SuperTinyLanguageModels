@@ -35,16 +35,28 @@ def next_token_mlm_loss_fn(logits, y_mask, masked_loss=True):
 
     return cross_entropy_loss_fn(logits, y)
 
+def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
+    """Compute perplexity"""
+    input(logits.size())
+    input(y.size())
+    input(token_lengths.size())
+    input(char_lengths.size())
+    # get token level loss (masking as necessary)
 
-def compute_perplexity(logits, y, lengths: list[int]):
-    """Compute perplexity
+    loss = torch.nn.functional.cross
+    loss = cross_entropy_loss_fn(logits, y, mask=mask)
+    return torch.exp(loss)
 
-    The lengths are character lengths of the input sequences rather than
-    of the tokenized sequences."""
-    loss = torch.nn.functional.cross_entropy(
-        logits, y, ignore_index=-1, reduction="sum"
-    )
-    return torch.exp(loss / sum(lengths))
+
+#def compute_perplexity(logits, y, lengths: list[int]):
+#    """Compute perplexity
+
+#    The lengths are character lengths of the input sequences rather than
+#    of the tokenized sequences."""
+#    loss = torch.nn.functional.cross_entropy(
+#        logits, y, ignore_index=-1, reduction="sum"
+#    )
+#    return torch.exp(loss / sum(lengths))
 
 
 def build_loss_fn(loss_fn_type: str):

@@ -11,6 +11,10 @@ from models import model_shell
 from trainers import dataloader as train_dataloader
 from trainers import utils
 
+from trainers.loss_fn import (
+    compute_perplexity
+)
+
 
 # pylint: disable invalid-name
 class BaseTrainer:
@@ -105,17 +109,20 @@ class BaseTrainer:
             perplexities = torch.zeros(eval_iters)
             for i in range(eval_iters):
                 x, y = self.dataloader.get_batch(split)
-                token_length, char_length, mask = self.model.embedding_model.get_sequence_info(x)
+                token_lengths, char_lengths, mask = self.model.embedding_model.get_sequence_info(x)
                 with self.ctx:
                     output, _ = self.model(x)
                     losses[i] = self.loss_fn(output, y, mask=mask)
-                    input(losses)
-                    input(losses[i])
-                    input(perplexities)
-                    input(perplexities[i])
-                    perplexities[i] = torch.exp(
-                        losses[i] * sum(token_length) / sum(char_length)
+                    perplexities[i] = compute_perplexity(
+                        logits=output,
+                        y=y,
+                        token_lengths=token_lengths,
+                        char_lengths=char_lengths,
+                        mask=mask,
                     )
+                    #perplexities[i] = torch.exp(
+                    #    losses[i] * sum(token_length) / sum(char_length)
+                    #)
             loss[split] = losses.mean().item()
             perplexity[split] = perplexities.mean().item()
         self.model.train()
