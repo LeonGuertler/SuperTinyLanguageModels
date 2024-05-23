@@ -40,7 +40,8 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     # pull everything onto cpu
     logits = logits.cpu()
     y = y.cpu()
-    mask = mask.cpu()
+    if mask is not None:
+        mask = mask.cpu()
     
     # check if logits is byte-level
     if len(logits.size()) > 3:
@@ -62,7 +63,11 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     total_loss = 0
     for i in range(B):
         # mask and multiply
-        total_loss += (loss[i] * torch.tensor(token_lengths[i]).float())[mask[i]].sum()
+        if mask is not None:
+            total_loss += (loss[i] * torch.tensor(token_lengths[i]).float())[mask[i]].sum()
+        else:
+            total_loss += (loss[i] * torch.tensor(token_lengths[i]).float()).sum()
+
 
     # sum and divide by character length
     loss = loss.sum() / torch.tensor(char_lengths).sum()
