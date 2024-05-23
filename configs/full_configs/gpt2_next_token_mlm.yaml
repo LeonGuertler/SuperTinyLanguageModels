@@ -13,7 +13,7 @@ model:
       normalization: rms_norm
       group_size: 4
       bias: false
-      is_causal: true
+      is_causal: false
   embedder:
     tokenizer_type: gpt2
     embedding_model_type: generic
@@ -61,9 +61,9 @@ trainer:
   lr_scheduler:
     name: cosine
   dataloader:
-    name: standard
+    name: next_token_mlm
   loss_fn:
-    name: cross_entropy
+    name: next_token_mlm
 general:
   logging:
     wandb_log: false

@@ -57,7 +57,9 @@ def build_embedding_model(model_cfg):
     )
 
 
-CORE_MODEL_DICT = {"generic": GenericTransformer}
+CORE_MODEL_DICT = {
+    "generic": GenericTransformer,
+}
 
 
 def build_core_model(model_cfg):

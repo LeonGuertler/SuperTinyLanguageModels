@@ -52,3 +52,4 @@ class GenericTransformer(torch.nn.Module):
             x = block(x)
 
         return x
+

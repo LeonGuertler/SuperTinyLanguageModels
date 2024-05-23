@@ -204,7 +204,7 @@ class BytePoolingDataloader(BaseDataloader):
     def __init__(self, cfg, embedder):
         super().__init__(cfg, embedder=embedder)
         self.tokenized_data_path += f"-BytePooling"
-        self.loading_shapes = {"train": None, "val": None}
+        self.loading_shapes = {"train": None, "val  ": None}
 
     def _write_tokenized_data(self, tokenized):
         for split, dset in tokenized.items():
@@ -271,3 +271,46 @@ class BytePoolingDataloader(BaseDataloader):
         )
 
         return X, y
+
+
+
+class NextTokenMLMDataloader(BaseDataloader):
+    """
+    Similarly to the generic dataloader, but mask out some tokens and
+    return the mask used.
+    """
+    def get_batch(self, split="train", masking_pct=0.15):
+        """
+        Get a train/val batch
+        """
+        data = np.memmap(
+            os.path.join(self.tokenized_data_path, f"{split}.bin"),
+            dtype=np.uint16,
+            mode="r",
+        )
+
+        idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
+        X = torch.stack(
+            [
+                torch.from_numpy((data[i : i + self.context_window]).astype(np.int64))
+                for i in idxs
+            ]
+        )
+        y = torch.stack(
+            [
+                torch.from_numpy(
+                    (data[i + 1 : i + 1 + self.context_window]).astype(np.int64)
+                )
+                for i in idxs
+            ]
+        )
+
+        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
+            self.device, non_blocking=True
+        )
+
+        # mask out some tokens
+        mask = torch.rand_like(X) < masking_pct
+        X[mask] = 0
+
+        return X, (y, mask)

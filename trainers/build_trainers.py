@@ -9,8 +9,12 @@ from trainers.dataloader import (
     BytePoolingDataloader,
     Seq2SeqDataloader,
     StandardDataloader,
+    NextTokenMLMDataloader,
 )
-from trainers.loss_fn import cross_entropy_loss_fn
+from trainers.loss_fn import (
+    cross_entropy_loss_fn,
+    next_token_mlm_loss_fn
+)
 from trainers.optimizer import configure_nanoGPT_optimizer
 from trainers.scheduler import (
     CosineLRScheduler,
@@ -80,6 +84,7 @@ DATALOADER_DICT: dict[str, BaseDataloader] = {
     "standard": StandardDataloader,
     "byte_pooling": BytePoolingDataloader,
     "seq2seq": Seq2SeqDataloader,
+    "next_token_mlm": NextTokenMLMDataloader,
 }
 
 
@@ -93,7 +98,10 @@ def build_dataloader(cfg, embedder):
     )
 
 
-LOSS_FN_DICT = {"cross_entropy": cross_entropy_loss_fn}
+LOSS_FN_DICT = {
+    "cross_entropy": cross_entropy_loss_fn,
+    "next_token_mlm": next_token_mlm_loss_fn
+}
 
 
 def build_loss_fn(loss_fn_name):
