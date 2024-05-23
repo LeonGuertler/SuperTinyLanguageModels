@@ -12,8 +12,8 @@ model:
       num_heads: 16
       normalization: rms_norm
       group_size: 4
-      bias: true
-      is_causal: false
+      bias: false
+      is_causal: true
   embedder:
     tokenizer_type: gpt2
     embedding_model_type: generic
