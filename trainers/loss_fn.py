@@ -53,13 +53,16 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
         logits = logits.view(B, S*S_c, -1)
         y = y.view(B, S*S_c)
 
-    input(logits.size())
-    input(y.size())
 
     # B, S, H / B, S, 1
     # calculate non-reduced loss
-    loss = torch.nn.functional.cross_entropy(logits, y) #,reduction="none")
+    # flatten both
+    logits = logits.view(-1, logits.size(-1))
+    y = y.view(-1)
+    loss = torch.nn.functional.cross_entropy(logits, y, reduction="none")
     # B, S, 1
+    # unflatten
+    loss = loss.view(B, S)
 
     # multiply by the token lengths
     loss = loss * torch.tensor(token_lengths).float()
