@@ -5,7 +5,7 @@ by https://twitter.com/lexandermorgan/status/1778793836929495098.
 
 Original Paper: https://arxiv.org/abs/1508.07909v5
 """
-
+import torch 
 import os
 from heapq import nlargest
 
@@ -89,6 +89,9 @@ class BPETokenizer(Tokenizer):
         """
         Decode a batch of Byte Pair Encoding token lists back into text.
         """
+        # if tensor, convert to list
+        if torch.is_tensor(token_lists):
+            token_lists = token_lists.tolist()
         return [self.decode(tokens) for tokens in token_lists]
 
     def _train_tokenizer(self, verbose=True):
