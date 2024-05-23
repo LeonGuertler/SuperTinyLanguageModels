@@ -86,7 +86,7 @@ class GenericEmbedder(torch.nn.Module):
         token_length = (x != 0).sum()
         
         # Decode tokens and calculate character lengths
-        sequence = self.tokenizer.decode(x, skip_special_tokens=True)
+        sequence = self.tokenizer.decode(x)
         char_length = len(sequence)
 
 

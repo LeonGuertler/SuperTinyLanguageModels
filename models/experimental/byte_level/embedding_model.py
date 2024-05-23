@@ -145,7 +145,7 @@ class ByteLevelEmbedder(GenericEmbedder):
         token_length = (x != 0).sum()
     
         # Decode tokens and calculate character lengths
-        sequence = self.byte_tokenizer.decode(x, skip_special_tokens=True)
+        sequence = self.byte_tokenizer.decode(x)
         char_length = len(sequence)
     
     
