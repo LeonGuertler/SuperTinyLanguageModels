@@ -39,7 +39,7 @@ class HierarchicalEncoder(GenericEmbedder):
         )
 
         # build the positional encodings
-        self.positional_encodings = build_positional_encodings(model_cfg=model_cfg)
+        self.positional_encoding = build_positional_encodings(model_cfg=model_cfg)
 
 
         self.standard_transformer = torch.nn.ModuleList(
