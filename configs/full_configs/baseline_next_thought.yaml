@@ -46,6 +46,7 @@ model:
 
   latent_dim: 4800
   embedding_dim: 768
+  hidden_dim: 768
 
   context_window: 512
   vocab_size: 50257
