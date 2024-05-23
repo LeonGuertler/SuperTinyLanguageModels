@@ -46,8 +46,12 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     # check if logits is byte-level
     if len(logits.size()) > 3:
         B, S, S_c = y.size()
-        logits = logits.view(B, S*S_c, -1)
-        y = y.view(B, S*S_c)
+        seq_len = S * S_c
+        logits = logits.view(B, seq_len, -1)
+        y = y.view(B, seq_len)
+    else:
+        B, seq_len = y.size()
+        
 
 
     # B, S, H / B, S, 1
@@ -58,7 +62,7 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     loss = torch.nn.functional.cross_entropy(logits, y, reduction="none")
     # B, S, 1
     # unflatten
-    loss = loss.view(B, S*S_c)
+    loss = loss.view(B, seq_len)
 
     total_loss = 0
     for i in range(B):
