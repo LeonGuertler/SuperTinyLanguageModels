@@ -47,7 +47,7 @@ class HierarchicalEncoder(GenericEmbedder):
                 GenericTransformerBlock(
                     hidden_dim=model_cfg["embedder"]["pooling_dims"][0],
                     context_window=model_cfg["embedder"]["context_window"],
-                    use_rope=model_cfg["embedder"]["positional_encoding_type"] == "rope",
+                    use_rope=False,
                     ffn_cfg=model_cfg["embedder"]["standard_ffn_block"],
                     attn_cfg=model_cfg["embedder"]["standard_attn_block"],
                 )
@@ -67,9 +67,9 @@ class HierarchicalEncoder(GenericEmbedder):
         )
 
 
-    def forward(self, x):
+    def forward(self, token_ids):
         # embed the input 
-        x = self.embedding(x)
+        x = self.embedding(token_ids)
 
         # apply positional encoding 
         x = x + self.positional_encoding(x)

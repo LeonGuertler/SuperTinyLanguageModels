@@ -64,6 +64,11 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     # unflatten
     loss = loss.view(B, seq_len)
 
+    # sanity check
+    # cehck if total token_lengths is equal to total char_lenghts
+    print("Token Lengths: ", token_lengths)
+    print("Char Lengths: ", char_lengths)
+
     total_loss = 0
     for i in range(B):
         # mask and multiply

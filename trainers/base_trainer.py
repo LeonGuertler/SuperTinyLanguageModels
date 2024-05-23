@@ -132,7 +132,6 @@ class BaseTrainer:
                 with self.ctx:
                     output, _ = self.model(x)
                     losses[i] = self.loss_fn(output, y, mask=mask)
-                    s0 = time.time()
                     perplexities[i] = compute_perplexity(
                         logits=output,
                         y=y,
@@ -140,7 +139,6 @@ class BaseTrainer:
                         char_lengths=char_lengths,
                         mask=mask,
                     )
-                    print(f"perplexity time: {time.time()-s0:.1f}s")
             loss[split] = losses.mean().item()
             perplexity[split] = perplexities.mean().item()
         self.model.train()
