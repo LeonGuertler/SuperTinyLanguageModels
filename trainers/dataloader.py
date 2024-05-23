@@ -274,6 +274,79 @@ class BytePoolingDataloader(BaseDataloader):
 
 
 
+class ConversationalDataloader(BaseDataloader):
+    """
+    A basic dataloader for conversational or turn-based
+    datasets.
+    """
+    def _write_tokenized_data(self, tokenized):
+        for split, dset in tokenized.items():
+            arr_len = np.sum(dset["len"], dtype=np.uint64)
+            filename = os.path.join(self.tokenized_data_path, f"{split}.bin")
+            dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
+            arr = np.memmap(
+                filename,
+                dtype=dtype,
+                mode="w+",
+                shape=(arr_len, self.model_cfg.embedder.byte_context_window),
+            )
+            total_batches = 1024
+
+            idx = 0
+            for batch_idx in tqdm(range(total_batches), desc=f"writing {filename}"):
+                # Batch together samples for faster write
+                batch = dset.shard(
+                    num_shards=total_batches, index=batch_idx, contiguous=True
+                ).with_format("numpy")
+                arr_batch = np.concatenate(batch["ids"])
+                # Write into mmap
+                arr[idx : idx + len(arr_batch)] = arr_batch
+                idx += len(arr_batch)
+            arr.flush()
+
+    def get_batch(self, split="train"):
+        """
+        Get a train/val batch
+        """
+        if self.loading_shapes[split] is None:
+            data = np.memmap(
+                os.path.join(self.tokenized_data_path, f"{split}.bin"),
+                dtype=np.uint16,
+                mode="r",
+            )
+            self.loading_shapes[split] = (len(data)// self.model_cfg.embedder.byte_context_window, self.model_cfg.embedder.byte_context_window)
+            
+        data = np.memmap(
+            os.path.join(self.tokenized_data_path, f"{split}.bin"),
+            dtype=np.uint16,
+            mode="r",
+            shape=self.loading_shapes[split],
+        )
+
+        idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
+        X = torch.stack(
+            [
+                torch.from_numpy((data[i : i + self.context_window]).astype(np.int64))
+                for i in idxs
+            ]
+        )
+        y = torch.stack(
+            [
+                torch.from_numpy(
+                    (data[i + 1 : i + 1 + self.context_window]).astype(np.int64)
+                )
+                for i in idxs
+            ]
+        )
+
+        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
+            self.device, non_blocking=True
+        )
+
+        return X, y
+
+
+
 class NextTokenMLMDataloader(BaseDataloader):
     """
     Similarly to the generic dataloader, but mask out some tokens and
@@ -314,3 +387,5 @@ class NextTokenMLMDataloader(BaseDataloader):
         X[mask] = 0
 
         return X, (y, mask)
+    
+

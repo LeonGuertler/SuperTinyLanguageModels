@@ -46,7 +46,7 @@ class BaseTrainer:
         self.scaler = None
         self.use_wandb = cfg["general"]["logging"]["wandb_log"]
         self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
-        self.eval_set = {}
+        self.cached_sets = {"train": {}, "val": {}}
 
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
@@ -110,15 +110,16 @@ class BaseTrainer:
             perplexities = torch.zeros(eval_iters)
             for i in range(eval_iters):
                 # use cached eval if available
-                if split=="val" and i in self.eval_set:
-                    x = self.eval_set[i]["x"]
-                    y = self.eval_set[i]["y"]
-                    token_lengths = self.eval_set[i]["token_lengths"]
-                    char_lengths = self.eval_set[i]["char_lengths"]
+
+                if i in self.cached_sets[split]:
+                    x = self.cached_sets[split][i]["x"]
+                    y = self.cached_sets[split][i]["y"]
+                    token_lengths = self.cached_sets[split][i]["token_lengths"]
+                    char_lengths = self.cached_sets[split][i]["char_lengths"]
                 else:
                     x, y = self.dataloader.get_batch(split)
                     token_lengths, char_lengths, mask = self.model.embedding_model.get_sequence_info(x)
-                    self.eval_set[i] = {
+                    self.cached_sets[split][i] = {
                         "x": x,
                         "y": y,
                         "token_lengths": token_lengths,
