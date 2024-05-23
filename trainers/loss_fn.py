@@ -8,6 +8,12 @@ import torch
 
 def cross_entropy_loss_fn(logits, y, mask=None):
     """Cross Entropy Loss Function"""
+
+    # if there is an extra dimension, flatten first (byte-level-models)
+    if len(logits.size()) > 2:
+        B, S, S_c = y.size()
+        logits = logits.view(B, S*S_c, -1)
+        y = y.view(B, S*S_c)
     if mask is not None:
         logits = logits.view(-1, logits.size(-1))[mask]
         y = y.view(-1)[mask]

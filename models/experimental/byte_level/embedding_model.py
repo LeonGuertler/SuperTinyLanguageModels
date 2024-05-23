@@ -134,7 +134,7 @@ class ByteLevelEmbedder(GenericEmbedder):
             x: torch.tensor(B, S, S_c)
         """
         # flatten across S dim, remove pad tokens and eos tokens
-        x = x.view(-1)
+        x = x.view(x.size(0), -1)
     
         pad_mask = x == self.byte_tokenizer.pad_token       
         eos_mask = x == self.byte_tokenizer.eot_token
@@ -142,7 +142,7 @@ class ByteLevelEmbedder(GenericEmbedder):
         x = x[~mask]
     
         # Calculate token lengths (number of non-padding tokens)
-        token_length = (x != 0).sum()
+        token_length = (x != 0).sum(dim=1)
     
         # Decode tokens and calculate character lengths
         sequence = self.byte_tokenizer.decode(x)
