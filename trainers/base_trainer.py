@@ -211,10 +211,10 @@ class BaseTrainer:
                     f"step {iter_num}: train loss {losses['train']:.4f},"
                     f" val loss {losses['val']:.4f}"
                 )
-                print(
-                    f"step {iter_num}: train perplexity {perplexities['train']:.4f},"
-                    f" val perplexity {perplexities['val']:.4f}"
-                )
+                #print(
+                #    f"step {iter_num}: train perplexity {perplexities['train']:.4f},"
+                #    f" val perplexity {perplexities['val']:.4f}"
+                #)
                 if self.use_wandb:
                     wandb.log(
                         {
@@ -223,8 +223,8 @@ class BaseTrainer:
                             "val/loss": losses["val"],
                             "lr": lr,
                             "dropout": dropout,
-                            "train/perplexity": perplexities["train"],
-                            "val/perplexity": perplexities["val"],
+                            #"train/perplexity": perplexities["train"],
+                            #"val/perplexity": perplexities["val"],
                         }
                     )
             # save checkpoints
