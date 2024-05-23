@@ -140,6 +140,7 @@ class ByteLevelEmbedder(GenericEmbedder):
         pad_mask = x == self.byte_tokenizer.pad_token       
         eos_mask = x == self.byte_tokenizer.eot_token
         mask = pad_mask | eos_mask
+        input(mask.size())
         x = x[~mask]
         input(x.size())
     
