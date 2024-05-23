@@ -64,6 +64,8 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     # B, S, 1
     # unflatten
     loss = loss.view(B, S*S_c)
+    input(token_lengths)
+    input(char_lengths)
 
     total_loss = 0
     for i in range(B):
