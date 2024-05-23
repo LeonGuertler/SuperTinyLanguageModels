@@ -111,6 +111,8 @@ class BaseTrainer:
                     losses[i] = self.loss_fn(output, y, mask=mask)
                     input(losses)
                     input(losses[i])
+                    input(perplexities)
+                    input(perplexities[i])
                     perplexities[i] = torch.exp(
                         losses[i] * sum(token_length) / sum(char_length)
                     )
