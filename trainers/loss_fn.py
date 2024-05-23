@@ -39,6 +39,7 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     """Compute perplexity"""
     input(logits.size())
     input(y.size())
+    input(mask.size())
     input(token_lengths.size())
     input(char_lengths.size())
     # get token level loss (masking as necessary)
