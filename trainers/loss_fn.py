@@ -51,7 +51,7 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     if len(logits.size()) > 3:
         B, S, S_c = y.size()
         logits = logits.view(B, S*S_c, -1)
-        y = y.view(B, S*S_c, 1)
+        y = y.view(B, S*S_c)
 
     input(logits.size())
     input(y.size())
