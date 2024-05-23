@@ -14,6 +14,19 @@ def cross_entropy_loss_fn(logits, y):
     y = y.view(-1)
     return torch.nn.functional.cross_entropy(logits, y, ignore_index=-1)
 
+def next_token_mlm_loss_fn(logits, y_mask, masked_loss=True):
+    """
+    Using the mask to extract the masked tokens, calculate the next-token 
+    cross-entropy-loss. This was proposed in https://arxiv.org/abs/2404.05961
+    to train document embedding models.
+    """
+    y, mask = y_mask
+    if masked_loss:
+        logits = logits[mask]
+        y = y[mask]
+
+    return cross_entropy_loss_fn(logits, y)
+
 
 def compute_perplexity(logits, y, lengths: list[int]):
     """Compute perplexity
