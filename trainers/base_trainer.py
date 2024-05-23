@@ -229,7 +229,7 @@ class BaseTrainer:
                 lr = self.optimizer.param_groups[0]["lr"]
             dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
-            if not iter_num % self.cfg.trainer.training.eval_interval and iter_num > 0:
+            if (not iter_num % self.cfg.trainer.training.eval_interval) and iter_num > 0:
                 s0 = time.time()
                 losses, perplexities = self.estimate_performance()
                 print(
