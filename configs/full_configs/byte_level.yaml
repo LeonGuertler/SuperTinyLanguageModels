@@ -12,8 +12,8 @@ model:
       num_heads: 16
       normalization: rms_norm
       group_size: 4
-      bias: true
-      is_causal: false
+      bias: false
+      is_causal: true
   embedder:
     tokenizer_type: "gpt2"
     byte_tokenizer_type: "bpe"
@@ -73,7 +73,7 @@ trainer:
 general:
   logging:
     wandb_log: false
-    wandb_project: TinyUniverse
+    wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs
     data_dir: data
