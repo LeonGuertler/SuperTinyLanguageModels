@@ -141,6 +141,7 @@ class ByteLevelEmbedder(GenericEmbedder):
         eos_mask = x == self.byte_tokenizer.eot_token
         mask = pad_mask | eos_mask
         x = x[~mask]
+        input(x.size())
     
         # Calculate token lengths (number of non-padding tokens)
         token_length = (x != 0).sum(dim=1)
