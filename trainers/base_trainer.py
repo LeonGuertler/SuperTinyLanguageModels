@@ -109,7 +109,9 @@ class BaseTrainer:
             perplexities = torch.zeros(eval_iters)
             for i in range(eval_iters):
                 x, y = self.dataloader.get_batch(split)
+                s0 = time.time()
                 token_lengths, char_lengths, mask = self.model.embedding_model.get_sequence_info(x)
+                input(f"get_sequence_info time: {time.time()-s0}")
                 with self.ctx:
                     output, _ = self.model(x)
                     losses[i] = self.loss_fn(output, y, mask=mask)
