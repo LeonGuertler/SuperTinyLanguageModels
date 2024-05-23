@@ -8,18 +8,8 @@ import time
 
 def cross_entropy_loss_fn(logits, y, mask=None):
     """Cross Entropy Loss Function"""
-
-    # if there is an extra dimension, flatten first (byte-level-models)
-    if len(logits.size()) > 2:
-        B, S, S_c = y.size()
-        logits = logits.view(B, S*S_c, -1)
-        y = y.view(B, S*S_c)
-    if mask is not None:
-        logits = logits[mask]
-        y = y[mask]
-    else:
-        logits = logits.view(-1, logits.size(-1))
-        y = y.view(-1)
+    logits = logits.view(-1, logits.size(-1))
+    y = y.view(-1)
     return torch.nn.functional.cross_entropy(logits, y, ignore_index=-1)
 
 def next_token_mlm_loss_fn(logits, y_mask, masked_loss=True):
@@ -48,11 +38,9 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     """
 
     # pull everything onto cpu
-    s0 = time.time()
     logits = logits.cpu()
     y = y.cpu()
     mask = mask.cpu()
-    input(f"cpu time: {time.time()-s0}")
     
     # check if logits is byte-level
     if len(logits.size()) > 3:
@@ -64,21 +52,17 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     # B, S, H / B, S, 1
     # calculate non-reduced loss
     # flatten both
-    s0 = time.time()
     logits = logits.view(-1, logits.size(-1))
     y = y.view(-1)
     loss = torch.nn.functional.cross_entropy(logits, y, reduction="none")
     # B, S, 1
     # unflatten
     loss = loss.view(B, S*S_c)
-    input(f"loss time: {time.time()-s0}")
 
-    s0 = time.time()
     total_loss = 0
     for i in range(B):
         # mask and multiply
         total_loss += (loss[i] * torch.tensor(token_lengths[i]).float())[mask[i]].sum()
-    input(f"total_loss time: {time.time()-s0}")
 
     # sum and divide by character length
     loss = loss.sum() / torch.tensor(char_lengths).sum()
