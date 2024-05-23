@@ -27,7 +27,9 @@ def build_model(model_cfg=None, checkpoint=None):
     # check if model is to be loaded
     if checkpoint is not None:
         # load model with the correct architecture
-        model = initialize_model(checkpoint["config"])
+        print(f"loading model with config{checkpoint['config']}")
+        model = initialize_model(checkpoint["config"]["model"])
+
 
         # load the model weights
         model.load_state_dict(checkpoint["model"])

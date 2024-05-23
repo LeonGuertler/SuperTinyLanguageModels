@@ -1,6 +1,7 @@
 defaults:
   - testing: "llm_harness"
-model_ckpt: "checkpoints/ckpt.pth"
+model_ckpt: "checkpoints/ckpt_24999.pt"
 generate_config:
   temperature: 0.8
   top_k: 10
+output_path: "results.json"
