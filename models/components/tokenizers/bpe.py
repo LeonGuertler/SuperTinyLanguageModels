@@ -81,6 +81,9 @@ class BPETokenizer(Tokenizer):
         """
         Decode the Byte Pair Encoding tokens back into text.
         """
+        # if tensor, convert to list
+        if torch.is_tensor(tokens):
+            tokens = tokens.tolist()
         text_bytes = b"".join(self.vocab[idx] for idx in tokens)
         text = text_bytes.decode("utf-8", errors="replace")
         return text
