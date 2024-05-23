@@ -145,52 +145,6 @@ class StandardDataloader(BaseDataloader):
     """
 
 
-class Seq2SeqDataloader(BaseDataloader):
-    """
-    A sequence to sequence dataloader that preprocess a dataset
-    via tokenization, and then randomly loads batches of
-    X,y pairs where both X and y are sequences of tokens of
-    a specific length
-    Args:
-        cfg: the data config
-        preprocess: whether to preprocess the data
-    """
-
-    def get_batch(self, split="train"):
-        """
-        Get a train/val batch
-        """
-        data = np.memmap(
-            os.path.join(self.tokenized_data_path, f"{split}.bin"),
-            dtype=np.uint16,
-            mode="r",
-        )
-
-        idxs = torch.randint(len(data) - 2 * self.context_window, (self.batch_size,))
-        X = torch.stack(
-            [
-                torch.from_numpy((data[i : i + self.context_window]).astype(np.int64))
-                for i in idxs
-            ]
-        )
-        y = torch.stack(
-            [
-                torch.from_numpy(
-                    (
-                        data[i + self.context_window : i + 2 * self.context_window]
-                    ).astype(np.int64)
-                )
-                for i in idxs
-            ]
-        )
-
-        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
-            self.device, non_blocking=True
-        )
-
-        return X, y
-
-
 class BytePoolingDataloader(BaseDataloader):
     """
     A basic dataloader that preprocesses a dataset via
@@ -279,30 +233,11 @@ class ConversationalDataloader(BaseDataloader):
     A basic dataloader for conversational or turn-based
     datasets.
     """
-    def _write_tokenized_data(self, tokenized):
-        for split, dset in tokenized.items():
-            arr_len = np.sum(dset["len"], dtype=np.uint64)
-            filename = os.path.join(self.tokenized_data_path, f"{split}.bin")
-            dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
-            arr = np.memmap(
-                filename,
-                dtype=dtype,
-                mode="w+",
-                shape=(arr_len, self.model_cfg.embedder.byte_context_window),
-            )
-            total_batches = 1024
-
-            idx = 0
-            for batch_idx in tqdm(range(total_batches), desc=f"writing {filename}"):
-                # Batch together samples for faster write
-                batch = dset.shard(
-                    num_shards=total_batches, index=batch_idx, contiguous=True
-                ).with_format("numpy")
-                arr_batch = np.concatenate(batch["ids"])
-                # Write into mmap
-                arr[idx : idx + len(arr_batch)] = arr_batch
-                idx += len(arr_batch)
-            arr.flush()
+    def __init__(self, cfg, embedder):
+        super().__init__(cfg, embedder=embedder)
+        self.loading_shapes = {"train": None, "val  ": None}
+        # check if dataset is conversational
+        assert cfg["dataset"] in ["openhermes-2.5"], "Dataset must be conversational"
 
     def get_batch(self, split="train"):
         """
@@ -314,36 +249,61 @@ class ConversationalDataloader(BaseDataloader):
                 dtype=np.uint16,
                 mode="r",
             )
-            self.loading_shapes[split] = (len(data)// self.model_cfg.embedder.byte_context_window, self.model_cfg.embedder.byte_context_window)
-            
+            self.loading_shapes[split] = (int(len(data)/2/self.context_window), 2, self.context_window)
+            data = None 
+
+        # actually load the data
         data = np.memmap(
-            os.path.join(self.tokenized_data_path, f"{split}.bin"),
-            dtype=np.uint16,
-            mode="r",
-            shape=self.loading_shapes[split],
+            os.path.join(self.tokenized_data_path, f"{split}.bin"), 
+            shape=self.load_shape,
+            dtype=np.uint16, 
+            mode="r+"
         )
 
-        idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
-        X = torch.stack(
+        ix = torch.randint(len(data), (self.batch_size,))
+        # test load one 
+        a = data[ix[0]]
+        Xy = torch.stack(
             [
-                torch.from_numpy((data[i : i + self.context_window]).astype(np.int64))
-                for i in idxs
+                torch.from_numpy((data[i]).astype(np.int64))
+                for i in ix
             ]
         )
-        y = torch.stack(
-            [
-                torch.from_numpy(
-                    (data[i + 1 : i + 1 + self.context_window]).astype(np.int64)
-                )
-                for i in idxs
-            ]
-        )
+
+        # transpose and split into X y
+        X = Xy[:, 0]
+        y = Xy[:, 1]
+
 
         X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
             self.device, non_blocking=True
         )
 
         return X, y
+
+
+    def _write_tokenized_data(self, tokenized):
+        # concatenate all the ids in each dataset into one large file we can use for training
+        for split, dset in tokenized.items():
+            arr_shape = (len(dset), 2, self.context_window)
+            filename = os.path.join(self.tokenized_data_path, f"{split}.bin")
+            dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
+            arr = np.memmap(filename, dtype=dtype, mode="w+", shape=arr_shape)
+            total_batches = 1024
+
+            idx = 0
+            for batch_idx in tqdm(range(total_batches), desc=f"writing {filename}"):
+                # Batch together samples for faster write
+                batch = dset.shard(
+                    num_shards=total_batches, index=batch_idx, contiguous=True
+                ).with_format("numpy")
+                arr_batch = np.stack(batch["ids"])
+                # Write into mmap
+                arr[idx : idx + len(arr_batch)] = arr_batch
+                idx += len(arr_batch)
+            arr.flush()
+
+
 
 
 

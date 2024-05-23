@@ -116,6 +116,7 @@ class BaseTrainer:
                     y = self.cached_sets[split][i]["y"]
                     token_lengths = self.cached_sets[split][i]["token_lengths"]
                     char_lengths = self.cached_sets[split][i]["char_lengths"]
+                    mask = self.model.embedding_model.get_mask(x)
                 else:
                     x, y = self.dataloader.get_batch(split)
                     token_lengths, char_lengths, mask = self.model.embedding_model.get_sequence_info(x)
@@ -124,6 +125,7 @@ class BaseTrainer:
                         "y": y,
                         "token_lengths": token_lengths,
                         "char_lengths": char_lengths,
+                        "mask": mask,
                     }
                 with self.ctx:
                     output, _ = self.model(x)
