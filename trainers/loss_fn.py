@@ -73,7 +73,8 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
 
     total_char_len = sum(char_lengths)
     print("Total Token Lengths: ", total_token_len)
-    input(f"Total Char Lengths: {total_char_len}")
+    print(f"Total Char Lengths: {total_char_len}")
+    input()
 
     print("Token Lengths: ", sum(token_lengths))
     print("Char Lengths: ", sum(char_lengths))
