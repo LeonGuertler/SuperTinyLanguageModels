@@ -47,4 +47,6 @@ class GPT2Tokenizer(Tokenizer):
 
     def decode_batch(self, token_lists):
         """Decode a list of token lists into a list of strings."""
+        if torch.is_tensor(token_lists):
+            token_lists = token_lists.tolist()
         return self.tokenizer.decode_batch(token_lists)
