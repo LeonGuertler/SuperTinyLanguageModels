@@ -47,6 +47,11 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
         perplexity: torch.tensor(1)
     """
 
+    # pull everything onto cpu
+    logits = logits.cpu()
+    y = y.cpu()
+    mask = mask.cpu()
+    
     # check if logits is byte-level
     if len(logits.size()) > 3:
         B, S, S_c = y.size()
