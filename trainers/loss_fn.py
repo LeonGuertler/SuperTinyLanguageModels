@@ -65,8 +65,13 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     # unflatten
     loss = loss.view(B, S*S_c)
 
+    total_loss = 0
+    for i in range(B):
+        for ii in range(S*S_c):
+            total_loss += loss[i][ii] * token_lengths[i][ii]
+
     # multiply by the token lengths
-    loss = loss * torch.tensor(token_lengths).float()
+    #loss = loss * torch.tensor(token_lengths).float()
 
     # sum and divide by character length
     loss = loss.sum() / torch.tensor(char_lengths).sum()
