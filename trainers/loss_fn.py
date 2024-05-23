@@ -66,6 +66,10 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
 
     # sanity check
     # cehck if total token_lengths is equal to total char_lenghts
+    total_token_len = 0
+    for i in token_lengths:
+        print(i)
+        total_token_len += sum(i)
     print("Token Lengths: ", sum(token_lengths))
     print("Char Lengths: ", sum(char_lengths))
 
