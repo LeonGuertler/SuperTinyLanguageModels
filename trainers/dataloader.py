@@ -255,7 +255,7 @@ class ConversationalDataloader(BaseDataloader):
         # actually load the data
         data = np.memmap(
             os.path.join(self.tokenized_data_path, f"{split}.bin"), 
-            shape=self.load_shape,
+            shape=self.loading_shapes,
             dtype=np.uint16, 
             mode="r+"
         )
