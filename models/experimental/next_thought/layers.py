@@ -138,3 +138,66 @@ class CustomMultiHeadAttention(nn.Module):
 
         return output, attention_weights
 
+
+
+class LatentSpaceDecoder(torch.nn.Module):
+    """
+    Uses a fixed number of heads to decode 
+    the latent space into the same hidden dim 
+    as the sequence
+    """
+    def __init__(self, hidden_dim, decoding_length, latent_dim):
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.decoding_length = decoding_length
+        self.latent_dim = latent_dim
+
+        self.decoding_layer = torch.nn.Linear(
+            in_features=latent_dim,
+            out_features=hidden_dim*decoding_length
+        )
+
+    def forward(self, x):
+        """
+        x: (batch_size, latent_dim)
+        """
+        # TODO, this only needs to be computed once
+        batch_size = x.size(0)
+
+        # Project the latent space into the hidden dimension
+        x = self.decoding_layer(x)
+        x = x.view(batch_size, self.decoding_length, self.hidden_dim)
+
+        return x
+    
+class LatentSpaceQuery(torch.nn.Module):
+    """
+    Lets the decoder query the latent space
+    """
+    def __init__(self, hidden_dim, latent_decoded_length, latent_dim):
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.latent_decoded_length = latent_decoded_length
+        self.latent_dim = latent_dim
+
+        # k,v come from latent space
+        # q comes from the sequence
+        self.attention = CustomMultiHeadAttention(
+            hidden_size=hidden_dim,
+            num_heads=12
+        )
+
+    def forward(self, x, latent_space):
+        """
+        x: (batch_size, seq_len, hidden_dim)
+        latent_space: (batch_size, latent_decoded_length, hidden_dim)
+        """
+
+        # Query the latent space
+        x, _ = self.attention(
+            q=x,
+            k=latent_space,
+            v=latent_space
+        )
+
+        return x

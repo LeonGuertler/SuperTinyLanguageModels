@@ -112,12 +112,14 @@ class BaseTrainer:
                 # use cached eval if available
 
                 if i in self.cached_sets[split]:
+                    print("use cached test set")
                     x = self.cached_sets[split][i]["x"]
                     y = self.cached_sets[split][i]["y"]
                     token_lengths = self.cached_sets[split][i]["token_lengths"]
                     char_lengths = self.cached_sets[split][i]["char_lengths"]
                     mask = self.cached_sets[split][i]["mask"]
                 else:
+                    print("process test set")
                     x, y = self.dataloader.get_batch(split)
                     token_lengths, char_lengths, mask = self.model.embedding_model.get_sequence_info(x)
                     self.cached_sets[split][i] = {
@@ -130,6 +132,7 @@ class BaseTrainer:
                 with self.ctx:
                     output, _ = self.model(x)
                     losses[i] = self.loss_fn(output, y, mask=mask)
+                    s0 = time.time()
                     perplexities[i] = compute_perplexity(
                         logits=output,
                         y=y,
@@ -137,6 +140,7 @@ class BaseTrainer:
                         char_lengths=char_lengths,
                         mask=mask,
                     )
+                    print(f"perplexity time: {time.time()-s0:.1f}s")
             loss[split] = losses.mean().item()
             perplexity[split] = perplexities.mean().item()
         self.model.train()

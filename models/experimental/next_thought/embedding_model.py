@@ -24,7 +24,7 @@ class HierarchicalEncoder(GenericEmbedder):
     to the other should be pooled into the other token).
     """
     def __init__(self, model_cfg):
-        super().__init__()
+        super().__init__(model_cfg=model_cfg)
         # build the tokenizer
         self.tokenizer = build_tokenizer(
             tokenizer_type=model_cfg["embedder"]["tokenizer_type"],
@@ -56,72 +56,15 @@ class HierarchicalEncoder(GenericEmbedder):
 
         self.pooling_transformer = torch.nn.ModuleList(
             [
+
                 AttentionPoolingRemoval(
-            
-                ))
+                    hidden_size_in=model_cfg["embedder"]["pooling_dims"][i],
+                    hidden_size_out=model_cfg["embedder"]["pooling_dims"][i+1],
+                    num_attention_heads=12,
+                    pct_pool_per_layer=model_cfg["embedder"]["pct_pool_per_layer"][i],
+                ) for i in range(len(model_cfg["embedder"]["pooling_dims"]) - 1)
             ]
-
-
-
-
-
-
-        hidden_size = hidden_size_in
-        hidden_size_ff = 3072
-        num_heads = 12
-
-        self.embedding = torch.nn.Embedding(50304, hidden_size)
-        self.positional_encoding = LearnedPosEncoding(768, 512)
-
-        self.standard = torch.nn.ModuleList([
-            NormalAttentionBlock(hidden_size, hidden_size_ff, num_heads),
-            NormalAttentionBlock(hidden_size, hidden_size_ff, num_heads),
-        ])
-        h1 = 768
-        h2 = 1920
-        h3 = 1920
-        h4 = 1920
-        h5 = 4800
-        # convert all to int
-        #768 1920 4800 4800 30000
-        h1, h2, h3, h4, h5 = map(int, [h1, h2, h3, h4, h5])
-        print(h1, h2, h3, h4, h5)
-
-        #768 1919.0 4797.0 11992.0 29979.0
-
-
-        self.pooling_attention = torch.nn.ModuleList([
-            AttentionPoolingRemoval(
-                hidden_size_in=h1,
-                hidden_size_out=h2,
-                num_topk_heads=12, 
-                num_attention_heads=12,
-                pct_pool_per_layer=0.3,
-            ),
-            AttentionPoolingRemoval(
-                hidden_size_in=h2,
-                hidden_size_out=h3,
-                num_topk_heads=12, 
-                num_attention_heads=12,
-                pct_pool_per_layer=0.5
-            ),
-            AttentionPoolingRemoval(
-                hidden_size_in=h3,
-                hidden_size_out=h4,
-                num_topk_heads=12, 
-                num_attention_heads=12,
-                pct_pool_per_layer=0.6
-            ),
-            AttentionPoolingRemoval(
-                hidden_size_in=h4,
-                hidden_size_out=h5,
-                num_topk_heads=12, 
-                num_attention_heads=12,
-                pct_pool_per_layer=0.6
-            ),
-        ])
-
-
+        )
 
 
     def forward(self, x):
