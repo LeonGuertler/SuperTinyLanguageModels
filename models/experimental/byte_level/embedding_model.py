@@ -143,7 +143,7 @@ class ByteLevelEmbedder(GenericEmbedder):
         for batch in x:
             batch_token_lengths = []
             for token in batch:
-                token_lengths.append(len(self.byte_tokenizer.decode([token])))
+                token_lengths.append(len(self.byte_tokenizer.decode(torch.tensor([token]))))
             token_lengths.append(batch_token_lengths)
 
 
