@@ -37,6 +37,26 @@ def next_token_mlm_loss_fn(logits, y_mask, masked_loss=True):
 
 def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     """Compute perplexity"""
+
+    # reshape logits and y if extra dim (byte level)
+    if len(logits.size()) > 3:
+        B, S, S_c = y.size()
+        logits = logits.view(B, S*S_c, -1)
+        y = y.view(B, S*S_c)
+
+    # if mask is provided, apply it 
+    if mask is not None:
+        logits = logits[mask]
+        y = y[mask]
+    else:
+        logits = logits.view(-1, logits.size(-1))
+        y = y.view(-1)
+
+    # check size
+    input(logits.size())
+    input(y.size())
+    input('oik')
+
     input(logits.size())
     input(y.size())
     input(mask.size())
