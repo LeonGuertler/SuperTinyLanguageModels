@@ -6,12 +6,14 @@ and return the loss value. This need not be the logits."""
 import torch
 
 
-def cross_entropy_loss_fn(logits, y):
+def cross_entropy_loss_fn(logits, y, mask=None):
     """Cross Entropy Loss Function"""
-    #print(logits.size())
-    #input(y.size())
-    logits = logits.view(-1, logits.size(-1))
-    y = y.view(-1)
+    if mask is not None:
+        logits = logits.view(-1, logits.size(-1))[mask]
+        y = y.view(-1)[mask]
+    else:
+        logits = logits.view(-1, logits.size(-1))
+        y = y.view(-1)
     return torch.nn.functional.cross_entropy(logits, y, ignore_index=-1)
 
 def next_token_mlm_loss_fn(logits, y_mask, masked_loss=True):

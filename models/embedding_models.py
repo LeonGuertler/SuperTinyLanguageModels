@@ -72,3 +72,22 @@ class GenericEmbedder(torch.nn.Module):
         """
         token_ids = self.tokenize_input(input_string)
         return self.forward(token_ids)
+    
+    def get_sequence_info(self, x):
+        """
+        Given a batch of sequences of tokens, return 
+        the token lengths and total number of bytes per
+        sequence.
+        Args:
+            x: torch.tensor(B, S)
+        """
+        x = x.view(-1)
+         # Calculate token lengths (number of non-padding tokens)
+        token_length = (x != 0).sum()
+        
+        # Decode tokens and calculate character lengths
+        sequence = self.tokenizer.decode(x, skip_special_tokens=True)
+        char_length = len(sequence)
+
+
+        return token_length, char_length, None

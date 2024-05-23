@@ -100,23 +100,20 @@ class BaseTrainer:
         loss = {}
         perplexity = {}
         self.model.eval()
-        tokenizer = self.model.embedding_model.tokenizer
         for split in ["train", "val"]:
             losses = torch.zeros(eval_iters)
             perplexities = torch.zeros(eval_iters)
             for i in range(eval_iters):
                 x, y = self.dataloader.get_batch(split)
-                #decoded_xs = [tokenizer.decode(x[i].tolist()) for i in range(x.size(0))]
-                #token_lengths = [x.size(1) for _ in range(x.size(0))]
-                #char_lengths = [len(decoded_x) for decoded_x in decoded_xs]
+                token_length, char_length, mask = self.model.embedding_model.get_sequence_info(x)
                 with self.ctx:
                     output, _ = self.model(x)
-                    losses[i] = self.loss_fn(output, y)
-                    #perplexities[i] = torch.exp(
-                    #    losses[i] * sum(token_lengths) / sum(char_lengths)
-                    #)
+                    losses[i] = self.loss_fn(output, y, mask=mask)
+                    perplexities[i] = torch.exp(
+                        losses[i] * sum(token_length) / sum(char_length)
+                    )
             loss[split] = losses.mean().item()
-            #perplexity[split] = perplexities.mean().item()
+            perplexity[split] = perplexities.mean().item()
         self.model.train()
         return loss, perplexity
 
