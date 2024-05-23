@@ -43,14 +43,19 @@ class LMEvalWrappedModel(model.LM):
             with torch.cuda.amp.autocast():
                 context_strs = [request.args[0] for request in batch_requests]
                 target_strs = [request.args[1] for request in batch_requests]
-
+                embedding_model = self.model_shell.embedding_model
                 # tokenize the inputs
-                context_tokens = [self.model_shell.embedding_model.tokenize_input(context_str) for context_str in context_strs]
-                target_tokens = [self.model_shell.embedding_model.tokenize_input(target_str) for target_str in target_strs]
+                context_tokens = [
+                    embedding_model.tokenize_input(context_str) for context_str in context_strs
+                ]
+                target_tokens = [
+                    embedding_model.tokenize_input(target_str) for target_str in target_strs
+                ]
 
                 # append the target tokens to the input tokens
+                # remove the final tokens due to causal language modeling
                 unpadded_input_tokens = [
-                    (context_tokens[i] + target_tokens[i])[:-1][-512:]  # we don't want to include the final token since tokens are shifted by 1
+                    (context_tokens[i] + target_tokens[i])[:-1][-512:] 
                     for i in range(len(context_tokens))
                 ]
                 # pad the input tokens to the max length in the batch
@@ -89,9 +94,11 @@ class LMEvalWrappedModel(model.LM):
         self, requests: list[instance.Instance]
     ) -> list[float, bool]:
         """
-        Each request contains Instance.args : Tuple[str], which is an input string to the model whose entire loglikelihood, conditioned on purely the EOT token, will be calculated.
+        Each request contains Instance.args : Tuple[str], which is an input string to the model
+            whose entire loglikelihood, conditioned on purely the EOT token, will be calculated.
         This is used to evaluate perplexity on a data distribution.
-        It should return (ll,) : Tuple[float] , a.k.a. solely the loglikelihood of producing each piece of text given no starting input.
+        It should return (ll,) : Tuple[float] , a.k.a. solely the loglikelihood of producing
+            each piece of text given no starting input.
         """
         for request in requests:
             (_str,) = request.args
