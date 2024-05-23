@@ -69,15 +69,17 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
 
     total_loss = 0
     for i in range(B):
-        tmp_mask = mask[i]
-        tmp_loss = loss[i]
-        tmp_token_lengths = token_lengths[i]
-        input(tmp_mask.size())
-        input(tmp_loss.size())
-        input(tmp_token_lengths)
-        input(tmp_token_lengths.size())
-        for ii in range(S*S_c):
-            total_loss += loss[i][ii] * token_lengths[i][ii]
+        # mask and multiply
+        total_loss += (loss[i] * torch.tensor(token_lengths[i]).float())[mask[i]].sum()
+        ##tmp_mask = mask[i]
+        ##tmp_loss = loss[i]
+        #tmp_token_lengths = token_lengths[i]
+        #input(tmp_mask.size())
+        #input(tmp_loss.size())
+        #input(tmp_token_lengths)
+        #input(tmp_token_lengths.size())
+        ##for ii in range(S*S_c):
+        #    total_loss += loss[i][ii] * token_lengths[i][ii]
 
     # multiply by the token lengths
     #loss = loss * torch.tensor(token_lengths).float()
