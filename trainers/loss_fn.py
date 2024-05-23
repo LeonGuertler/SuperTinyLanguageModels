@@ -4,7 +4,7 @@ Each loss function should take in output of a model and the target labels
 and return the loss value. This need not be the logits."""
 
 import torch
-
+import time 
 
 def cross_entropy_loss_fn(logits, y, mask=None):
     """Cross Entropy Loss Function"""
@@ -69,10 +69,12 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     # unflatten
     loss = loss.view(B, S*S_c)
 
+    s0 = time.time()
     total_loss = 0
     for i in range(B):
         # mask and multiply
         total_loss += (loss[i] * torch.tensor(token_lengths[i]).float())[mask[i]].sum()
+    input(time.time()-s0)
 
     # sum and divide by character length
     loss = loss.sum() / torch.tensor(char_lengths).sum()
