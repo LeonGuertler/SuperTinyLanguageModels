@@ -3,6 +3,5 @@ benchmarks:
   - "hellaswag"
   - "arc_easy"
   - "mmlu"
-  # - "bigbench_multiple_choice"
 
 evaluator_name: "llm_harness"
