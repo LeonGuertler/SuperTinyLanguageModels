@@ -125,7 +125,7 @@ class ByteLevelEmbedder(GenericEmbedder):
         return x
 
 
-   def get_sequence_info(self, x):
+    def get_sequence_info(self, x):
         """
         Given a batch of sequences of tokens, return 
         the token lengths and total number of bytes per
@@ -135,18 +135,18 @@ class ByteLevelEmbedder(GenericEmbedder):
         """
         # flatten across S dim, remove pad tokens and eos tokens
         x = x.view(-1)
-
+    
         pad_mask = x == self.byte_tokenizer.pad_token_id
         eos_mask = x == self.byte_tokenizer.eos_token_id
         mask = pad_mask | eos_mask
         x = x[~mask]
-
+    
         # Calculate token lengths (number of non-padding tokens)
         token_length = (x != 0).sum()
-        
+    
         # Decode tokens and calculate character lengths
         sequence = self.byte_tokenizer.decode(x, skip_special_tokens=True)
         char_length = len(sequence)
-
-        
+    
+    
         return token_length, char_length, mask
