@@ -4,18 +4,18 @@ Evaluator class for evaluating models.
 
 import torch
 
-from evals.mcqs.load_benchmaks import load_benchmark
+from evals.evaluator_interface import EvaluationInterface
+from evals.mcqs.load_benchmarks import load_benchmark
 from evals.metrics import MCQ_METRIC_DICT
 
 
-class MCQEvaluator:
+class MCQEvaluator(EvaluationInterface):
     """
     Base Evaluator class the evaluates models
     and prints/logs the results.
     """
 
-    def __init__(self, cfg, model):
-        self.cfg = cfg
+    def __init__(self, model):
         self.model = model
 
         # make sure the model is in eval model

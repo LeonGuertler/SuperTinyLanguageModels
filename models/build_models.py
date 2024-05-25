@@ -3,7 +3,10 @@ Contains the build functions for the embedder,
 core model, lm head and the model shell.
 """
 
-from models.core_models import GenericTransformer
+from models.core_models import (
+    GenericTransformer,
+    GenericFFNSharedTransfomer
+)
 from models.embedding_models import GenericEmbedder
 from models.experimental.byte_level.embedding_model import ByteLevelEmbedder
 from models.experimental.byte_level.model_heads import ByteLevelDecoder
@@ -27,7 +30,7 @@ def build_model(model_cfg=None, checkpoint=None):
     # check if model is to be loaded
     if checkpoint is not None:
         # load model with the correct architecture
-        model = initialize_model(checkpoint["config"])
+        model = initialize_model(checkpoint["config"]["model"])
 
         # load the model weights
         model.load_state_dict(checkpoint["model"])
@@ -57,7 +60,10 @@ def build_embedding_model(model_cfg):
     )
 
 
-CORE_MODEL_DICT = {"generic": GenericTransformer}
+CORE_MODEL_DICT = {
+    "generic": GenericTransformer,
+    "generic_ffn_sharing": GenericFFNSharedTransfomer
+}
 
 
 def build_core_model(model_cfg):
@@ -113,6 +119,7 @@ def initialize_model(model_cfg):
     """
     # build the embedding model
     embedding_model = build_embedding_model(model_cfg=model_cfg)
+    
 
     # build the core model
     core_model = build_core_model(model_cfg=model_cfg)

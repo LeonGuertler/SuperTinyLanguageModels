@@ -96,6 +96,16 @@ class ByteLevelEmbedder(GenericEmbedder):
             for token_seq in tokens
         ]
         return tokens
+    
+    def decode(self, list_of_token_ids):
+        """
+        Decode the token ids.
+        """
+        return_string = ""
+        for token_ids in list_of_token_ids:
+            return_string += self.byte_tokenizer.decode(token_ids)
+        return return_string
+        #return self.byte_tokenizer.decode(token_ids)
 
     def forward(self, token_ids):
         """

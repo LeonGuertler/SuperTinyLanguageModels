@@ -9,7 +9,7 @@ from models.build_models import build_model
 from models.generator import StandardGenerator
 
 
-@hydra.main(config_path="configs/generate", config_name="baseline")
+@hydra.main(config_path="configs/generator", config_name="baseline")
 def main(cfg):
     """run the main eval loop"""
 
@@ -19,7 +19,7 @@ def main(cfg):
     # load checkpoint from the path
     model = build_model(checkpoint=torch.load(cfg["ckpt_path"]))
 
-    generator = StandardGenerator(model=model, generate_cfg=cfg["generate_config"])
+    generator = StandardGenerator(model=model, generate_cfg=cfg)
 
     # generate the text
     generated_text = generator.default_generate(input_text=cfg["input_text"])
