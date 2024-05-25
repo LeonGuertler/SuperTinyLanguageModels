@@ -12,7 +12,7 @@ from models.components.tokenizers import build_tokenizer
 from models.experimental.byte_level.layers import ByteLevelTransformerBlock
 
 
-class ByteLevelEmbedder(GenericEmbedder):
+class ByteLevelEmbedder(torch.nn.Module):
     """
     Takes byte level encodings, processes them via
     two local-attention transformer blocks and pools
