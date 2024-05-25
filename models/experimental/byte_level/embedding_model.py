@@ -24,7 +24,7 @@ class ByteLevelEmbedder(torch.nn.Module):
 
     # pylint: disable=super-init-not-called
     def __init__(self, model_cfg):
-        super().__init__(model_cfg=model_cfg)
+        super().__init__()
         self.model_cfg = model_cfg
 
         # build the tokenizers
