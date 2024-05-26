@@ -55,7 +55,7 @@ class EmbedderInterface(torch.nn.Module):
             batch_token_lengths = []
             for token in batch:
                 batch_token_lengths.append(
-                    len(self.decode_tokens(torch.tensor([token])))
+                    len(self.decode(torch.tensor([token])))
                 )
             token_lengths.append(batch_token_lengths)
 
@@ -67,8 +67,8 @@ class EmbedderInterface(torch.nn.Module):
             sequence_char_lengths.append(len(seq))
 
         # obtain the mask for end-of-word and pad tokens
-        mask = x != self.byte_tokenizer.pad_token
-        mask = mask & (x != self.byte_tokenizer.eot_token)
+        mask = x != self.tokenizer.pad_token
+        mask = mask & (x != self.tokenizer.eot_token)
 
         return (
             token_lengths,

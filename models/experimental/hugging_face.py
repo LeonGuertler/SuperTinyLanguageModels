@@ -72,10 +72,17 @@ class HFEmbedder(EmbedderInterface):
         """
         Load the model from the Hugging Face model hub
         """
-        self.tokenizer = AutoTokenizer.from_pretrained(model_string)
+        self.tokenizer = HFTokenizerWrapper(model_string)
         self.embeddings = AutoModelForCausalLM.from_pretrained(
-            model_string
+            model_string,
+            trust_remote_code=True,
         ).get_input_embeddings()
+
+    def decode(self, token_ids):
+        """
+        Decode the token ids
+        """
+        return self.tokenizer.decode_batch(token_ids)
 
     def forward(self, token_ids):
         """
@@ -87,7 +94,7 @@ class HFEmbedder(EmbedderInterface):
         """
         Tokenize the input string
         """
-        return self.tokenizer(input_string, return_tensors="pt")["input_ids"]
+        return self.tokenizer.encode(input_string)
 
 
 class HFTransformerCore(torch.nn.Module):
@@ -95,7 +102,7 @@ class HFTransformerCore(torch.nn.Module):
 
     def __init__(self, model_cfg):
         super().__init__()
-        self.model = AutoModelForCausalLM.from_pretrained(model_cfg["model_string"])
+        self.model = AutoModelForCausalLM.from_pretrained(model_cfg["model_string"], trust_remote_code=True)
 
     def forward(self, x):
         """Calls the huggingface model in question"""
@@ -132,5 +139,5 @@ class MockTrainer(BaseTrainer):
             cfg, model, optimizer, dataloader, loss_fn, lr_scheduler, dropout_scheduler
         )
 
-    def _step(self, *args, **kwargs):
+    def _run_step(self, *args, **kwargs):
         return torch.tensor(0.0)

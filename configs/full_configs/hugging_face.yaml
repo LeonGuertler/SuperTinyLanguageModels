@@ -1,16 +1,18 @@
 model:
+  model_string: "microsoft/Phi-3-mini-4k-instruct"
   core_model:
     core_model_type: hf_core
   embedder:
     embedding_model_type: hf_embedder
+    tokenizer_type: hf_tokenizer
     dataset_name: simple_en_wiki
   lm_head:
     lm_head_type: hf_head
-  hidden_dim: 512
+  hidden_dim: 3072
   context_window: 512
-  vocab_size: 50257
+  vocab_size: 32064
   model_shell_type: standard
-  embedding_weight_tying: true
+  embedding_weight_tying: false
   positional_encoding_type: rope
 trainer:
   dropout_scheduler:
