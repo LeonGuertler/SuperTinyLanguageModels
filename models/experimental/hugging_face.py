@@ -141,3 +141,7 @@ class MockTrainer(BaseTrainer):
 
     def _run_step(self, *args, **kwargs):
         return torch.tensor(0.0)
+
+    def _save_model(self, iter_num=0):
+        """We don't want to save the model in this case..."""
+        pass
