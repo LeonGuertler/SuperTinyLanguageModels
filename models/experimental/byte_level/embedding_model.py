@@ -7,12 +7,12 @@ the tokenizer(s), token embeddings and positional encodings
 import torch
 
 from models.components.positional_encoding import LearnedPosEncoding
-from models.embedding_models import GenericEmbedder
 from models.components.tokenizers import build_tokenizer
+from models.embedding_models import EmbedderInterface
 from models.experimental.byte_level.layers import ByteLevelTransformerBlock
 
 
-class ByteLevelEmbedder(torch.nn.Module):
+class ByteLevelEmbedder(EmbedderInterface):
     """
     Takes byte level encodings, processes them via
     two local-attention transformer blocks and pools
@@ -71,9 +71,7 @@ class ByteLevelEmbedder(torch.nn.Module):
             ]
         )
 
-    # pylint: enable=super-init-not-called
-
-    def tokenize_input(self, input_string):
+    def tokenize_input(self, input_string: str):
         """Tokenize an input string.
 
         In this case we actually want to pre-tokenize using the pooling tokenizer,
@@ -96,7 +94,7 @@ class ByteLevelEmbedder(torch.nn.Module):
             for token_seq in tokens
         ]
         return tokens
-    
+
     def decode(self, list_of_token_ids):
         """
         Decode the token ids.
@@ -105,7 +103,6 @@ class ByteLevelEmbedder(torch.nn.Module):
         for token_ids in list_of_token_ids:
             return_string += self.byte_tokenizer.decode(token_ids)
         return return_string
-        #return self.byte_tokenizer.decode(token_ids)
 
     def forward(self, token_ids):
         """
@@ -121,7 +118,6 @@ class ByteLevelEmbedder(torch.nn.Module):
         # positional encoding
         x = self.pos_encoder(x)
 
-
         # pass through transformer
         for block in self.transformer:
             x = block(x)
@@ -131,13 +127,11 @@ class ByteLevelEmbedder(torch.nn.Module):
         x = x.mean(dim=-2)
         x = x.view(B, S, -1)
 
-
         return x
-
 
     def get_sequence_info(self, x):
         """
-        Given a batch of sequences of tokens, return 
+        Given a batch of sequences of tokens, return
         the token lengths and total number of bytes per
         sequence.
         Args:
@@ -147,17 +141,17 @@ class ByteLevelEmbedder(torch.nn.Module):
         B, S, S_c = x.size()
         x = x.view(B, S * S_c)
 
-
         token_lengths = []
         # first we decode each token
         for batch in x:
             batch_token_lengths = []
             for token in batch:
-                batch_token_lengths.append(len(self.byte_tokenizer.decode(torch.tensor([token]))))
+                batch_token_lengths.append(
+                    len(self.byte_tokenizer.decode(torch.tensor([token])))
+                )
 
             if len(batch_token_lengths) > 0:
                 token_lengths.append(batch_token_lengths)
-
 
         sequence_char_lengths = []
         # then we decode everything
@@ -166,11 +160,8 @@ class ByteLevelEmbedder(torch.nn.Module):
         for seq in sequences:
             sequence_char_lengths.append(len(seq))
 
-
         # obtain the mask for end-of-word and pad tokens
         mask = x != self.byte_tokenizer.pad_token
         mask = mask & (x != self.byte_tokenizer.eot_token)
 
-
         return token_lengths, sequence_char_lengths, mask
-

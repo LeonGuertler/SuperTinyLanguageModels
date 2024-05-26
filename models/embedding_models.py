@@ -10,7 +10,74 @@ from models.components.positional_encoding import build_positional_encodings
 from models.components.tokenizers import build_tokenizer
 
 
-class GenericEmbedder(torch.nn.Module):
+class EmbedderInterface(torch.nn.Module):
+    """Interface for the embedder component of the model."""
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, token_ids: torch.LongTensor):
+        """This function should take the token_ids as input,
+
+        and return the embeddings."""
+        raise NotImplementedError
+
+    def tokenize_input(self, input_string: str):
+        """This function should take an input string and return
+
+        the tokenized input."""
+        raise NotImplementedError
+
+    def decode(self, tokens: torch.LongTensor):
+        """This function should decode a tensor of tokens into a string.
+
+        For the default implementation of get_sequence_info,
+        we assume that the tokens are of shape (B, S) and we
+        decode each sequence in the batch."""
+        raise NotImplementedError
+
+    def inference(self, input_string: str):
+        """This function should map string to embeddings."""
+        token_ids = self.tokenize_input(input_string)
+        return self.forward(token_ids)
+
+    def get_sequence_info(self, x):
+        """
+        Given a batch of sequences of tokens, return
+        the token lengths and total number of bytes per
+        sequence.
+        Args:
+            x: torch.tensor(B, S)
+        """
+        token_lengths = []
+        # first we decode each token
+        for batch in x:
+            batch_token_lengths = []
+            for token in batch:
+                batch_token_lengths.append(
+                    len(self.decode_tokens(torch.tensor([token])))
+                )
+            token_lengths.append(batch_token_lengths)
+
+        sequence_char_lengths = []
+        # then we decode everything
+        # batch decode
+        sequences = self.tokenizer.decode_batch(x)
+        for seq in sequences:
+            sequence_char_lengths.append(len(seq))
+
+        # obtain the mask for end-of-word and pad tokens
+        mask = x != self.byte_tokenizer.pad_token
+        mask = mask & (x != self.byte_tokenizer.eot_token)
+
+        return (
+            token_lengths,
+            sequence_char_lengths,
+            mask,
+        )
+
+
+class GenericEmbedder(EmbedderInterface):
     """
     A simple and flexible embedding model.
 
@@ -61,6 +128,12 @@ class GenericEmbedder(torch.nn.Module):
         """
         return self.tokenizer.encode(input_string) + [(self.tokenizer.eot_token)]
 
+    def decode(self, tokens):
+        """
+        Decode a tensor of tokens into a string.
+        """
+        return self.tokenizer.decode_batch(tokens)
+
     def inference(self, input_string):
         """
         During inference, tokenize the input string
@@ -72,31 +145,3 @@ class GenericEmbedder(torch.nn.Module):
         """
         token_ids = self.tokenize_input(input_string)
         return self.forward(token_ids)
-    
-    def get_sequence_info(self, x):
-        """
-        Given a batch of sequences of tokens, return 
-        the token lengths and total number of bytes per
-        sequence.
-        Args:
-            x: torch.tensor(B, S)
-        """
-        token_lengths = []
-        # first we decode each token
-        for batch in x:
-            batch_token_lengths = []
-            for token in batch:
-                batch_token_lengths.append(len(self.tokenizer.decode(torch.tensor([token]))))
-            token_lengths.append(batch_token_lengths)
-
-        sequence_char_lengths = []
-        # then we decode everything
-        # batch decode
-        sequences = self.tokenizer.decode_batch(x)
-        for seq in sequences:
-            sequence_char_lengths.append(len(seq))
-
-        return token_lengths, sequence_char_lengths, None 
-
-
-
