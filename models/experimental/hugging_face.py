@@ -6,6 +6,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from models.components.tokenizers.base_class import Tokenizer
 from models.embedding_models import EmbedderInterface
+from models.model_shell import ModelShell
+from trainers.base_trainer import BaseTrainer
+from trainers.dataloader import BaseDataloader
 
 
 class HFTokenizerWrapper(Tokenizer):
@@ -109,3 +112,25 @@ class HFLMHead(torch.nn.Module):
     def forward(self, x):
         """Should return the logits and optionally a loss"""
         return self.model(x), None
+
+
+class MockTrainer(BaseTrainer):
+    """A trainer that skips the training step, but runs e.g. logging"""
+
+    def __init__(
+        self,
+        cfg,
+        model: ModelShell,
+        optimizer,
+        dataloader: BaseDataloader,
+        loss_fn,
+        lr_scheduler=None,
+        dropout_scheduler=None,
+    ) -> None:
+        """Just forward the arguments to the parent class"""
+        super().__init__(
+            cfg, model, optimizer, dataloader, loss_fn, lr_scheduler, dropout_scheduler
+        )
+
+    def _step(self, *args, **kwargs):
+        return torch.tensor(0.0)
