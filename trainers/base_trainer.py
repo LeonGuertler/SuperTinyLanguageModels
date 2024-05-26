@@ -11,6 +11,10 @@ from models import model_shell
 from trainers import dataloader as train_dataloader
 from trainers import utils
 
+from trainers.loss_fn import (
+    compute_perplexity
+)
+
 
 # pylint: disable invalid-name
 class BaseTrainer:
@@ -42,6 +46,7 @@ class BaseTrainer:
         self.scaler = None
         self.use_wandb = cfg["general"]["logging"]["wandb_log"]
         self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
+        self.cached_sets = {"train": {}, "val": {}}
 
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
@@ -100,23 +105,42 @@ class BaseTrainer:
         loss = {}
         perplexity = {}
         self.model.eval()
-        tokenizer = self.model.embedding_model.tokenizer
         for split in ["train", "val"]:
             losses = torch.zeros(eval_iters)
             perplexities = torch.zeros(eval_iters)
             for i in range(eval_iters):
-                x, y = self.dataloader.get_batch(split)
-                #decoded_xs = [tokenizer.decode(x[i].tolist()) for i in range(x.size(0))]
-                #token_lengths = [x.size(1) for _ in range(x.size(0))]
-                #char_lengths = [len(decoded_x) for decoded_x in decoded_xs]
+                # use cached eval if available
+
+                if i in self.cached_sets[split]:
+                    print("use cached test set")
+                    x = self.cached_sets[split][i]["x"]
+                    y = self.cached_sets[split][i]["y"]
+                    token_lengths = self.cached_sets[split][i]["token_lengths"]
+                    char_lengths = self.cached_sets[split][i]["char_lengths"]
+                    mask = self.cached_sets[split][i]["mask"]
+                else:
+                    print("process test set")
+                    x, y = self.dataloader.get_batch(split)
+                    token_lengths, char_lengths, mask = self.model.embedding_model.get_sequence_info(x)
+                    self.cached_sets[split][i] = {
+                        "x": x,
+                        "y": y,
+                        "token_lengths": token_lengths,
+                        "char_lengths": char_lengths,
+                        "mask": mask,
+                    }
                 with self.ctx:
                     output, _ = self.model(x)
-                    losses[i] = self.loss_fn(output, y)
-                    #perplexities[i] = torch.exp(
-                    #    losses[i] * sum(token_lengths) / sum(char_lengths)
-                    #)
+                    losses[i] = self.loss_fn(output, y, mask=mask)
+                    perplexities[i] = compute_perplexity(
+                        logits=output,
+                        y=y,
+                        token_lengths=token_lengths,
+                        char_lengths=char_lengths,
+                        mask=mask,
+                    )
             loss[split] = losses.mean().item()
-            #perplexity[split] = perplexities.mean().item()
+            perplexity[split] = perplexities.mean().item()
         self.model.train()
         return loss, perplexity
 
@@ -205,11 +229,12 @@ class BaseTrainer:
                 lr = self.optimizer.param_groups[0]["lr"]
             dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
-            if not iter_num % self.cfg.trainer.training.eval_interval and iter_num > 0:
+            if (not iter_num % self.cfg.trainer.training.eval_interval) and iter_num > 0:
+                s0 = time.time()
                 losses, perplexities = self.estimate_performance()
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f},"
-                    f" val loss {losses['val']:.4f}"
+                    f" val loss {losses['val']:.4f}, dt {time.time()-s0:.1f}s"
                 )
                 print(
                     f"step {iter_num}: train perplexity {perplexities['train']:.4f},"

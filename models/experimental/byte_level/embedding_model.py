@@ -12,7 +12,7 @@ from models.components.tokenizers import build_tokenizer
 from models.experimental.byte_level.layers import ByteLevelTransformerBlock
 
 
-class ByteLevelEmbedder(GenericEmbedder):
+class ByteLevelEmbedder(torch.nn.Module):
     """
     Takes byte level encodings, processes them via
     two local-attention transformer blocks and pools
@@ -24,7 +24,7 @@ class ByteLevelEmbedder(GenericEmbedder):
 
     # pylint: disable=super-init-not-called
     def __init__(self, model_cfg):
-        super().__init__(model_cfg=model_cfg)
+        super().__init__()
         self.model_cfg = model_cfg
 
         # build the tokenizers
@@ -96,6 +96,16 @@ class ByteLevelEmbedder(GenericEmbedder):
             for token_seq in tokens
         ]
         return tokens
+    
+    def decode(self, list_of_token_ids):
+        """
+        Decode the token ids.
+        """
+        return_string = ""
+        for token_ids in list_of_token_ids:
+            return_string += self.byte_tokenizer.decode(token_ids)
+        return return_string
+        #return self.byte_tokenizer.decode(token_ids)
 
     def forward(self, token_ids):
         """
@@ -123,3 +133,44 @@ class ByteLevelEmbedder(GenericEmbedder):
 
 
         return x
+
+
+    def get_sequence_info(self, x):
+        """
+        Given a batch of sequences of tokens, return 
+        the token lengths and total number of bytes per
+        sequence.
+        Args:
+            x: torch.tensor(B, S, S_c)
+        """
+        # flatten along S, S_c
+        B, S, S_c = x.size()
+        x = x.view(B, S * S_c)
+
+
+        token_lengths = []
+        # first we decode each token
+        for batch in x:
+            batch_token_lengths = []
+            for token in batch:
+                batch_token_lengths.append(len(self.byte_tokenizer.decode(torch.tensor([token]))))
+
+            if len(batch_token_lengths) > 0:
+                token_lengths.append(batch_token_lengths)
+
+
+        sequence_char_lengths = []
+        # then we decode everything
+        # batch decode
+        sequences = self.byte_tokenizer.decode_batch(x)
+        for seq in sequences:
+            sequence_char_lengths.append(len(seq))
+
+
+        # obtain the mask for end-of-word and pad tokens
+        mask = x != self.byte_tokenizer.pad_token
+        mask = mask & (x != self.byte_tokenizer.eot_token)
+
+
+        return token_lengths, sequence_char_lengths, mask
+

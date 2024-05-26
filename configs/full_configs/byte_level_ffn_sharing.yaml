@@ -1,7 +1,7 @@
 model:
   core_model:
-    core_model_type: generic
-    num_layers: 10
+    core_model_type: generic_ffn_sharing
+    num_layers: 16
     ffn:
       ffn_type: swiglu
       ffn_dim: 1536

@@ -87,3 +87,9 @@ class ByteLevelDecoder(torch.nn.Module):
         x = x.view(B, S, self.byte_context_window, self.byte_vocab_size)
 
         return x, None
+
+    def inference(self, x):
+        """
+        inference
+        """
+        return self.forward(x)[0]
