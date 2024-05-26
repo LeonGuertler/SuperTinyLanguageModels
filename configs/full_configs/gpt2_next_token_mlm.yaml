@@ -13,26 +13,20 @@ model:
       normalization: rms_norm
       group_size: 4
       bias: false
-      is_causal: true
+      is_causal: false
   embedder:
-    tokenizer_type: "gpt2"
-    byte_tokenizer_type: "bpe"
-    embedding_model_type: byte_level
-    byte_context_window: 12
+    tokenizer_type: gpt2
+    embedding_model_type: generic
     dataset_name: simple_en_wiki
   lm_head:
     normalization: rms_norm
     bias: false
-    lm_head_type: byte_level
-
+    lm_head_type: generic
   hidden_dim: 512
   context_window: 512
   vocab_size: 50257
-  byte_vocab_size: 258
-  byte_context_window: 12
-  byte_embedding_dim: 128
   model_shell_type: standard
-  embedding_weight_tying: false
+  embedding_weight_tying: true
   positional_encoding_type: rope
 trainer:
   dropout_scheduler:
@@ -49,8 +43,8 @@ trainer:
     max_iters: 25000
     lr_decay_iters: 25000
     warmup_iters: 5000
-    eval_interval: 5000
-    log_interval: 100
+    eval_interval: 10
+    log_interval: 1
     eval_iters: 200
     checkpoint_interval: 1000000000.0
     run_profiler: false
@@ -67,12 +61,12 @@ trainer:
   lr_scheduler:
     name: cosine
   dataloader:
-    name: byte_pooling
+    name: next_token_mlm
   loss_fn:
-    name: cross_entropy
+    name: next_token_mlm
 general:
   logging:
-    wandb_log: true
+    wandb_log: false
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs
