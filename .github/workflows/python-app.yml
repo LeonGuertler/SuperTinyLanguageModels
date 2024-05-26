@@ -29,7 +29,7 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Lint with pylint
         run: |
-          pylint **/*.py
+          python -m pylint **/*.py
         continue-on-error: true
       - name: Test with pytest
         run: |

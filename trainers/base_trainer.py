@@ -10,10 +10,7 @@ from torch.profiler import ProfilerActivity, profile, record_function
 from models import model_shell
 from trainers import dataloader as train_dataloader
 from trainers import utils
-
-from trainers.loss_fn import (
-    compute_perplexity
-)
+from trainers.loss_fn import compute_perplexity
 
 
 # pylint: disable invalid-name
@@ -121,7 +118,11 @@ class BaseTrainer:
                 else:
                     print("process test set")
                     x, y = self.dataloader.get_batch(split)
-                    token_lengths, char_lengths, mask = self.model.embedding_model.get_sequence_info(x)
+                    (
+                        token_lengths,
+                        char_lengths,
+                        mask,
+                    ) = self.model.embedding_model.get_sequence_info(x)
                     self.cached_sets[split][i] = {
                         "x": x,
                         "y": y,
@@ -229,7 +230,9 @@ class BaseTrainer:
                 lr = self.optimizer.param_groups[0]["lr"]
             dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
-            if (not iter_num % self.cfg.trainer.training.eval_interval) and iter_num > 0:
+            if (
+                not iter_num % self.cfg.trainer.training.eval_interval
+            ) and iter_num > 0:
                 s0 = time.time()
                 losses, perplexities = self.estimate_performance()
                 print(

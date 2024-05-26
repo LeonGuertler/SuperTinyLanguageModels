@@ -4,3 +4,4 @@ datasets
 wandb
 mteb
 pre-commit
+git+https://github.com/EleutherAI/lm-evaluation-harness

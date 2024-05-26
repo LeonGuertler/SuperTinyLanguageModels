@@ -1,8 +1,6 @@
 benchmarks:
   - "arc"
   - "hellaswag"
-  - "mmlu"
-  - "mteb"
-  - "nonsense"
   - "vitaminc"
   - "winograd"
+evaluator_name: "mcq"

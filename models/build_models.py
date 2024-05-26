@@ -3,10 +3,7 @@ Contains the build functions for the embedder,
 core model, lm head and the model shell.
 """
 
-from models.core_models import (
-    GenericTransformer,
-    GenericFFNSharedTransfomer
-)
+from models.core_models import GenericFFNSharedTransfomer, GenericTransformer
 from models.embedding_models import GenericEmbedder
 from models.experimental.byte_level.embedding_model import ByteLevelEmbedder
 from models.experimental.byte_level.model_heads import ByteLevelDecoder
@@ -62,7 +59,7 @@ def build_embedding_model(model_cfg):
 
 CORE_MODEL_DICT = {
     "generic": GenericTransformer,
-    "generic_ffn_sharing": GenericFFNSharedTransfomer
+    "generic_ffn_sharing": GenericFFNSharedTransfomer,
 }
 
 
@@ -119,7 +116,6 @@ def initialize_model(model_cfg):
     """
     # build the embedding model
     embedding_model = build_embedding_model(model_cfg=model_cfg)
-    
 
     # build the core model
     core_model = build_core_model(model_cfg=model_cfg)
