@@ -2,7 +2,7 @@
 This can be used for finetuning or training from scratch."""
 
 import torch
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from models.components.tokenizers.base_class import Tokenizer
 from models.embedding_models import EmbedderInterface
@@ -70,7 +70,9 @@ class HFEmbedder(EmbedderInterface):
         Load the model from the Hugging Face model hub
         """
         self.tokenizer = AutoTokenizer.from_pretrained(model_string)
-        self.embeddings = AutoModel.from_pretrained(model_string).get_input_embeddings()
+        self.embeddings = AutoModelForCausalLM.from_pretrained(
+            model_string
+        ).get_input_embeddings()
 
     def forward(self, token_ids):
         """
@@ -90,7 +92,7 @@ class HFTransformerCore(torch.nn.Module):
 
     def __init__(self, model_cfg):
         super().__init__()
-        self.model = AutoModel.from_pretrained(model_cfg["model_string"])
+        self.model = AutoModelForCausalLM.from_pretrained(model_cfg["model_string"])
 
     def forward(self, x):
         """Calls the huggingface model in question"""
