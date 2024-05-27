@@ -76,6 +76,8 @@ class HFEmbedder(EmbedderInterface):
         self.embeddings = AutoModelForCausalLM.from_pretrained(
             model_string,
             trust_remote_code=True,
+            attn_implementation="flash_attention_2",
+            torch_dtype=torch.float16,
         ).get_input_embeddings()
 
     def decode(self, token_ids):
@@ -94,7 +96,7 @@ class HFEmbedder(EmbedderInterface):
         """
         Tokenize the input string
         """
-        return self.tokenizer.encode(input_string)
+        return self.tokenizer.encode(input_string) + [self.tokenizer.eot_token]
 
 
 class HFTransformerCore(torch.nn.Module):
@@ -102,7 +104,7 @@ class HFTransformerCore(torch.nn.Module):
 
     def __init__(self, model_cfg):
         super().__init__()
-        self.model = AutoModelForCausalLM.from_pretrained(model_cfg["model_string"], trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained(model_cfg["model_string"], trust_remote_code=True, attn_implementation="flash_attention_2", torch_dtype=torch.float16)
 
     def forward(self, x):
         """Calls the huggingface model in question"""

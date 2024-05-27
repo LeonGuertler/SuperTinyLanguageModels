@@ -32,12 +32,10 @@ def build_model(model_cfg=None, checkpoint=None):
 
         # load the model weights
         model.load_state_dict(checkpoint["model"])
-        model.eval()
 
     else:
         # initialize model
         model = initialize_model(model_cfg)
-        model.train()
 
     return model
 

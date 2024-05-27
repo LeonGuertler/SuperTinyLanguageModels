@@ -39,54 +39,55 @@ class LMEvalWrappedModel(model.LM):
         self.model_shell = self.model_shell.to(device)
 
         results = []
-        for batch_requests in tqdm(batch(requests, batch_size=32)):
-            with torch.cuda.amp.autocast():
-                context_strs = [request.args[0] for request in batch_requests]
-                target_strs = [request.args[1] for request in batch_requests]
-                embedding_model = self.model_shell.embedding_model
-                # tokenize the inputs
-                context_tokens = [
-                    embedding_model.tokenize_input(context_str) for context_str in context_strs
-                ]
-                target_tokens = [
-                    embedding_model.tokenize_input(target_str) for target_str in target_strs
-                ]
+        for batch_requests in tqdm(batch(requests, batch_size=8)):
+            with torch.no_grad():
+                with torch.autocast(device_type="cuda"):
+                    context_strs = [request.args[0] for request in batch_requests]
+                    target_strs = [request.args[1] for request in batch_requests]
+                    embedding_model = self.model_shell.embedding_model
+                    # tokenize the inputs
+                    context_tokens = [
+                        embedding_model.tokenize_input(context_str)[:-1] for context_str in context_strs
+                    ]
+                    target_tokens = [
+                        embedding_model.tokenize_input(target_str)[:-1] for target_str in target_strs
+                    ]
 
-                # append the target tokens to the input tokens
-                # remove the final tokens due to causal language modeling
-                unpadded_input_tokens = [
-                    (context_tokens[i] + target_tokens[i])[:-1][-512:] 
-                    for i in range(len(context_tokens))
-                ]
-                # pad the input tokens to the max length in the batch
-                pad_token = self.model_shell.embedding_model.tokenizer.pad_token
-                max_len = max(len(tokens) for tokens in unpadded_input_tokens)
-                input_tokens = [
-                    tokens + [pad_token] * (max_len - len(tokens)) for tokens in unpadded_input_tokens
-                ]
+                    # append the target tokens to the input tokens
+                    # remove the final tokens due to causal language modeling
+                    unpadded_input_tokens = [
+                        (context_tokens[i] + target_tokens[i])[-4096:]
+                        for i in range(len(context_tokens))
+                    ]
+                    # pad the input tokens to the max length in the batch
+                    pad_token = self.model_shell.embedding_model.tokenizer.pad_token
+                    max_len = max(len(tokens) for tokens in unpadded_input_tokens)
+                    input_tokens = [
+                        tokens + [pad_token] * (max_len - len(tokens)) for tokens in unpadded_input_tokens
+                    ]
+       
+                    input_tokens = torch.tensor(input_tokens, device=device).long()
 
-                input_tokens = torch.tensor(input_tokens, device=device).long()
-
-                # get the logits
-                logits, _ = self.model_shell(input_tokens)
+                    # get the logits
+                    logits, _ = self.model_shell(input_tokens)
 
 
-                for i, _ in enumerate(batch_requests):
-                    logits_i = logits[i]
-                    # remove the padding
-                    logits_i = logits_i[: len(unpadded_input_tokens[i])]
-                    target_tokens_i = torch.tensor(target_tokens[i], device=device).long()
+                    for i, _ in enumerate(batch_requests):
+                        logits_i = logits[i]
+                        # remove the padding
+                        logits_i = logits_i[: len(unpadded_input_tokens[i])]
+                        target_tokens_i = torch.tensor(target_tokens[i], device=device).long()
 
-                    # get the loglikelihood of the target string
-                    ll = torch.nn.functional.cross_entropy(
-                        logits_i[-len(target_tokens_i):], target_tokens_i, reduction="sum"
-                    )
+                        # get the loglikelihood of the target string
+                        ll = torch.nn.functional.cross_entropy(
+                            logits_i[-len(target_tokens_i):], target_tokens_i, reduction="sum"
+                        )
 
-                    # get the greedy prediction
-                    greedy_prediction = torch.argmax(logits_i[:-len(target_tokens_i)], dim=-1)
-                    is_greedy = torch.equal(greedy_prediction, target_tokens_i)
+                        # get the greedy prediction
+                        greedy_prediction = torch.argmax(logits_i[:-len(target_tokens_i)], dim=-1)
+                        is_greedy = torch.equal(greedy_prediction, target_tokens_i)
 
-                    results.append((ll.item(), is_greedy))
+                        results.append((-ll.item(), is_greedy))
 
         return results
 
@@ -116,7 +117,7 @@ class LMEvalWrappedModel(model.LM):
             ll = torch.nn.functional.cross_entropy(
                 logits, input_tokens, reduction="sum"
             ).item()
-            yield ll
+            yield -ll
 
     def generate_until(self, requests: list[instance.Instance]) -> list[str]:
         """

@@ -1,7 +1,7 @@
 benchmarks:
   - "winogrande"
-  - "hellaswag"
+  # - "hellaswag"
   - "arc_easy"
-  - "mmlu"
+  # - "mmlu"
 
 evaluator_name: "llm_harness"
