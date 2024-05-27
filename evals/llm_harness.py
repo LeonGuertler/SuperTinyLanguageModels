@@ -35,13 +35,14 @@ class LMEvalWrappedModel(model.LM):
         from the LM (that is, if the target string is the most likely N-token string
         to be output by the LM given the input.)
         """
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device_str = "cuda" if torch.cuda.is_available() else "cpu"
+        device = torch.device(device_str)
         self.model_shell = self.model_shell.to(device)
 
         results = []
         for batch_requests in tqdm(batch(requests, batch_size=8)):
             with torch.no_grad():
-                with torch.autocast(device_type="cuda"):
+                with torch.autocast(device_type=device_str):
                     context_strs = [request.args[0] for request in batch_requests]
                     target_strs = [request.args[1] for request in batch_requests]
                     embedding_model = self.model_shell.embedding_model
@@ -80,7 +81,7 @@ class LMEvalWrappedModel(model.LM):
 
                         # get the loglikelihood of the target string
                         ll = torch.nn.functional.cross_entropy(
-                            logits_i[-len(target_tokens_i):], target_tokens_i, reduction="sum"
+                            logits_i[-len(target_tokens_i)-1:-1], target_tokens_i, reduction="sum"
                         )
 
                         # get the greedy prediction
