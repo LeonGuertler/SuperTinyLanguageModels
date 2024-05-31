@@ -92,4 +92,4 @@ class ByteLevelDecoder(torch.nn.Module):
         """
         inference
         """
-        return self.forward(x)[0]
+        return self.forward(x)[0][:, -1, :, :]

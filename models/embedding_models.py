@@ -15,6 +15,7 @@ class EmbedderInterface(torch.nn.Module):
 
     def __init__(self):
         super().__init__()
+        self.eot_token = ...
 
     def forward(self, token_ids: torch.LongTensor):
         """This function should take the token_ids as input,
@@ -54,9 +55,7 @@ class EmbedderInterface(torch.nn.Module):
         for batch in x:
             batch_token_lengths = []
             for token in batch:
-                batch_token_lengths.append(
-                    len(self.decode(torch.tensor([token])))
-                )
+                batch_token_lengths.append(len(self.decode(torch.tensor([token]))))
             token_lengths.append(batch_token_lengths)
 
         sequence_char_lengths = []
@@ -101,6 +100,7 @@ class GenericEmbedder(EmbedderInterface):
 
         # build the positional encodings
         self.positional_encodings = build_positional_encodings(model_cfg=model_cfg)
+        self.eot_token = self.tokenizer.eot_token
 
     def forward(self, token_ids):
         """
@@ -126,7 +126,7 @@ class GenericEmbedder(EmbedderInterface):
         """
         Tokenize an input string.
         """
-        return self.tokenizer.encode(input_string) + [(self.tokenizer.eot_token)]
+        return self.tokenizer.encode(input_string)
 
     def decode(self, tokens):
         """

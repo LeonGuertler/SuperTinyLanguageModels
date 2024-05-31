@@ -95,14 +95,18 @@ class ByteLevelEmbedder(EmbedderInterface):
         ]
         return tokens
 
-    def decode(self, list_of_token_ids):
+    def decode(self, list_of_token_idss):
         """
         Decode the token ids.
         """
-        return_string = ""
-        for token_ids in list_of_token_ids:
-            return_string += self.byte_tokenizer.decode(token_ids)
-        return return_string
+        return_strings = []
+        for list_of_token_ids in list_of_token_idss:
+            return_string = ""
+            for token_ids in list_of_token_ids:
+                token_ids = [token_id for token_id in token_ids if token_id != self.byte_tokenizer.pad_token]
+                return_string += self.byte_tokenizer.decode(token_ids)
+            return_strings.append(return_string)
+        return return_strings
 
     def forward(self, token_ids):
         """

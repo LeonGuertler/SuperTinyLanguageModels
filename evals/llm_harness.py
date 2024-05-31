@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from evals import evaluator_interface
 from models import model_shell
+from models import generator
 
 def batch(data, batch_size):
     for i in range(0, len(data), batch_size):
@@ -57,12 +58,15 @@ class LMEvalWrappedModel(model.LM):
                     # append the target tokens to the input tokens
                     # remove the final tokens due to causal language modeling
                     unpadded_input_tokens = [
-                        (context_tokens[i] + target_tokens[i])[-4096:]
+                        (context_tokens[i] + target_tokens[i])[-512:] # TODO: remove magic constant
                         for i in range(len(context_tokens))
                     ]
                     # pad the input tokens to the max length in the batch
-                    pad_token = self.model_shell.embedding_model.tokenizer.pad_token
+                    pad_token = 0 # TODO: remove magic constant
                     max_len = max(len(tokens) for tokens in unpadded_input_tokens)
+                    # input_tokens = [
+                    #     tokens + [[pad_token for _ in range(12)]] * (max_len - len(tokens)) for tokens in unpadded_input_tokens
+                    # ] # used for byte level models
                     input_tokens = [
                         tokens + [pad_token] * (max_len - len(tokens)) for tokens in unpadded_input_tokens
                     ]
@@ -78,10 +82,12 @@ class LMEvalWrappedModel(model.LM):
                         # remove the padding
                         logits_i = logits_i[: len(unpadded_input_tokens[i])]
                         target_tokens_i = torch.tensor(target_tokens[i], device=device).long()
-
+                        logits_i = logits_i[-len(target_tokens_i)-1:-1]
+                        logits_i = logits_i.reshape(-1, logits_i.shape[-1])
+                        target_tokens_i = target_tokens_i.reshape(-1)
                         # get the loglikelihood of the target string
                         ll = torch.nn.functional.cross_entropy(
-                            logits_i[-len(target_tokens_i)-1:-1], target_tokens_i, reduction="sum"
+                            logits_i, target_tokens_i, reduction="sum"
                         )
 
                         # get the greedy prediction
@@ -106,19 +112,16 @@ class LMEvalWrappedModel(model.LM):
             (_str,) = request.args
             # tokenize the inputs
             input_tokens = self.model_shell.embedding_model.tokenize_input(_str)
-            input_tokens = (
-                self.model_shell.embedding_model.tokenizer.eot_token + input_tokens[:-1]
-            )[-512:]
-            input_tokens = torch.tensor(input_tokens)
+            input_tokens = torch.tensor(input_tokens, device=self.model_shell.device).long()
             # get the logits
-            logits, _ = self.model_shell(input_tokens.unsqueeze(0))
-            logits = logits.squeeze()
-             # only use the last 512 tokens
-            # get the loglikelihood of the target string
+            logits, _ = self.model_shell(input_tokens)
+            target_tokens = input_tokens[1:]
+            logits = logits[:-1]
             ll = torch.nn.functional.cross_entropy(
-                logits, input_tokens, reduction="sum"
-            ).item()
-            yield -ll
+                logits.reshape(-1, logits.shape[-1]), target_tokens.reshape(-1), reduction="sum"
+            )
+            # return the negative loglikelihood
+            yield -ll.item()
 
     def generate_until(self, requests: list[instance.Instance]) -> list[str]:
         """
@@ -131,19 +134,15 @@ class LMEvalWrappedModel(model.LM):
             --for example, {"until": ["\n\n", "."], "max_gen_toks": 128}).
         The generated input+output text from the model will then be returned.
         """
+        model_generator = generator.StandardGenerator(self.model_shell, generate_cfg={
+                "max_new_tokens": 128,
+                "temperature": 0.7,
+                "top_k": 0.9,
+            })
         for request in requests:
-            context_str, gen_kwargs = request.args
+            context_str, _ = request.args # ignore the kwargs...
             # tokenize the inputs
-            context_tokens = self.model_shell.embedding_model.tokenize_input(
-                context_str
-            )
-            # get the logits
-            logits = self.model_shell(context_tokens)
-            # generate the text
-            generated_text = self.model_shell.model_head.generate_text(
-                logits, **gen_kwargs
-            )
-            yield context_str + generated_text
+            yield model_generator.default_generate(context_str)
 
 
 class LLMHarness(evaluator_interface.EvaluationInterface):
