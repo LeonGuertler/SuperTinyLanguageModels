@@ -12,7 +12,8 @@ from trainers.dataloader import (
 )
 from trainers.loss_fn import (
     cross_entropy_loss_fn,
-    next_token_mlm_loss_fn
+    next_token_mlm_loss_fn,
+    masked_cross_entropy_loss_fn
 )
 from trainers.optimizer import configure_nanoGPT_optimizer
 from trainers.scheduler import (
@@ -98,7 +99,8 @@ def build_dataloader(cfg, embedder):
 
 LOSS_FN_DICT = {
     "cross_entropy": cross_entropy_loss_fn,
-    "next_token_mlm": next_token_mlm_loss_fn
+    "next_token_mlm": next_token_mlm_loss_fn,
+    "masked_cross_entropy": masked_cross_entropy_loss_fn,
 }
 
 

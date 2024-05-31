@@ -54,7 +54,6 @@ class StandardGenerator(torch.nn.Module):
                 if len(v.size()) == 3:
                     logits[logits < v[:, [-1]]] = -float("Inf")
                 else:
-                    
                     logits[logits < v[:, :, :, [-1]]] = -float("Inf")
             # apply softmax to convert logits to (normalized) probabilities
             probs = torch.nn.functional.softmax(logits, dim=-1)
@@ -62,11 +61,13 @@ class StandardGenerator(torch.nn.Module):
             # check if byte-level and if so, flatten 
             if len(probs.size()) == 4:
                 B, S, S_c, H = probs.size()
-                probs = probs.view(B, S * S_c, H)
+                probs = probs.view(B* S * S_c, H)
                 flattened = True
             else:
                 flattened = False
 
+
+            
             idx_next = torch.multinomial(probs, num_samples=1)
             
             # check if byte-level and if so, unflatten
