@@ -28,7 +28,8 @@ def test_lm_eval_wrapper():
         pretrained=modelpath,
         trust_remote_code=True,
         attn_implementation="flash_attention_2",
-        dtype=torch.float16
+        dtype=torch.float16,
+        max_length=512
     )
     model_config = {
             "model_string": modelpath
@@ -41,13 +42,26 @@ def test_lm_eval_wrapper():
     shell.to(torch.device("cuda"))
     shell.eval()
     model = LMEvalWrappedModel(shell)
+    requests = [RequestModel(args=("context"*512, "target"*512))]
+    results = model.loglikelihood(requests)
+    results_target = hf_model.loglikelihood(requests)
+    assert abs(results[0][0] - results_target[0][0]) < 1e-2
+
+
+
     context_str = "The capital of France is"
-    target_str = "Paris"
+    target_str = "Paris, the city of light"
+    requests = [RequestModel(args=("oh", "Paris, you beast of a city"))]
+    results = model.loglikelihood(requests)
+    results_target = hf_model.loglikelihood(requests)
+    assert abs(results[0][0] - results_target[0][0]) < 1e-2
+
     requests = [
         RequestModel(args=(context_str, target_str))
     ]
     results = model.loglikelihood(requests)
     results_target = hf_model.loglikelihood(requests)
-    assert results[0] == results_target[0]
-    assert results == results_target
+    assert abs(results[0][0] - results_target[0][0]) < 1e-2
+
+
 

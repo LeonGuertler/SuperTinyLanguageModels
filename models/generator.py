@@ -36,14 +36,10 @@ class StandardGenerator(torch.nn.Module):
         idx = self.model.embedding_model.tokenize_input(input_string=input_text)
         # push to device
         idx = torch.tensor(idx).unsqueeze(0).to(torch.device("cuda"))
-        # input_string = input_text
-        # output_tokens = []
-        cached_inputs = None
         for _ in range(max_new_tokens):
-            cached_inputs = None
             # forward the model to get the logits for the index in the sequence
-            logits, cached_inputs = self.model.inference(
-                idx, cached_inputs=cached_inputs
+            logits = self.model.inference(
+                idx
             )
             # pluck the logits at the final step and scale by desired temperature
             logits = logits / temperature

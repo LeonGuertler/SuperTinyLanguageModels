@@ -45,15 +45,6 @@ class Attention(torch.nn.Module):
             self.freqs_cis = compute_freqs_cis(
                 seq_len=context_window, head_dim=hidden_dim // num_heads
             )
-        self.k_cache = None
-        self.v_cache = None
-
-    def reset_cache(self):
-        """
-        Reset the cache
-        """
-        self.k_cache = None
-        self.v_cache = None
 
     def forward(self, x, attention_mask=None):
         """
@@ -74,9 +65,8 @@ class Attention(torch.nn.Module):
         )  # (B, nh, T, hs)
 
         if self.use_rope:
-            cached_len = 0 if self.k_cache is None else self.k_cache.shape[1]
             q, k = apply_rotary_emb(
-                q, k, freqs_cis=self.freqs_cis[cached_len : cached_len + S].to(x.device)
+                q, k, freqs_cis=self.freqs_cis[:S].to(x.device)
             )
         q = q.transpose(1, 2)  # (B, nh,  d, hs)
         k = k.transpose(1, 2)  # (B, nh, T, hs)
@@ -84,13 +74,6 @@ class Attention(torch.nn.Module):
         # reshape to have same dim as q
         k = k.repeat_interleave(self.group_size, dim=1)
         v = v.repeat_interleave(self.group_size, dim=1)
-
-        if self.k_cache is not None:
-            k = torch.cat([self.k_cache, k], dim=2)
-            v = torch.cat([self.v_cache, v], dim=2)
-        if self.training is False:
-            self.k_cache = k
-            self.v_cache = v
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         # flash attention
