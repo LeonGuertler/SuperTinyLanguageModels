@@ -25,13 +25,12 @@ def next_token_mlm_loss_fn(logits, y_mask, masked_loss=True):
 
     return cross_entropy_loss_fn(logits, y)
 
-def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
+def compute_perplexity(logits, y, char_lengths, mask=None):
     """
     Compute perplexity
     Args:
         logits: torch.tensor(B, S, H) or torch.tensor(B, S, S_c, H_c)
         y: torch.tensor(B, S) or torch.tensor(B, S, S_c)
-        token_lengths: List[List[int]]
         char_lengths: List[int]
     Returns:
         perplexity: torch.tensor(1)

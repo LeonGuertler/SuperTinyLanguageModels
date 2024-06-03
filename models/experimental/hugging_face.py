@@ -96,7 +96,11 @@ class HFEmbedder(EmbedderInterface):
         """
         Tokenize the input string
         """
-        return self.tokenizer.encode(input_string) + [self.tokenizer.eot_token]
+        return self.tokenizer.encode(input_string)
+
+    def pad_batch(self, token_lists):
+        return self.tokenizer.pad_batch(token_lists)
+
 
 
 class HFTransformerCore(torch.nn.Module):

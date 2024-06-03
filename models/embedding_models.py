@@ -42,21 +42,24 @@ class EmbedderInterface(torch.nn.Module):
         token_ids = self.tokenize_input(input_string)
         return self.forward(token_ids)
 
+    def pad_batch(self, token_lists):
+        """Pad a list of token lists to the same length,
+        and return the padded tensor, and mask tensor."""
+        raise NotImplementedError
+
+    def truncate(self, token_lists):
+        """Truncate a list of token lists, to be shorter than the,
+        maximum length of the model and return the truncated tensor.
+        """
+        raise NotImplementedError
+
     def get_sequence_info(self, x):
         """
         Given a batch of sequences of tokens, return
-        the token lengths and total number of bytes per
-        sequence.
+        the character lengths.
         Args:
             x: torch.tensor(B, S)
         """
-        token_lengths = []
-        # first we decode each token
-        for batch in x:
-            batch_token_lengths = []
-            for token in batch:
-                batch_token_lengths.append(len(self.decode(torch.tensor([token]))))
-            token_lengths.append(batch_token_lengths)
 
         sequence_char_lengths = []
         # then we decode everything
@@ -70,7 +73,6 @@ class EmbedderInterface(torch.nn.Module):
         mask = mask & (x != self.tokenizer.eot_token)
 
         return (
-            token_lengths,
             sequence_char_lengths,
             mask,
         )
@@ -127,6 +129,16 @@ class GenericEmbedder(EmbedderInterface):
         Tokenize an input string.
         """
         return self.tokenizer.encode(input_string)
+
+    def pad_batch(self, token_lists):
+        return self.tokenizer.pad_batch(token_lists)
+
+    def truncate(self, token_lists):
+        # get model max length
+        max_length = self.cfg["context_window"]
+        return [
+            token_seq[:max_length] for token_seq in token_lists
+        ]
 
     def decode(self, tokens):
         """

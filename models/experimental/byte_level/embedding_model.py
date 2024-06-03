@@ -95,6 +95,29 @@ class ByteLevelEmbedder(EmbedderInterface):
         ]
         return tokens
 
+    def pad_batch(self, token_lists):
+        """
+        Pad the batch of token lists.
+        """
+        max_len = max([len(token_list) for token_list in token_lists])
+        padded_token_lists = []
+        for token_list in token_lists:
+            padded_token_list = token_list + [
+                [self.byte_tokenizer.pad_token]
+                * (self.model_cfg["byte_context_window"])
+            ] * (max_len - len(token_list))
+            padded_token_lists.append(padded_token_list)
+        return padded_token_lists
+
+
+    def truncate(self, token_lists):
+        # get model max length
+        max_length = self.model_cfg["context_window"]
+        return [
+            token_seq[:max_length] for token_seq in token_lists
+        ]
+
+
     def decode(self, list_of_token_idss):
         """
         Decode the token ids.
@@ -145,18 +168,6 @@ class ByteLevelEmbedder(EmbedderInterface):
         B, S, S_c = x.size()
         x = x.view(B, S * S_c)
 
-        token_lengths = []
-        # first we decode each token
-        for batch in x:
-            batch_token_lengths = []
-            for token in batch:
-                batch_token_lengths.append(
-                    len(self.byte_tokenizer.decode(torch.tensor([token])))
-                )
-
-            if len(batch_token_lengths) > 0:
-                token_lengths.append(batch_token_lengths)
-
         sequence_char_lengths = []
         # then we decode everything
         # batch decode
@@ -168,4 +179,4 @@ class ByteLevelEmbedder(EmbedderInterface):
         mask = x != self.byte_tokenizer.pad_token
         mask = mask & (x != self.byte_tokenizer.eot_token)
 
-        return token_lengths, sequence_char_lengths, mask
+        return sequence_char_lengths, mask

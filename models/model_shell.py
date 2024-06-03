@@ -8,15 +8,6 @@ import torch
 from models import core_models, embedding_models, model_heads
 
 
-def rec_reset_cache(module: torch.nn.Module):
-    """
-    Reset the cache for the model.
-    """
-    if hasattr(module, "reset_cache"):
-        module.reset_cache()
-    for child in module.children():
-        rec_reset_cache(child)
-
 
 class ModelShell(torch.nn.Module):
     """
@@ -27,7 +18,7 @@ class ModelShell(torch.nn.Module):
 
     def __init__(
         self,
-        embedding_model: embedding_models.GenericEmbedder,
+        embedding_model: embedding_models.EmbedderInterface,
         core_model: core_models.GenericTransformer,
         model_head: model_heads.AutoregressiveLMHead,
         weight_init_func=None,
@@ -60,7 +51,7 @@ class ModelShell(torch.nn.Module):
         return x
 
     @torch.no_grad()
-    def inference(self, model_input, cached_inputs=None):
+    def inference(self, model_input):
         """
         Takes a string or list of token ids as input,
         and returns the decoded model output. The actual
@@ -69,19 +60,13 @@ class ModelShell(torch.nn.Module):
             model_input: str or torch.tensor(B, S)
         Returns:
             logits: torch.tensor(B, S, V),
-            cached_inputs: torch.tensor(B, S)
         """
 
         # check if input is string
         if isinstance(model_input, str):
             # use inference function of the embedding model
             model_input = self.embedding_model.tokenize_input(model_input)[:-1]
-        if cached_inputs is not None:
-            model_input_ = model_input[:, cached_inputs.size(0) :]
-        else:
-            rec_reset_cache(self)
-            model_input_ = model_input
-        x = self.embedding_model(model_input_)
+        x = self.embedding_model(model_input)
 
         # pass the embeddings through the core model
         x = self.core_model(x)
