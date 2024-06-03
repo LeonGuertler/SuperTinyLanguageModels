@@ -103,6 +103,7 @@ class GenericEmbedder(EmbedderInterface):
         # build the positional encodings
         self.positional_encodings = build_positional_encodings(model_cfg=model_cfg)
         self.eot_token = self.tokenizer.eot_token
+        self.model_cfg = model_cfg
 
     def forward(self, token_ids):
         """
@@ -135,7 +136,7 @@ class GenericEmbedder(EmbedderInterface):
 
     def truncate(self, token_lists):
         # get model max length
-        max_length = self.cfg["context_window"]
+        max_length = self.model_cfg["context_window"]
         return [
             token_seq[:max_length] for token_seq in token_lists
         ]

@@ -1,5 +1,6 @@
 defaults:
-  - testing: "llm_harness"
+  # - testing: "llm_harness"
+  - testing: "baseline"
 model_ckpt: "checkpoints/..."
 # model:
 #   model_string: "microsoft/Phi-3-mini-4k-instruct"
