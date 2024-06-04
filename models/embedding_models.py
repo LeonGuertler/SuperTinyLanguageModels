@@ -42,7 +42,7 @@ class EmbedderInterface(torch.nn.Module):
         token_ids = self.tokenize_input(input_string)
         return self.forward(token_ids)
 
-    def pad_batch(self, token_lists):
+    def pad_batch(self, token_lists, direction="right"):
         """Pad a list of token lists to the same length,
         and return the padded tensor, and mask tensor."""
         raise NotImplementedError
@@ -131,13 +131,19 @@ class GenericEmbedder(EmbedderInterface):
         """
         return self.tokenizer.encode(input_string)
 
-    def pad_batch(self, token_lists):
-        return self.tokenizer.pad_batch(token_lists)
+    def pad_batch(self, token_lists, direction="right"):
+        """Pad a list of token lists to the same length,
+        and return the padded tensor, and mask tensor.
+        Args:
+            token_lists: list of lists of tokens
+            direction: str
+        """
+        return self.tokenizer.pad_batch(token_lists, direction=direction)
 
     def truncate(self, token_lists):
         # get model max length
         max_length = self.model_cfg["context_window"]
-        return [token_seq[:max_length] for token_seq in token_lists]
+        return [token_seq[-max_length:] for token_seq in token_lists]
 
     def decode(self, tokens):
         """
