@@ -30,10 +30,9 @@ class MCQEvaluator(EvaluationInterface):
         Given a prompt, use the model to predict the output
         Returns the loglikelihood of the ground truth and the options
         """
-        singletons = [(prefix + " " + ground_truth)] + [
-            (prefix + " " + continuation) for continuation in false_options
-        ]
-        loglikelihoods = self.wrapper.loglikelihood(singletons)
+        prefixes = [prefix] * (len(false_options) + 1)
+        continuations = [ground_truth] + false_options
+        loglikelihoods = self.wrapper.loglikelihood(prefixes=prefixes, continuations=continuations)
         loglikelihoods = torch.tensor(loglikelihoods)
         return loglikelihoods
 
