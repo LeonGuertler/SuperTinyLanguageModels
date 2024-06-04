@@ -15,7 +15,7 @@ class EvalWrapper:
         self.model_shell = model_shell
         super().__init__()
 
-    def loglikelihood(self, inputs) -> list[float]:
+    def loglikelihood(self, prefixes, continuations) -> list[float]:
         """
         Compute the loglikelihood of given inputs
         """
@@ -25,27 +25,11 @@ class EvalWrapper:
         results = []
         with torch.no_grad():
             with torch.autocast(device_type=device_str):
-                for input_strings in batch(inputs, batch_size=8):
-                    batch_tokens = []
-                    for input_string in input_strings:
-                        embedding_model: embedding_models.EmbedderInterface = (
-                            self.model_shell.embedding_model
-                        )
-                        # tokenize the inputs
-                        input_tokens = embedding_model.tokenize_input(input_string)
-                        input_tokens = embedding_model.truncate([input_tokens])[0]
-                        batch_tokens.append(input_tokens)
-
-                    padded_batch, _ = embedding_model.pad_batch(batch_tokens, direction="left")
-                    input_tensor = torch.tensor(padded_batch, device=device).long()
-                    # pad the input tokens to the max length in the batch
-                    logits, _ = self.model_shell(input_tensor)
-                    logits = logits[:, :-1, :]
-                    for i,tokens in enumerate(batch_tokens):
-                        ll = torch.nn.functional.cross_entropy(
-                            logits[i][-len(tokens)+1:], torch.tensor(tokens[1:], device=device).long(), reduction="sum"
-                        )
-                        results.append(-ll.item())
+                for prefix_batch, cont_batch in zip(
+                    batch(prefixes, 32), batch(continuations, 32)
+                ):
+                    ll = self.model_shell.loglikelihood(prefix_batch, cont_batch)
+                    results.extend(ll.cpu().numpy())
         return results
 
     def generate(self, prefixes) -> list[str]:
