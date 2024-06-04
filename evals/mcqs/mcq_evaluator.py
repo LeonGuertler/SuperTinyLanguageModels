@@ -46,12 +46,14 @@ class MCQEvaluator(EvaluationInterface):
 
         return score_dict
 
-    def evaluate_benchmark(self, benchmark_name):
+    def evaluate_benchmark(self, benchmark_name, num_samples=None):
         """Evaluate model performance on a specific benchmark"""
         # load the benchmark_loader
         benchmark_loader = load_benchmark(benchmark_name, split="test")
         confidences = []
-        for prefix, ground_truth, false_options in tqdm.tqdm(benchmark_loader):
+        for i, (prefix, ground_truth, false_options) in tqdm.tqdm(enumerate(benchmark_loader)):
+            if num_samples is not None and i > num_samples:
+                break
             loglikelihoods = self.predict(prefix, ground_truth, false_options)
             confidences.append(loglikelihoods)
         # find the maximum dimension and pad the confidences up to that dimension
@@ -63,15 +65,17 @@ class MCQEvaluator(EvaluationInterface):
 
         return score_dict
 
-    def evaluate(self, benchmark_names):
-        """Given a list of benchmark names, load and evaluate them"""
+    def evaluate(self, benchmark_names, num_samples=None):
+        """Given a list of benchmark names, load and evaluate them
+        
+        Only do so on  {num_samples} for each benchmark"""
         results = {}
         for benchmark_name in benchmark_names:
             print(f"evalling benchmark {benchmark_name}")
-            score_dict = self.evaluate_benchmark(benchmark_name=benchmark_name)
+            score_dict = self.evaluate_benchmark(benchmark_name=benchmark_name, num_samples=num_samples)
             results[benchmark_name] = score_dict
 
-        self._pretty_print_results(results)
+        return results
 
     def _pretty_print_results(self, results):
         """Pretty print the results"""

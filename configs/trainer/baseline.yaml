@@ -16,6 +16,16 @@ training:
   checkpoint_interval: 1e9
   run_profiler: false
 
+eval:
+  benchmarks:
+    - "winograd"
+    - "hellaswag"
+    - "arc"
+    - "mmlu"
+    - "blimp"
+  num_samples: 1000
+  evaluator: "mcq"
+
 optimizer:
   name: "nanoGPTadamW"
   lr: 6e-4

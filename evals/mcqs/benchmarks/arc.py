@@ -1,5 +1,7 @@
 """ARC Benchmark: https://arxiv.org/abs/1803.05457"""
 
+import random
+
 from datasets import load_dataset
 
 def _split_options(options, labels, answer_key):
@@ -10,16 +12,19 @@ def _split_options(options, labels, answer_key):
             true_idx = idx
     return options[true_idx], options[:true_idx] + options[true_idx+1:]
 
-def load_arc(cache_dir="data/eval/arc", split="test"):
+def load_arc(split="test"):
     """Load and process the benchmark
     
     Returns a geneator of:
     (prompt, ground_truth, fake_options)"""
-    base_dataset = load_dataset("allenai/ai2_arc", "ARC-Easy", cache_dir=cache_dir)[
+    base_dataset = load_dataset("allenai/ai2_arc", "ARC-Easy")[
         split
     ]
+    index = list(range(len(base_dataset)))
+    random.shuffle(index)
 
-    for sample in base_dataset:
+    for i in index:
+        sample = base_dataset[i]
         ground_truth, fake_options = _split_options(
             sample["choices"]["text"],
             sample["choices"]["label"],
