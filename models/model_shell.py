@@ -8,6 +8,7 @@ import torch
 from models import core_models, embedding_models, model_heads
 
 
+
 class ModelShell(torch.nn.Module):
     """
     Unify the embedding model, core model and LM head
@@ -17,7 +18,7 @@ class ModelShell(torch.nn.Module):
 
     def __init__(
         self,
-        embedding_model: embedding_models.GenericEmbedder,
+        embedding_model: embedding_models.EmbedderInterface,
         core_model: core_models.GenericTransformer,
         model_head: model_heads.AutoregressiveLMHead,
         weight_init_func=None,
@@ -58,16 +59,14 @@ class ModelShell(torch.nn.Module):
         Args:
             model_input: str or torch.tensor(B, S)
         Returns:
-            logits: torch.tensor(B, S, V)
+            logits: torch.tensor(B, S, V),
         """
 
         # check if input is string
         if isinstance(model_input, str):
             # use inference function of the embedding model
-            x = self.embedding_model.inference(model_input)
-        else:
-            # use standard forward function of the embedding model
-            x = self.embedding_model(model_input)
+            model_input = self.embedding_model.tokenize_input(model_input)[:-1]
+        x = self.embedding_model(model_input)
 
         # pass the embeddings through the core model
         x = self.core_model(x)
@@ -75,4 +74,4 @@ class ModelShell(torch.nn.Module):
         # pass the core model output through the model head
         logits = self.model_head.inference(x)
 
-        return logits
+        return logits, model_input

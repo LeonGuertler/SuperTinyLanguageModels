@@ -64,6 +64,16 @@ trainer:
     name: next_token_mlm
   loss_fn:
     name: next_token_mlm
+  eval:
+    benchmarks:
+      - "winograd"
+      - "hellaswag"
+      - "arc"
+      - "mmlu"
+      - "blimp"
+    num_samples: 1000
+    evaluator: "mcq"
+
 general:
   logging:
     wandb_log: false

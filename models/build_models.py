@@ -7,6 +7,7 @@ from models.core_models import GenericFFNSharedTransfomer, GenericTransformer
 from models.embedding_models import GenericEmbedder
 from models.experimental.byte_level.embedding_model import ByteLevelEmbedder
 from models.experimental.byte_level.model_heads import ByteLevelDecoder
+from models.experimental.hugging_face import HFEmbedder, HFLMHead, HFTransformerCore
 from models.model_heads import AutoregressiveLMHead
 from models.model_shell import ModelShell
 
@@ -31,17 +32,19 @@ def build_model(model_cfg=None, checkpoint=None):
 
         # load the model weights
         model.load_state_dict(checkpoint["model"])
-        model.eval()
 
     else:
         # initialize model
         model = initialize_model(model_cfg)
-        model.train()
 
     return model
 
 
-EMBEDDING_MODEL_DICT = {"generic": GenericEmbedder, "byte_level": ByteLevelEmbedder}
+EMBEDDING_MODEL_DICT = {
+    "generic": GenericEmbedder,
+    "byte_level": ByteLevelEmbedder,
+    "hf_embedder": HFEmbedder,
+}
 
 
 def build_embedding_model(model_cfg):
@@ -60,6 +63,7 @@ def build_embedding_model(model_cfg):
 CORE_MODEL_DICT = {
     "generic": GenericTransformer,
     "generic_ffn_sharing": GenericFFNSharedTransfomer,
+    "hf_core": HFTransformerCore,
 }
 
 
@@ -76,7 +80,11 @@ def build_core_model(model_cfg):
     )
 
 
-MODEL_HEAD_DICT = {"generic": AutoregressiveLMHead, "byte_level": ByteLevelDecoder}
+MODEL_HEAD_DICT = {
+    "generic": AutoregressiveLMHead,
+    "byte_level": ByteLevelDecoder,
+    "hf_head": HFLMHead,
+}
 
 
 def build_model_head(model_cfg):

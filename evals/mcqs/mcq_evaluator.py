@@ -3,10 +3,12 @@ Evaluator class for evaluating models.
 """
 
 import torch
+import tqdm
 
 from evals.evaluator_interface import EvaluationInterface
 from evals.mcqs.load_benchmarks import load_benchmark
 from evals.metrics import MCQ_METRIC_DICT
+from evals import eval_wrapper
 
 
 class MCQEvaluator(EvaluationInterface):
@@ -17,75 +19,63 @@ class MCQEvaluator(EvaluationInterface):
 
     def __init__(self, model):
         self.model = model
+        self.wrapper = eval_wrapper.EvalWrapper(model)
 
         # make sure the model is in eval model
         self.model.eval()
 
     @torch.no_grad()
-    def predict(self, prompt_list, options_list=None):
+    def predict(self, prefix, ground_truth, false_options):
         """
         Given a prompt, use the model to predict the output
-        (if necessary, restrict the output space to the tokens
-        given in the options list)
+        Returns the loglikelihood of the ground truth and the options
         """
-        iterator = (
-            zip(prompt_list, [None] * len(prompt_list))
-            if options_list is None
-            else zip(prompt_list, options_list)
-        )
-        answer_list = []
-        for prompt, options in iterator:
-            # predict the next token
-            output = self.model.inference(prompt)
+        pairs = [(prefix, ground_truth)] + [(prefix, continuation) for continuation in false_options]
+        loglikelihoods = self.wrapper.loglikelihood(*zip(*pairs))
+        loglikelihoods = torch.tensor(loglikelihoods)
+        return loglikelihoods
 
-            # restrict the output space to options
-            if options is not None:
-                legal_idx = self.model.embedder.tokenizer.encode(options)
-                output = output[legal_idx]
-                probs = torch.softmax(output, dim=-1)
-                output = torch.multinomial(probs, num_samples=1)
-                answer = options[output]
-            else:
-                # just sample the next token
-                output = torch.multinomial(output, num_samples=1)
-                answer = self.model.embedder.tokenizer.decode(output)
-
-            answer_list.append(answer)
-
-        return answer_list
-
-    def _calculate_metrics(self, predictions, targets):
+    def _calculate_metrics(self, confidences):
         """
         Calculate the metrics for the model
         """
         score_dict = {}
 
         for metric_name, metric in MCQ_METRIC_DICT.items():
-            score_dict[metric_name] = metric(predictions=predictions, targets=targets)
+            score_dict[metric_name] = metric(confidences)
 
         return score_dict
 
-    def evaluate_benchmark(self, benchmark_name):
+    def evaluate_benchmark(self, benchmark_name, num_samples=None):
         """Evaluate model performance on a specific benchmark"""
         # load the benchmark_loader
-        prompts, labels, options = load_benchmark(benchmark_name)
+        benchmark_loader = load_benchmark(benchmark_name, split="test")
+        confidences = []
+        for i, (prefix, ground_truth, false_options) in tqdm.tqdm(enumerate(benchmark_loader)):
+            if num_samples is not None and i > num_samples:
+                break
+            loglikelihoods = self.predict(prefix, ground_truth, false_options)
+            confidences.append(loglikelihoods)
+        # find the maximum dimension and pad the confidences up to that dimension
+        max_length = max([len(confidence) for confidence in confidences])
+        for i, confidence in enumerate(confidences):
+            confidences[i] = torch.nn.functional.pad(confidence, (0, max_length - len(confidence)))
 
-        # predict the output
-        predictions = self.predict(prompts, options)
-
-        # calculate the scores
-        score_dict = self._calculate_metrics(predictions, labels)
+        score_dict = self._calculate_metrics(torch.stack(confidences))
 
         return score_dict
 
-    def evaluate(self, benchmark_names):
-        """Given a list of benchmark names, load and evaluate them"""
+    def evaluate(self, benchmark_names, num_samples=None):
+        """Given a list of benchmark names, load and evaluate them
+        
+        Only do so on  {num_samples} for each benchmark"""
         results = {}
         for benchmark_name in benchmark_names:
-            score_dict = self.evaluate_benchmark(benchmark_name=benchmark_name)
+            print(f"evalling benchmark {benchmark_name}")
+            score_dict = self.evaluate_benchmark(benchmark_name=benchmark_name, num_samples=num_samples)
             results[benchmark_name] = score_dict
 
-        self._pretty_print_results(results)
+        return results
 
     def _pretty_print_results(self, results):
         """Pretty print the results"""

@@ -11,7 +11,7 @@ from models import model_shell
 from trainers import dataloader as train_dataloader
 from trainers import utils
 from trainers.loss_fn import compute_perplexity
-
+from trainers.evaluator import train_eval
 
 # pylint: disable invalid-name
 class BaseTrainer:
@@ -112,21 +112,18 @@ class BaseTrainer:
                     print("use cached test set")
                     x = self.cached_sets[split][i]["x"]
                     y = self.cached_sets[split][i]["y"]
-                    token_lengths = self.cached_sets[split][i]["token_lengths"]
                     char_lengths = self.cached_sets[split][i]["char_lengths"]
                     mask = self.cached_sets[split][i]["mask"]
                 else:
                     print("process test set")
                     x, y = self.dataloader.get_batch(split)
                     (
-                        token_lengths,
                         char_lengths,
                         mask,
                     ) = self.model.embedding_model.get_sequence_info(x)
                     self.cached_sets[split][i] = {
                         "x": x,
                         "y": y,
-                        "token_lengths": token_lengths,
                         "char_lengths": char_lengths,
                         "mask": mask,
                     }
@@ -136,14 +133,14 @@ class BaseTrainer:
                     perplexities[i] = compute_perplexity(
                         logits=output,
                         y=y,
-                        token_lengths=token_lengths,
                         char_lengths=char_lengths,
                         mask=mask,
                     )
             loss[split] = losses.mean().item()
             perplexity[split] = perplexities.mean().item()
+        benchmark_results = train_eval(self.cfg.trainer["eval"], self.model)
         self.model.train()
-        return loss, perplexity
+        return loss, perplexity, benchmark_results
 
     def _run_step(self):
         """Run a single step of training"""
@@ -234,7 +231,7 @@ class BaseTrainer:
                 not iter_num % self.cfg.trainer.training.eval_interval
             ) and iter_num > 0:
                 s0 = time.time()
-                losses, perplexities = self.estimate_performance()
+                losses, perplexities, benchmark_results = self.estimate_performance()
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f},"
                     f" val loss {losses['val']:.4f}, dt {time.time()-s0:.1f}s"
@@ -242,6 +239,9 @@ class BaseTrainer:
                 print(
                     f"step {iter_num}: train perplexity {perplexities['train']:.4f},"
                     f" val perplexity {perplexities['val']:.4f}"
+                )
+                print(
+                    f"step {iter_num}: benchmark results {benchmark_results}"
                 )
                 if self.use_wandb:
                     wandb.log(
@@ -253,6 +253,10 @@ class BaseTrainer:
                             "dropout": dropout,
                             "train/perplexity": perplexities["train"],
                             "val/perplexity": perplexities["val"],
+                            **{
+                                f"benchmark/{k}": v
+                                for k, v in benchmark_results.items()
+                            },
                         }
                     )
             # save checkpoints

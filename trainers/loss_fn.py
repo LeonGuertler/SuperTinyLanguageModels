@@ -25,13 +25,12 @@ def next_token_mlm_loss_fn(logits, y_mask, masked_loss=True):
 
     return cross_entropy_loss_fn(logits, y)
 
-def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
+def compute_perplexity(logits, y, char_lengths, mask=None):
     """
     Compute perplexity
     Args:
         logits: torch.tensor(B, S, H) or torch.tensor(B, S, S_c, H_c)
         y: torch.tensor(B, S) or torch.tensor(B, S, S_c)
-        token_lengths: List[List[int]]
         char_lengths: List[int]
     Returns:
         perplexity: torch.tensor(1)
@@ -63,20 +62,10 @@ def compute_perplexity(logits, y, token_lengths, char_lengths, mask=None):
     # B, S, 1
     # unflatten
     loss = loss.view(B, seq_len)
+    loss = loss * mask / torch.tensor(char_lengths).view(-1, 1)
+    loss = loss.sum(dim=-1)
 
-    total_loss = 0
-    for i in range(B):
-        # mask and multiply
-        if mask is not None:
-            total_loss += (loss[i] * torch.tensor(token_lengths[i]).float())[mask[i]].sum()
-        else:
-            total_loss += (loss[i] * torch.tensor(token_lengths[i]).float()).sum()
-
-
-    # sum and divide by character length
-    loss = loss.sum() / torch.tensor(char_lengths).sum()
-
-    return torch.exp(loss)
+    return (torch.exp(loss)/ B).mean().item()
 
 
 

@@ -3,17 +3,15 @@ Builds the individual components of the trainer,
 and the trainer itself.
 """
 
+from models.experimental.hugging_face import MockTrainer
 from trainers.base_trainer import BaseTrainer
 from trainers.dataloader import (
     BaseDataloader,
     BytePoolingDataloader,
-    StandardDataloader,
     NextTokenMLMDataloader,
+    StandardDataloader,
 )
-from trainers.loss_fn import (
-    cross_entropy_loss_fn,
-    next_token_mlm_loss_fn
-)
+from trainers.loss_fn import cross_entropy_loss_fn, next_token_mlm_loss_fn
 from trainers.optimizer import configure_nanoGPT_optimizer
 from trainers.scheduler import (
     CosineLRScheduler,
@@ -98,7 +96,7 @@ def build_dataloader(cfg, embedder):
 
 LOSS_FN_DICT = {
     "cross_entropy": cross_entropy_loss_fn,
-    "next_token_mlm": next_token_mlm_loss_fn
+    "next_token_mlm": next_token_mlm_loss_fn,
 }
 
 
@@ -111,6 +109,7 @@ def build_loss_fn(loss_fn_name):
 
 TRAINER_DICT = {
     "base_trainer": BaseTrainer,
+    "mock_trainer": MockTrainer,
 }
 
 
