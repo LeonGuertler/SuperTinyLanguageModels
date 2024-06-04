@@ -137,9 +137,7 @@ class GenericEmbedder(EmbedderInterface):
     def truncate(self, token_lists):
         # get model max length
         max_length = self.model_cfg["context_window"]
-        return [
-            token_seq[:max_length] for token_seq in token_lists
-        ]
+        return [token_seq[:max_length] for token_seq in token_lists]
 
     def decode(self, tokens):
         """

@@ -61,6 +61,3 @@
 #     results = model.loglikelihood(requests)
 #     results_target = hf_model.loglikelihood(requests)
 #     assert abs(results[0][0] - results_target[0][0]) < 1e-2
-
-
-

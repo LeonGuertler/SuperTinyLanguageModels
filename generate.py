@@ -23,7 +23,9 @@ def main(cfg):
 
     while True:
         # generate the text
-        generated_text = generator.default_generate(input_text=input("Enter the input text: "))
+        generated_text = generator.default_generate(
+            input_text=input("Enter the input text: ")
+        )
         print(generated_text)
 
 

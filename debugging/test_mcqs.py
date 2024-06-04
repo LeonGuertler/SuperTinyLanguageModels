@@ -1,9 +1,15 @@
 """Tests for each of the benchmarks"""
+
+# pylint: disable=unused-import
 import pytest
 
 from evals.mcqs.load_benchmarks import load_benchmark
 
+# pylint: enable=unused-import
+
+
 def test_load_benchmark():
+    """loads in the benchmarks to check they work"""
     benchmark_names = ["arc", "winograd", "mmlu", "hellaswag", "blimp"]
     for benchmark_name in benchmark_names:
         for split in ["test", "validation"]:

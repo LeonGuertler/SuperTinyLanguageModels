@@ -13,7 +13,6 @@ from models.build_models import build_model
 def main(cfg):
     """run the main eval loop"""
 
-
     # load checkpoint from the path if there
     if "model_ckpt" in cfg:
         # set the checkpoint path to absolute path

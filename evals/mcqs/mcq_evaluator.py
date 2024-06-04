@@ -5,10 +5,10 @@ Evaluator class for evaluating models.
 import torch
 import tqdm
 
+from evals import eval_wrapper
 from evals.evaluator_interface import EvaluationInterface
 from evals.mcqs.load_benchmarks import load_benchmark
 from evals.metrics import MCQ_METRIC_DICT
-from evals import eval_wrapper
 
 
 class MCQEvaluator(EvaluationInterface):
@@ -30,7 +30,9 @@ class MCQEvaluator(EvaluationInterface):
         Given a prompt, use the model to predict the output
         Returns the loglikelihood of the ground truth and the options
         """
-        pairs = [(prefix, ground_truth)] + [(prefix, continuation) for continuation in false_options]
+        pairs = [(prefix, ground_truth)] + [
+            (prefix, continuation) for continuation in false_options
+        ]
         loglikelihoods = self.wrapper.loglikelihood(*zip(*pairs))
         loglikelihoods = torch.tensor(loglikelihoods)
         return loglikelihoods
@@ -51,7 +53,9 @@ class MCQEvaluator(EvaluationInterface):
         # load the benchmark_loader
         benchmark_loader = load_benchmark(benchmark_name, split="test")
         confidences = []
-        for i, (prefix, ground_truth, false_options) in tqdm.tqdm(enumerate(benchmark_loader)):
+        for i, (prefix, ground_truth, false_options) in tqdm.tqdm(
+            enumerate(benchmark_loader)
+        ):
             if num_samples is not None and i > num_samples:
                 break
             loglikelihoods = self.predict(prefix, ground_truth, false_options)
@@ -59,7 +63,9 @@ class MCQEvaluator(EvaluationInterface):
         # find the maximum dimension and pad the confidences up to that dimension
         max_length = max([len(confidence) for confidence in confidences])
         for i, confidence in enumerate(confidences):
-            confidences[i] = torch.nn.functional.pad(confidence, (0, max_length - len(confidence)))
+            confidences[i] = torch.nn.functional.pad(
+                confidence, (0, max_length - len(confidence))
+            )
 
         score_dict = self._calculate_metrics(torch.stack(confidences))
 
@@ -67,12 +73,14 @@ class MCQEvaluator(EvaluationInterface):
 
     def evaluate(self, benchmark_names, num_samples=None):
         """Given a list of benchmark names, load and evaluate them
-        
+
         Only do so on  {num_samples} for each benchmark"""
         results = {}
         for benchmark_name in benchmark_names:
             print(f"evalling benchmark {benchmark_name}")
-            score_dict = self.evaluate_benchmark(benchmark_name=benchmark_name, num_samples=num_samples)
+            score_dict = self.evaluate_benchmark(
+                benchmark_name=benchmark_name, num_samples=num_samples
+            )
             results[benchmark_name] = score_dict
 
         return results

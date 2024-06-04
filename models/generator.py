@@ -38,9 +38,7 @@ class StandardGenerator(torch.nn.Module):
         idx = torch.tensor(idx).unsqueeze(0).to(torch.device("cuda"))
         for _ in range(max_new_tokens):
             # forward the model to get the logits for the index in the sequence
-            logits = self.model.inference(
-                idx
-            )
+            logits = self.model.inference(idx)
             # pluck the logits at the final step and scale by desired temperature
             logits = logits / temperature
             # logits have shape (b,t,v)
