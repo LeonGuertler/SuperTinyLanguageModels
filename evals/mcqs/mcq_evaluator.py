@@ -63,7 +63,7 @@ class MCQEvaluator(EvaluationInterface):
         max_length = max([len(confidence) for confidence in confidences])
         for i, confidence in enumerate(confidences):
             confidences[i] = torch.nn.functional.pad(
-                confidence, (0, max_length - len(confidence))
+                confidence, (0, max_length - len(confidence)), value=-1e10
             )
 
         score_dict = self._calculate_metrics(torch.stack(confidences))
