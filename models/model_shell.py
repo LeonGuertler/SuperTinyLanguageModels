@@ -31,6 +31,12 @@ class ModelShell(torch.nn.Module):
         # initialize model weights
         if weight_init_func is not None:
             self.apply(weight_init_func)
+        self.device = ...
+
+    # override to device to set the attribute
+    def to(self, *args, **kwargs):
+        self.device = args[0]
+        return super().to(*args, **kwargs)
 
     def forward(self, token_ids):
         """
@@ -75,3 +81,28 @@ class ModelShell(torch.nn.Module):
         logits = self.model_head.inference(x)
 
         return logits, model_input
+
+    @torch.no_grad()
+    def loglikelihood(self, prefixes, continuations):
+        """
+        Compute the loglikelihood of continuation
+        tokens given a prefix.
+        Args:
+            prefixes: list[str]
+            continuations: list[str]
+        Returns:
+            ll: torch.tensor(B)
+        """
+        total_strings = [f"{prefix} {cont}" for prefix, cont in zip(prefixes, continuations)]
+        input_tokens = [self.embedding_model.tokenize_input(string) for string in total_strings]
+        input_tokens = self.embedding_model.truncate(input_tokens)
+        padded_batch, mask = self.embedding_model.pad_batch(input_tokens, direction="left")
+        input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
+        logits, _ = self.forward(input_tensor)
+        logits = logits[:, :-1].reshape(-1, logits.size(-1))
+        target_tensor = input_tensor[:, 1:].reshape(-1)
+        ll = torch.nn.functional.cross_entropy(logits, target_tensor, reduction="none")
+        mask = mask[:, 1:].reshape(-1).to(ll.device)
+        ll = ll * mask
+        ll = ll.view(input_tensor.size(0), -1).sum(dim=1)
+        return -ll
