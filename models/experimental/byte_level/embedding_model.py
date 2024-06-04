@@ -109,14 +109,10 @@ class ByteLevelEmbedder(EmbedderInterface):
             padded_token_lists.append(padded_token_list)
         return padded_token_lists
 
-
     def truncate(self, token_lists):
         # get model max length
         max_length = self.model_cfg["context_window"]
-        return [
-            token_seq[:max_length] for token_seq in token_lists
-        ]
-
+        return [token_seq[:max_length] for token_seq in token_lists]
 
     def decode(self, list_of_token_idss):
         """
@@ -126,7 +122,11 @@ class ByteLevelEmbedder(EmbedderInterface):
         for list_of_token_ids in list_of_token_idss:
             return_string = ""
             for token_ids in list_of_token_ids:
-                token_ids = [token_id for token_id in token_ids if token_id != self.byte_tokenizer.pad_token]
+                token_ids = [
+                    token_id
+                    for token_id in token_ids
+                    if token_id != self.byte_tokenizer.pad_token
+                ]
                 return_string += self.byte_tokenizer.decode(token_ids)
             return_strings.append(return_string)
         return return_strings

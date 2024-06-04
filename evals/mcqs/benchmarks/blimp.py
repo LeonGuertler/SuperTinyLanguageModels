@@ -1,7 +1,8 @@
 """Blimp dataset https://aclanthology.org/2020.tacl-1.25/"""
 
-from datasets import load_dataset
 import random
+
+from datasets import load_dataset
 
 # OPTIONS = ['adjunct_island', 'anaphor_gender_agreement', 'anaphor_number_agreement',
 #            'animate_subject_passive', 'animate_subject_trans', 'causative',
@@ -28,10 +29,7 @@ import random
 #            'wh_questions_subject_gap', 'wh_questions_subject_gap_long_distance', 'wh_vs_that_no_gap',
 #            'wh_vs_that_no_gap_long_distance', 'wh_vs_that_with_gap', 'wh_vs_that_with_gap_long_distance']
 
-INDEX_MAP = {
-    "test": (0, 900),
-    "validation": (900, 1000)
-}
+INDEX_MAP = {"test": (0, 900), "validation": (900, 1000)}
 
 
 def load_blimp(split="test"):
@@ -43,9 +41,4 @@ def load_blimp(split="test"):
         sample = base_dataset[i]
         if i < INDEX_MAP[split][0] or i >= INDEX_MAP[split][1]:
             continue
-        yield (
-            "",
-            sample["sentence_good"],
-            [sample["sentence_bad"]]            
-        )
-
+        yield ("", sample["sentence_good"], [sample["sentence_bad"]])

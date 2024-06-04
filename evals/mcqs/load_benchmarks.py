@@ -3,10 +3,10 @@ Load a bechmark loader, given the benchmark name.
 """
 
 from evals.mcqs.benchmarks.arc import load_arc
-from evals.mcqs.benchmarks.winogrande import load_winogrande
-from evals.mcqs.benchmarks.mmlu import load_mmlu
-from evals.mcqs.benchmarks.hellaswag import load_hellaswag
 from evals.mcqs.benchmarks.blimp import load_blimp
+from evals.mcqs.benchmarks.hellaswag import load_hellaswag
+from evals.mcqs.benchmarks.mmlu import load_mmlu
+from evals.mcqs.benchmarks.winogrande import load_winogrande
 
 EVALS_DICT = {
     "arc": load_arc,

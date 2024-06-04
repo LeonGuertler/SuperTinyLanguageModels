@@ -109,13 +109,17 @@ class HFEmbedder(EmbedderInterface):
         return [tokens[:max_length] for tokens in token_lists]
 
 
-
 class HFTransformerCore(torch.nn.Module):
     """Runs the huggingface transformer model"""
 
     def __init__(self, model_cfg):
         super().__init__()
-        self.model = AutoModelForCausalLM.from_pretrained(model_cfg["model_string"], trust_remote_code=True, attn_implementation="flash_attention_2", torch_dtype=torch.float16)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_cfg["model_string"],
+            trust_remote_code=True,
+            attn_implementation="flash_attention_2",
+            torch_dtype=torch.float16,
+        )
 
     def forward(self, x):
         """Calls the huggingface model in question"""

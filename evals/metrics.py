@@ -1,7 +1,9 @@
 """
 A collection of metrics for evaluating models
 """
+
 import torch
+
 
 def accuracy_metric(confidences):
     """
@@ -14,6 +16,7 @@ def accuracy_metric(confidences):
     """
     _, predicted = torch.max(confidences, 1)
     return (predicted == 0).float().mean()
+
 
 def path_confidence(confidences):
     """
@@ -28,6 +31,5 @@ def path_confidence(confidences):
     softmaxed = softmaxed[:, 0]
     return softmaxed.mean()
 
-MCQ_METRIC_DICT = {"accuracy": accuracy_metric,
-                   "path_confidence": path_confidence}
 
+MCQ_METRIC_DICT = {"accuracy": accuracy_metric, "path_confidence": path_confidence}

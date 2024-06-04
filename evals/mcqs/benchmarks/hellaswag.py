@@ -1,7 +1,9 @@
 """Hella Swag Benchmark Code: https://arxiv.org/pdf/1905.07830.pdf"""
 
-from datasets import load_dataset
 import random
+
+from datasets import load_dataset
+
 
 def load_hellaswag(split="test"):
     """Load and process the benchmark"""
