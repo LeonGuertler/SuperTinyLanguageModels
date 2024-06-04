@@ -21,7 +21,7 @@ trainer:
   dataset: simple_en_wiki
   training:
     trainer_type: mock_trainer
-    batch_size: 24
+    batch_size: 2
     gradient_accumulation_steps: 1
     max_iters: 3
     lr_decay_iters: 10

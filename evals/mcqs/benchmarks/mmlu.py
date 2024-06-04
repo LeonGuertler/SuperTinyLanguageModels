@@ -4,6 +4,10 @@ from datasets import load_dataset
 
 import random
 
+def option_prompt(choice, choices):
+    prompt = f"Options: {';'.join(choices)}\n Answer: {choice}"
+    return prompt
+
 def load_mmlu(split="test"):
     """Load and process the benchmark
     
@@ -16,7 +20,9 @@ def load_mmlu(split="test"):
     for i in index:
         sample = base_dataset[split][i]
         ground_truth = sample["choices"][sample["answer"]]
+        ground_truth = option_prompt(ground_truth, sample["choices"])
         fake_options = [choice for choice in sample["choices"] if choice != ground_truth]
+        fake_options = [option_prompt(choice, sample["choices"]) for choice in fake_options]
         yield (
             sample["question"],
             ground_truth,

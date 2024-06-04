@@ -3,7 +3,7 @@
 from datasets import load_dataset
 
 SPLIT_REMAP = {"test": "validation", "validation": "train"}
-
+INDEX_MAP = {"1": 0, "2": 1, "3": 2, "4": 3, "A": 0, "B": 1, "C": 2, "D": 3, "E": 4}
 import random
 
 def load_winogrande(split="test"):
@@ -13,8 +13,14 @@ def load_winogrande(split="test"):
     random.shuffle(index)
     for i in index:
         sample = base_dataset[i]
+        sentence = sample["sentence"]
+        options = [sample["option1"],sample["option2"]]
+        ground_truth = options[INDEX_MAP[sample["answer"]]]
+        options.remove(ground_truth)
+        ground_truth = sentence.replace("_", ground_truth)
+        options = [sentence.replace("_", option) for option in options]
         yield (
-            sample["sentence"],
-            sample["answer"],
-            [sample["option1"] if sample["option1"] == sample["answer"] else sample["option2"]],            
+            "",
+            ground_truth,
+            options,  
         )

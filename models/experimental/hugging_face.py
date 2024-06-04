@@ -35,12 +35,14 @@ class HFTokenizerWrapper(Tokenizer):
     def pad_batch(self, token_lists):
         """Pad a list of token lists to the same length,
         and return the padded tensor, and mask tensor."""
-        padded_tokens, mask = self.hf_tokenizer.pad(
-            encoded_inputs=token_lists,
-            padding=True,
-            return_tensors="pt",
-            return_attention_mask=True,
+        max_length = max(len(tokens) for tokens in token_lists)
+        padded_tokens = torch.full(
+            (len(token_lists), max_length), self.pad_token, dtype=torch.long
         )
+        mask = torch.zeros((len(token_lists), max_length), dtype=torch.bool)
+        for i, tokens in enumerate(token_lists):
+            padded_tokens[i, : len(tokens)] = torch.tensor(tokens)
+            mask[i, : len(tokens)] = 1
         return padded_tokens, mask
 
     def decode(self, tokens):
@@ -103,7 +105,7 @@ class HFEmbedder(EmbedderInterface):
 
     def truncate(self, token_lists):
         """Truncate the token lists to the max length of the model"""
-        max_length = self.model.config.context_window
+        max_length = self.model_cfg["context_window"]
         return [tokens[:max_length] for tokens in token_lists]
 
 
