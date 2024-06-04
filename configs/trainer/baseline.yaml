@@ -1,7 +1,7 @@
 defaults:
   - dropout_scheduler: linear_up
 
-dataset: "simple_en_wiki"
+dataset: "stlm"
 
 training:
   trainer_type: "base_trainer"

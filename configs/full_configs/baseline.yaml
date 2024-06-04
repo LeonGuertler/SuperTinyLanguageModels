@@ -30,9 +30,12 @@ model:
   positional_encoding_type: rope
 trainer:
   dropout_scheduler:
-    dropout_type: constant
-    dropout: 0.1
-  dataset: simple_en_wiki
+    dropout_type: linear
+    start_dropout_p: 0.0
+    end_dropout_p: 0.1
+    start_iter: 0
+    end_iter: 25000
+  dataset: stlm
   training:
     trainer_type: base_trainer
     batch_size: 24
@@ -40,12 +43,20 @@ trainer:
     max_iters: 25000
     lr_decay_iters: 25000
     warmup_iters: 5000
-    eval_interval: 5000
-    log_interval: 100
+    eval_interval: 2000
+    log_interval: 1
     eval_iters: 200
     checkpoint_interval: 1000000000.0
     run_profiler: false
-
+  eval:
+    benchmarks:
+    - winograd
+    - hellaswag
+    - arc
+    - mmlu
+    - blimp
+    num_samples: 1000
+    evaluator: mcq
   optimizer:
     name: nanoGPTadamW
     lr: 0.0006
@@ -62,17 +73,6 @@ trainer:
     name: standard
   loss_fn:
     name: cross_entropy
-  eval:
-    benchmarks:
-      - "winograd"
-      - "hellaswag"
-      - "arc"
-      - "mmlu"
-      - "blimp"
-    num_samples: 1000
-    evaluator: "mcq"
-
-
 general:
   logging:
     wandb_log: true
