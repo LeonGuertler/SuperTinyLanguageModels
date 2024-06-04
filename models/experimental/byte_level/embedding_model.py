@@ -95,24 +95,31 @@ class ByteLevelEmbedder(EmbedderInterface):
         ]
         return tokens
 
-    def pad_batch(self, token_lists):
+    def pad_batch(self, token_lists, direction="right"):
         """
         Pad the batch of token lists.
+        Direction can be either 'left' or 'right'
         """
         max_len = max([len(token_list) for token_list in token_lists])
         padded_token_lists = []
         for token_list in token_lists:
-            padded_token_list = token_list + [
-                [self.byte_tokenizer.pad_token]
-                * (self.model_cfg["byte_context_window"])
-            ] * (max_len - len(token_list))
-            padded_token_lists.append(padded_token_list)
+            if direction == "right":
+                padded_token_list = token_list + [
+                    [self.byte_tokenizer.pad_token]
+                    * (self.model_cfg["byte_context_window"])
+                ] * (max_len - len(token_list))
+            else:
+                padded_token_list = token_list + [
+                    [self.byte_tokenizer.pad_token]
+                    * (self.model_cfg["byte_context_window"])
+                ] * (max_len - len(token_list))
+                padded_token_lists.append(padded_token_list)
         return padded_token_lists
 
     def truncate(self, token_lists):
         # get model max length
         max_length = self.model_cfg["context_window"]
-        return [token_seq[:max_length] for token_seq in token_lists]
+        return [token_seq[-max_length:] for token_seq in token_lists]
 
     def decode(self, list_of_token_idss):
         """
