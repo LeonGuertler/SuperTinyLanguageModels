@@ -7,7 +7,7 @@ import pkgutil
 
 import numpy as np
 import torch
-from datasets import load_dataset
+from datasets import load_dataset, concatenate_datasets, DatasetDict
 
 
 def set_seed(seed):
@@ -27,11 +27,63 @@ def create_folder_structure(path_config):
     if not os.path.exists(path_config["checkpoint_dir"]):
         os.makedirs(path_config["checkpoint_dir"])
 
+def create_stlm_data_mix():
+    """
+    A small custom datamix for STLM models containing:
+    - simple English Wikipedia
+    - Python Code (Deepmind Code Contest) - sampled for easy questions
+    - technical QA style (StackExchange)
+    """
+    # Load simple English Wikipedia
+    wiki = load_dataset("wikimedia/wikipedia", "20231101.simple")["train"]
+
+    # Add a "text" column for simple English Wikipedia
+    wiki = wiki.map(lambda x: {"text": x["text"]})
+
+    # Load Python code from DeepMind Code Contests
+    code_dataset = load_dataset("jtatman/python-code-dataset-500k")["train"]
+    code_dataset = code_dataset.map(lambda x: {"text": f"Instruction: {x['instruction']}\nOutput: {x['output']}"})
+
+
+    # Load technical QA style data from StackExchange
+    openhermes = load_dataset("teknium/OpenHermes-2.5")["train"]
+
+    # Transform to have a "text" column with both question and answers
+    openhermes = openhermes.map(lambda x: {"text": f"Question: {x['conversations'][0]['value']}\nAnswers: {x['conversations'][1]['value']}"})
+
+
+    # Calculate and print the distribution of string lengths
+    def calculate_length_distribution(dataset):
+        lengths = [len(item["text"]) for item in dataset]
+        return sum(lengths), lengths
+
+    wiki_length, wiki_lengths = calculate_length_distribution(wiki)
+    python3_code_length, python3_code_lengths = calculate_length_distribution(code_dataset)
+    openhermes_length, openhermes_lengths = calculate_length_distribution(openhermes)
+
+    total_length = wiki_length + python3_code_length + openhermes_length
+
+    print(f"Wiki Text Length: {wiki_length} ({wiki_length/total_length*100:.2f}%)")
+    print(f"Python Code Text Length: {python3_code_length} ({python3_code_length/total_length*100:.2f}%)")
+    print(f"openhermes Text Length: {openhermes_length} ({openhermes_length/total_length*100:.2f}%)")
+
+    # Concatenate datasets
+    combined_dataset = concatenate_datasets([wiki, code_dataset, openhermes])
+
+    combined_dataset = DatasetDict({
+        "train": combined_dataset,
+    })
+
+    return combined_dataset
 
 DATASET_DICT = {
     "debug": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
     "en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.en"),
     "simple_en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
+    "babylm_100m": lambda: load_dataset("Sree1994/babylm_100M"), # https://babylm.github.io/
+    "tinystories": lambda: load_dataset("roneneldan/TinyStories"), # https://huggingface.co/datasets/roneneldan/TinyStories
+    "stlm": create_stlm_data_mix,
+    "openhermes-2.5": lambda: load_dataset("teknium/OpenHermes-2.5"),
 }
 
 
