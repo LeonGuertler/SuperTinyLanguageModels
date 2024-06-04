@@ -101,6 +101,11 @@ class HFEmbedder(EmbedderInterface):
     def pad_batch(self, token_lists):
         return self.tokenizer.pad_batch(token_lists)
 
+    def truncate(self, token_lists):
+        """Truncate the token lists to the max length of the model"""
+        max_length = self.model.config.context_window
+        return [tokens[:max_length] for tokens in token_lists]
+
 
 
 class HFTransformerCore(torch.nn.Module):
