@@ -1,5 +1,5 @@
 defaults:
-  - dropout_scheduler: linear_up
+  - dropout_scheduler: constant
 
 dataset: "stlm"
 
