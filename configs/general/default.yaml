@@ -1,5 +1,5 @@
 logging:
-  wandb_log: False
+  wandb_log: True
   wandb_project: "TinyUniverse"
 
 paths:

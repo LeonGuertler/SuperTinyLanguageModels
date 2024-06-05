@@ -2,7 +2,6 @@
 The Embedding model for a VAE style sequence to sequence model.
 """
 import torch 
-import numpy as np
 
 from models.embedding_models import GenericEmbedder
 from models.components.layers.transformer_blocks import GenericTransformerBlock
@@ -62,43 +61,27 @@ class HierarchicalEncoder(GenericEmbedder):
                     hidden_size_in=model_cfg["embedder"]["pooling_dims"][i],
                     hidden_size_out=model_cfg["embedder"]["pooling_dims"][i+1],
                     num_attention_heads=12,
-                    pct_pool_per_layer=model_cfg["embedder"]["pooling_pct_per_layer"][i],
+                    pct_pool_per_layer=model_cfg["embedder"]["pct_pool_per_layer"][i],
                 ) for i in range(len(model_cfg["embedder"]["pooling_dims"]) - 1)
             ]
         )
 
-        self.context_window = model_cfg["embedder"]["context_window"]
-
 
     def forward(self, token_ids):
         # embed the input 
-        input(token_ids)
-        x = self.token_embedder(token_ids)
+        x = self.embedding(token_ids)
 
         # apply positional encoding 
-        x = x + self.positional_encodings(x)
+        x = x + self.positional_encoding(x)
 
 
         # first pass through normal attention blocks
-        for layer in self.standard_transformer:
+        for layer in self.standard:
             x = layer(x)
 
         # then pass through pooling attention blocks
-        for layer in self.pooling_transformer:
+        for layer in self.pooling_attention:
             x = layer(x)
         # mean pool final representation
         x = x.mean(dim=-2)
         return x
-    
-
-    def tokenize_input(self, input_string):
-        """
-        Tokenize the input
-        """
-        # truncate
-        token_ids = np.ones(self.context_window, dtype=np.uint16) * self.tokenizer.pad_token
-        raw_token_ids = self.tokenizer.encode(input_string)
-        end_id = min(len(raw_token_ids), self.context_window) - 1
-        token_ids[:end_id] = raw_token_ids[:end_id]
-        token_ids[end_id] = self.tokenizer.eot_token
-        return token_ids

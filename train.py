@@ -23,7 +23,8 @@ def main(cfg):
 
     model = build_model(model_cfg=cfg["model"])
     model.to(cfg["general"]["device"])
-
+    model.train()
+    
     # load the relevant trainer
     trainer = build_trainer(
         cfg=cfg,

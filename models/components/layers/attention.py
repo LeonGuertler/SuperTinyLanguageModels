@@ -66,7 +66,7 @@ class Attention(torch.nn.Module):
 
         if self.use_rope:
             q, k = apply_rotary_emb(q, k, freqs_cis=self.freqs_cis[:S].to(x.device))
-        q = q.transpose(1, 2)  # (B, nh, T, hs)
+        q = q.transpose(1, 2)  # (B, nh,  d, hs)
         k = k.transpose(1, 2)  # (B, nh, T, hs)
 
         # reshape to have same dim as q

@@ -8,6 +8,7 @@ import torch
 from models import core_models, embedding_models, model_heads
 
 
+
 class ModelShell(torch.nn.Module):
     """
     Unify the embedding model, core model and LM head
@@ -17,7 +18,7 @@ class ModelShell(torch.nn.Module):
 
     def __init__(
         self,
-        embedding_model: embedding_models.GenericEmbedder,
+        embedding_model: embedding_models.EmbedderInterface,
         core_model: core_models.GenericTransformer,
         model_head: model_heads.AutoregressiveLMHead,
         weight_init_func=None,
@@ -30,6 +31,12 @@ class ModelShell(torch.nn.Module):
         # initialize model weights
         if weight_init_func is not None:
             self.apply(weight_init_func)
+        self.device = ...
+
+    # override to device to set the attribute
+    def to(self, *args, **kwargs):
+        self.device = args[0]
+        return super().to(*args, **kwargs)
 
     def forward(self, token_ids):
         """
@@ -58,16 +65,14 @@ class ModelShell(torch.nn.Module):
         Args:
             model_input: str or torch.tensor(B, S)
         Returns:
-            logits: torch.tensor(B, S, V)
+            logits: torch.tensor(B, S, V),
         """
 
         # check if input is string
         if isinstance(model_input, str):
             # use inference function of the embedding model
-            x = self.embedding_model.inference(model_input)
-        else:
-            # use standard forward function of the embedding model
-            x = self.embedding_model(model_input)
+            model_input = self.embedding_model.tokenize_input(model_input)[:-1]
+        x = self.embedding_model(model_input)
 
         # pass the embeddings through the core model
         x = self.core_model(x)
@@ -75,4 +80,29 @@ class ModelShell(torch.nn.Module):
         # pass the core model output through the model head
         logits = self.model_head.inference(x)
 
-        return logits
+        return logits, model_input
+
+    @torch.no_grad()
+    def loglikelihood(self, prefixes, continuations):
+        """
+        Compute the loglikelihood of continuation
+        tokens given a prefix.
+        Args:
+            prefixes: list[str]
+            continuations: list[str]
+        Returns:
+            ll: torch.tensor(B)
+        """
+        total_strings = [f"{prefix} {cont}" for prefix, cont in zip(prefixes, continuations)]
+        input_tokens = [self.embedding_model.tokenize_input(string) for string in total_strings]
+        input_tokens = self.embedding_model.truncate(input_tokens)
+        padded_batch, mask = self.embedding_model.pad_batch(input_tokens, direction="left")
+        input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
+        logits, _ = self.forward(input_tensor)
+        logits = logits[:, :-1].reshape(-1, logits.size(-1))
+        target_tensor = input_tensor[:, 1:].reshape(-1)
+        ll = torch.nn.functional.cross_entropy(logits, target_tensor, reduction="none")
+        mask = mask[:, 1:].reshape(-1).to(ll.device)
+        ll = ll * mask
+        ll = ll.view(input_tensor.size(0), -1).sum(dim=1)
+        return -ll

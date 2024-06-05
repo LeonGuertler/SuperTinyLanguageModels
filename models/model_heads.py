@@ -41,3 +41,14 @@ class AutoregressiveLMHead(torch.nn.Module):
         x = self.linear(x)
 
         return x, None
+
+    def inference(self, x):
+        """
+        Pass the input through the model, then
+        Return the final token logits
+        Args:
+            x: torch.tensor(B, S, H)
+        Returns:
+            x: torch.tensor(B, V)
+        """
+        return self.forward(x)[0][:, -1, :]

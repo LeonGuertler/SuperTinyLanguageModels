@@ -13,11 +13,16 @@ from models.build_models import build_model
 def main(cfg):
     """run the main eval loop"""
 
-    # set the checkpoint path to absolute path
-    cfg["model_ckpt"] = hydra.utils.to_absolute_path(cfg["model_ckpt"])
+    # load checkpoint from the path if there
+    if "model_ckpt" in cfg:
+        # set the checkpoint path to absolute path
+        cfg["model_ckpt"] = hydra.utils.to_absolute_path(cfg["model_ckpt"])
 
-    # load checkpoint from the path
-    model = build_model(checkpoint=torch.load(cfg["model_ckpt"]))
+        model = build_model(checkpoint=torch.load(cfg["model_ckpt"]))
+    # otherwise build the model from scratch (for external pretrained models)
+    else:
+        model = build_model(model_cfg=cfg["model"])
+    model.eval()
 
     # load the evaluator
     evaluator = load_evaluator(
@@ -27,7 +32,9 @@ def main(cfg):
     # run the evaluator
     benchmark_names = cfg["testing"]["benchmarks"]
     benchmark_names = [str(benchmark_name) for benchmark_name in benchmark_names]
-    evaluator.evaluate(benchmark_names=benchmark_names)
+    results = evaluator.evaluate(benchmark_names=benchmark_names)
+    with open(cfg["output_path"], "w") as f:
+        f.write(str(results))
 
 
 if __name__ == "__main__":

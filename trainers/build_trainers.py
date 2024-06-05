@@ -3,11 +3,11 @@ Builds the individual components of the trainer,
 and the trainer itself.
 """
 
+from models.experimental.hugging_face import MockTrainer
 from trainers.base_trainer import BaseTrainer
 from trainers.dataloader import (
     BaseDataloader,
     BytePoolingDataloader,
-    StandardDataloader,
     NextTokenMLMDataloader,
     ConversationalDataloader,
 )
@@ -115,6 +115,7 @@ def build_loss_fn(loss_fn_name):
 
 TRAINER_DICT = {
     "base_trainer": BaseTrainer,
+    "mock_trainer": MockTrainer,
 }
 
 
