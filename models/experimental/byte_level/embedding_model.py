@@ -71,22 +71,26 @@ class ByteLevelEmbedder(EmbedderInterface):
             ]
         )
 
-    def tokenize_input(self, input_string: str):
+    def tokenize_input(self, input_string: str, truncate=False, add_eot=True):
         """Tokenize an input string.
 
         In this case we actually want to pre-tokenize using the pooling tokenizer,
         the byte tokenizer is then used in the forward pass. Its a bit complicated...
         """
         pooling_ids = self.pooling_tokenizer.encode(input_string)
+        if add_eot:
+            pooling_ids += [self.pooling_tokenizer.eot_token]
+        if truncate:
+            pooling_ids = self.truncate([pooling_ids])[0]
         tokens = [
             self.byte_tokenizer.encode(self.pooling_tokenizer.decode([pool_id]))
             for pool_id in pooling_ids
         ]
-        # truncate
+        # truncate bytes
         tokens = [
             token_seq[: self.model_cfg["byte_context_window"]] for token_seq in tokens
         ]
-        # pad
+        # pad bytes
         tokens = [
             token_seq
             + [self.byte_tokenizer.pad_token]
