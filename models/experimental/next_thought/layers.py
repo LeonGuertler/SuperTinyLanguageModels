@@ -85,7 +85,7 @@ def scaled_dot_product_attention(query, key, value, mask=None):
     return output, attention_weights
 
 
-class CustomMultiHeadAttention(nn.Module):
+class CustomMultiHeadAttention(torch.nn.Module):
     """
     Custom implementation of multi-head attention from scratch.
     """

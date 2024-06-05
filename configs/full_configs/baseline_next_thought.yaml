@@ -10,6 +10,7 @@ model:
     pooling_dims: [768, 1920, 1920, 1920, 4800]
     pooling_pct_per_layer: [0.3, 0.5, 0.6, 0.6]
     num_heads: 12
+    context_window: 512
 
     standard_ffn_block:
       ffn_type: swiglu
@@ -46,6 +47,7 @@ model:
 
   latent_dim: 4800
   embedding_dim: 768
+  hidden_dim: 768
 
   context_window: 512
   vocab_size: 50257
@@ -55,12 +57,13 @@ model:
 
 trainer:
   dropout_scheduler:
-    dropout_type: linear
+    dropout_type: constant
+    dropout: 0.1
     start_dropout_p: 0.0
     end_dropout_p: 0.1
     start_iter: 0
     end_iter: 10000
-  dataset: simple_en_wiki
+  dataset: openhermes-2.5
   training:
     trainer_type: base_trainer
     batch_size: 24
@@ -68,14 +71,14 @@ trainer:
     max_iters: 25000
     lr_decay_iters: 25000
     warmup_iters: 5000
-    eval_interval: 10
+    eval_interval: 1000
     log_interval: 1
     eval_iters: 200
     checkpoint_interval: 1000000000.0
     run_profiler: false
   optimizer:
     name: nanoGPTadamW
-    lr: 0.0006
+    lr: 0.0018
     min_lr: 6.0e-05
     weight_decay: 0.1
     beta1: 0.9
@@ -86,7 +89,7 @@ trainer:
   lr_scheduler:
     name: cosine
   dataloader:
-    name: standard
+    name: conversational
   loss_fn:
     name: cross_entropy
 general:

@@ -21,7 +21,7 @@ class VariableLengthLatentDecoder(torch.nn.Module):
     for the latent space and query it at each step to generate the
     next token).
     """
-    def __init__(self, model_cfg, token_embedder, positional_encoder):
+    def __init__(self, model_cfg, embedding_model):
         super().__init__()
         self.model_cfg = model_cfg
         self.latent_decoder = torch.nn.Linear(
@@ -30,8 +30,8 @@ class VariableLengthLatentDecoder(torch.nn.Module):
             bias=False
         )
 
-        self.token_embedder = token_embedder
-        self.positional_encoder = positional_encoder
+        self.token_embedder = embedding_model.token_embedder
+        self.positional_encodings = embedding_model.positional_encodings
 
         self.autoregressive_transformer = torch.nn.ModuleList(
             [
@@ -52,7 +52,7 @@ class VariableLengthLatentDecoder(torch.nn.Module):
         )
 
     
-    def forward(self, x, y=None):
+    def forward(self, x, x_raw=None):
         """
         forward
         """
@@ -62,10 +62,10 @@ class VariableLengthLatentDecoder(torch.nn.Module):
         x = x.view(x.size(0), self.model_cfg["lm_head"]["latent_decoded_into"], self.model_cfg["embedding_dim"])
 
         # encode the target tokens with the embedder (w/o gradient)
-        y = self.token_embedder(y)
+        y = self.token_embedder(x_raw)
 
         # add positional encoding
-        y = y + self.positional_encoder(y)
+        y = y + self.positional_encodings(y)
 
         # concat with the latent tokens
         x = torch.cat([x, y], dim=1)
@@ -75,7 +75,6 @@ class VariableLengthLatentDecoder(torch.nn.Module):
             x = layer(x)
 
         # pass through lm head
-        x = self.lm_head(x)
+        x = self.lm_head(x[:, self.model_cfg["lm_head"]["latent_decoded_into"]:])
 
-        return x
-
+        return x, None

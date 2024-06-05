@@ -61,7 +61,7 @@ trainer:
     min_lr: 6.0e-05
     weight_decay: 0.1
     beta1: 0.9
-    beta2: 0.95
+    beta2: 0.99
     grad_clip: 1.0
     decay_lr: true
     warmup_iters: 5000
