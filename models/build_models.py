@@ -7,6 +7,10 @@ from models.core_models import GenericFFNSharedTransfomer, GenericTransformer
 from models.embedding_models import GenericEmbedder
 from models.experimental.byte_level.embedding_model import ByteLevelEmbedder
 from models.experimental.byte_level.model_heads import ByteLevelDecoder
+from models.experimental.hugging_face import HFEmbedder, HFLMHead, HFTransformerCore
+from models.experimental.next_thought.embedding_models import HierarchicalEncoder
+from models.experimental.next_thought.model_heads import VariableLengthLatentDecoder
+from models.experimental.next_thought.core_models import BaselineCoreModel, Conv1dCoreModel
 from models.model_heads import AutoregressiveLMHead
 from models.model_shell import ModelShell
 
@@ -31,17 +35,20 @@ def build_model(model_cfg=None, checkpoint=None):
 
         # load the model weights
         model.load_state_dict(checkpoint["model"])
-        model.eval()
 
     else:
         # initialize model
         model = initialize_model(model_cfg)
-        model.train()
 
     return model
 
 
-EMBEDDING_MODEL_DICT = {"generic": GenericEmbedder, "byte_level": ByteLevelEmbedder}
+EMBEDDING_MODEL_DICT = {
+    "generic": GenericEmbedder, 
+    "byte_level": ByteLevelEmbedder,
+    "hf_embedder": HFEmbedder,
+    "hierarchical": HierarchicalEncoder,
+    }
 
 
 def build_embedding_model(model_cfg):
@@ -60,6 +67,9 @@ def build_embedding_model(model_cfg):
 CORE_MODEL_DICT = {
     "generic": GenericTransformer,
     "generic_ffn_sharing": GenericFFNSharedTransfomer,
+    "hf_core": HFTransformerCore,
+    "next_thought_baseline": BaselineCoreModel,
+    "conv": Conv1dCoreModel
 }
 
 
@@ -76,10 +86,18 @@ def build_core_model(model_cfg):
     )
 
 
-MODEL_HEAD_DICT = {"generic": AutoregressiveLMHead, "byte_level": ByteLevelDecoder}
+MODEL_HEAD_DICT = {
+    "generic": lambda model_cfg, embedding_model: AutoregressiveLMHead(model_cfg=model_cfg), 
+    "byte_level": lambda model_cfg, embedding_model: ByteLevelDecoder(model_cfg=model_cfg), 
+    "hf_head": lambda model_cfg, embedding_model: HFLMHead(model_cfg=model_cfg),
+    "latent_2_seq": lambda model_cfg, embedding_model: VariableLengthLatentDecoder(
+        model_cfg=model_cfg,
+        embedding_model=embedding_model
+    ), 
+    }
 
 
-def build_model_head(model_cfg):
+def build_model_head(model_cfg, embedding_model=None):
     """
     Given the lm head config, build it.
     Args:
@@ -87,7 +105,10 @@ def build_model_head(model_cfg):
     Returns:
         model_head: model_head_instance
     """
-    return MODEL_HEAD_DICT[model_cfg["lm_head"]["lm_head_type"]](model_cfg=model_cfg)
+    return MODEL_HEAD_DICT[model_cfg["lm_head"]["lm_head_type"]](
+        model_cfg=model_cfg, 
+        embedding_model=embedding_model
+    )
 
 
 MODEL_SHELL_DICT = {"standard": ModelShell}
@@ -121,7 +142,10 @@ def initialize_model(model_cfg):
     core_model = build_core_model(model_cfg=model_cfg)
 
     # build the model head
-    model_head = build_model_head(model_cfg=model_cfg)
+    model_head = build_model_head(
+        model_cfg=model_cfg,
+        embedding_model=embedding_model
+    )
 
     # check if embedding model weights are to be shared with the model head
     if model_cfg["embedding_weight_tying"]:

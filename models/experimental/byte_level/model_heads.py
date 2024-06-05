@@ -51,6 +51,41 @@ class ByteLevelDecoder(torch.nn.Module):
                     context_window=self.byte_context_window,
                     use_rope=False,
                 ),
+                ByteLevelTransformerBlock(
+                    input_dim=self.embedding_dim,
+                    output_dim=self.embedding_dim,
+                    ffn_dim=self.embedding_dim * 4,
+                    context_window=self.byte_context_window,
+                    use_rope=False,
+                ),
+                ByteLevelTransformerBlock(
+                    input_dim=self.embedding_dim,
+                    output_dim=self.embedding_dim,
+                    ffn_dim=self.embedding_dim * 4,
+                    context_window=self.byte_context_window,
+                    use_rope=False,
+                ),
+                ByteLevelTransformerBlock(
+                    input_dim=self.embedding_dim,
+                    output_dim=self.embedding_dim,
+                    ffn_dim=self.embedding_dim * 4,
+                    context_window=self.byte_context_window,
+                    use_rope=False,
+                ),
+                ByteLevelTransformerBlock(
+                    input_dim=self.embedding_dim,
+                    output_dim=self.embedding_dim,
+                    ffn_dim=self.embedding_dim * 4,
+                    context_window=self.byte_context_window,
+                    use_rope=False,
+                ),
+                ByteLevelTransformerBlock(
+                    input_dim=self.embedding_dim,
+                    output_dim=self.embedding_dim,
+                    ffn_dim=self.embedding_dim * 4,
+                    context_window=self.byte_context_window,
+                    use_rope=False,
+                ),
             ]
         )
 
@@ -92,4 +127,4 @@ class ByteLevelDecoder(torch.nn.Module):
         """
         inference
         """
-        return self.forward(x)[0]
+        return self.forward(x)[0][:, -1, :, :]
