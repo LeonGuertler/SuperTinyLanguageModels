@@ -82,7 +82,7 @@ def build_dropout_scheduler(trainer_cfg):
 
 
 DATALOADER_DICT: dict[str, BaseDataloader] = {
-    "standard": StandardDataloader,
+    "standard": BaseDataloader,
     "byte_pooling": BytePoolingDataloader,
     "next_token_mlm": NextTokenMLMDataloader,
     "conversational": ConversationalDataloader,
