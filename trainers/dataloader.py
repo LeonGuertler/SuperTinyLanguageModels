@@ -349,3 +349,59 @@ class NextTokenMLMDataloader(BaseDataloader):
         return X, (y, mask)
     
 
+class MLMDataloader(BaseDataloader):
+    """
+    Similarly to the generic dataloader, but mask out some tokens and
+    return the mask used.
+    """
+    def get_batch(self, split="train", masking_pct=0.15):
+        """
+        Get a train/val batch
+        """
+        data = np.memmap(
+            os.path.join(self.tokenized_data_path, f"{split}.bin"),
+            dtype=np.uint16,
+            mode="r",
+        )
+        
+        ## generate the index_ids for X
+        idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
+        X = torch.stack(
+            [
+                torch.from_numpy((data[i : i + self.context_window]).astype(np.int64))
+                for i in idxs
+            ]
+        )
+
+        ## create a mask of True and False, where True will be Indicies to mask
+        mask = torch.rand(X.size()) < masking_pct
+        # mask &= X != <pad_token_id>
+        # mask &= X != <mask_token_id>
+        # mask &= X != <unk_token_id>
+        ## typically, there won't be any BOS or EOS tokens in the input_ids.
+
+        ## create clones of the input_ids
+        mlm_data = X.clone()
+        labels = X.clone()
+
+        ## get the indices of the mask
+        mask_idx = mask.nonzero(as_tuple=True)
+
+        ## randomise the mask tokens
+        mask_idx_shuffle = torch.randperm(mask_idx[0].size(0))
+
+        ## get the indices of the mask tokens
+        tomask_idx = mask_idx_shuffle[:int(mask_idx[0].shape[0] * 0.8)]
+        torandom_idx = mask_idx_shuffle[int(mask_idx[0].shape[0] * 0.9):]
+
+        ## mask the tokens
+        mlm_data[mask_idx[0][tomask_idx], mask_idx[1][tomask_idx]] = 0
+        mlm_data[mask_idx[0][torandom_idx], mask_idx[1][torandom_idx]] = torch.randint(1, self.vocab_size, (torandom_idx.shape[0],))
+
+        ## create the labels
+        labels[~mask] = -1  ## -1 is the ignore_index
+
+        X = mlm_data.pin_memory().to(self.device, non_blocking=True)
+        y = labels.pin_memory().to(self.device, non_blocking=True)
+
+        return X, y
