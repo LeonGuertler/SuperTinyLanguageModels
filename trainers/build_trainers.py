@@ -86,6 +86,8 @@ DATALOADER_DICT: dict[str, BaseDataloader] = {
     "standard": BaseDataloader,
     "byte_pooling": BytePoolingDataloader,
     "next_token_mlm": NextTokenMLMDataloader,
+    "conversational": ConversationalDataloader,
+    "mlm": MLMDataloader
 }
 
 
