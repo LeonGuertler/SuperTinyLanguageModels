@@ -136,7 +136,7 @@ class GenericEmbedder(EmbedderInterface):
         """
         Tokenize an input string.
         """
-        token_ids = self.tokenizer.tokenize(input_string)
+        token_ids = self.tokenizer.encode(input_string)
         if add_eot:
             token_ids.append(self.eot_token)
         if truncate:
