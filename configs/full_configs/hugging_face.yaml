@@ -55,7 +55,7 @@ trainer:
       - "arc"
       - "mmlu"
       - "blimp"
-    num_samples: 500
+    num_samples: 5000
     evaluator: "mcq"
 
 general:

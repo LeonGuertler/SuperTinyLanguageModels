@@ -11,7 +11,7 @@ training:
   lr_decay_iters: 25000
   warmup_iters: 5000
   eval_interval: 2000
-  log_interval: 1
+  log_interval: 10
   eval_iters: 200
   checkpoint_interval: 1e9
   run_profiler: false
@@ -23,7 +23,7 @@ eval:
     - "arc"
     - "mmlu"
     - "blimp"
-  num_samples: 1000
+  num_samples: 5000
   evaluator: "mcq"
 
 optimizer:
