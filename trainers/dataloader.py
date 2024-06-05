@@ -235,9 +235,9 @@ class ConversationalDataloader(BaseDataloader):
     """
     def __init__(self, cfg, embedder):
         super().__init__(cfg, embedder=embedder)
-        self.loading_shapes = {"train": None, "val  ": None}
+        self.loading_shapes = {"train": None, "val": None}
         # check if dataset is conversational
-        assert cfg["dataset"] in ["openhermes-2.5"], "Dataset must be conversational"
+        assert cfg["trainer"]["dataset"] in ["openhermes-2.5"], "Dataset must be conversational"
 
     def get_batch(self, split="train"):
         """
@@ -255,7 +255,7 @@ class ConversationalDataloader(BaseDataloader):
         # actually load the data
         data = np.memmap(
             os.path.join(self.tokenized_data_path, f"{split}.bin"), 
-            shape=self.loading_shapes,
+            shape=self.loading_shapes[split],
             dtype=np.uint16, 
             mode="r+"
         )
@@ -303,6 +303,46 @@ class ConversationalDataloader(BaseDataloader):
                 idx += len(arr_batch)
             arr.flush()
 
+
+    def prepare_data(self):
+        """
+        Tokenize and store the data
+        """
+        # create folder
+        if not os.path.exists(self.tokenized_data_path):
+            os.makedirs(self.tokenized_data_path)
+        else:
+            return  # already processed
+
+        # load the dataset
+        split_dataset = load_data(
+            dataset_name=self.dataset_name,
+        )
+        # can be used for debugging
+        #split_dataset["train"] = split_dataset["train"].select(range(2048))
+        #split_dataset["val"] = split_dataset["val"].select(range(2048))
+
+        def process(example):
+            question_ids = self.embedder.tokenize_input(example["conversations"][0]["value"])
+            response_ids = self.embedder.tokenize_input(example["conversations"][1]["value"])
+            qa_pair = np.stack([question_ids, response_ids])
+            return {"ids" : qa_pair}
+
+        try:
+            # tokenize the dataset
+            tokenized = split_dataset.map(
+                process,
+                remove_columns=["conversations"],
+                desc="tokenizing the splits",
+                num_proc=1,
+            )
+
+            # concatenate all the ids in each dataset into one large file we can use for training
+            self._write_tokenized_data(tokenized)
+        except RuntimeError as exc:
+            # if we fail, destroy the file
+            os.removedirs(self.tokenized_data_path)
+            raise SystemExit from exc
 
 
 

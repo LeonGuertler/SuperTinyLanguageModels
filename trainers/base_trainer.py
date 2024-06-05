@@ -10,8 +10,12 @@ from torch.profiler import ProfilerActivity, profile, record_function
 from models import model_shell
 from trainers import dataloader as train_dataloader
 from trainers import utils
-from trainers.loss_fn import compute_perplexity
+
+from trainers.loss_fn import (
+    compute_perplexity
+)
 from trainers.evaluator import train_eval
+
 
 # pylint: disable invalid-name
 class BaseTrainer:

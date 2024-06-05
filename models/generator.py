@@ -55,14 +55,16 @@ class StandardGenerator(torch.nn.Module):
             # apply softmax to convert logits to (normalized) probabilities
             probs = torch.nn.functional.softmax(logits, dim=-1)
             # sample from the distribution
-            # check if byte-level and if so, flatten
-            if len(probs.size()) == 3:
-                B, S, H = probs.size()
-                probs = probs.view(B * S, H)
+            # check if byte-level and if so, flatten 
+            if len(probs.size()) == 4:
+                B, S, S_c, H = probs.size()
+                probs = probs.view(B* S * S_c, H)
                 flattened = True
             else:
                 flattened = False
 
+
+            
             idx_next = torch.multinomial(probs, num_samples=1)
 
             # check if byte-level and if so, unflatten

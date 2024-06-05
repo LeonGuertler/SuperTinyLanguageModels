@@ -62,6 +62,20 @@ class ByteLevelEmbedder(EmbedderInterface):
                     use_rope=False,
                 ),
                 ByteLevelTransformerBlock(
+                    input_dim=model_cfg["byte_embedding_dim"]*2,
+                    output_dim=model_cfg["byte_embedding_dim"] * 2,
+                    ffn_dim=model_cfg["byte_embedding_dim"] * 8,
+                    context_window=model_cfg["byte_context_window"],
+                    use_rope=False,
+                ),
+                ByteLevelTransformerBlock(
+                    input_dim=model_cfg["byte_embedding_dim"]*2,
+                    output_dim=model_cfg["byte_embedding_dim"] * 2,
+                    ffn_dim=model_cfg["byte_embedding_dim"] * 8,
+                    context_window=model_cfg["byte_context_window"],
+                    use_rope=False,
+                ),
+                ByteLevelTransformerBlock(
                     input_dim=model_cfg["byte_embedding_dim"] * 2,
                     output_dim=model_cfg["hidden_dim"],
                     ffn_dim=model_cfg["byte_embedding_dim"] * 8,
