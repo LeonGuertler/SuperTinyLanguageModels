@@ -15,7 +15,7 @@ def masked_cross_entropy_loss_fn(logits, y, mask=None):
     logits = logits.view(-1, logits.size(-1))
     y = y.view(-1)
     #return torch.nn.functional.cross_entropy(logits, y, weight=mask, ignore_index=-1)
-    return torch.nn.functional.cross_entropy(logits, y, ignore_index=pad_token_ids)
+    return torch.nn.functional.cross_entropy(logits, y, ignore_index=pad_token_id)
 
 def cross_entropy_loss_fn(logits, y, mask=None):
     """Cross Entropy Loss Function"""
