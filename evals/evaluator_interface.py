@@ -7,7 +7,7 @@ class EvaluationInterface:
     def __init__(self, model):
         pass
 
-    def evaluate(self, benchmark_names: list[str]):
+    def evaluate(self, benchmark_names: list[str], **kwargs):
         """Evaluate the model performance on a list
         of benchmarks."""
         raise NotImplementedError()
