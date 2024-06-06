@@ -31,7 +31,7 @@ model:
   byte_vocab_size: 258
   byte_context_window: 12
   byte_embedding_dim: 128
-  model_shell_type: standard
+  model_shell_type: byte_shell
   embedding_weight_tying: false
   positional_encoding_type: rope
 trainer:
