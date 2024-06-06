@@ -65,20 +65,29 @@ trainer:
   lr_scheduler:
     name: cosine
   dataloader:
-    name: standard
+    name: byte_pooling
   loss_fn:
     name: cross_entropy
-
   eval:
-    benchmarks:
-      # - "winograd"
-      # - "hellaswag"
-      # - "arc"
-      # - "mmlu"
-      # - "blimp"
-      - "glue"
-    num_samples: 1000
-    evaluator: "glue"
+    - evaluator: "ft_qa"
+      benchmarks:
+        - "winograd"
+        # - "hellaswag"
+        - "arc"
+        - "mmlu"
+        - "blimp"
+      max_train_samples: 1000
+      max_eval_samples: 1000
+    - evaluator: "glue"
+    - benchmarks:
+        - "winograd"
+        - "hellaswag"
+        - "arc"
+        - "mmlu"
+        - "blimp"
+      num_samples: 1000
+      evaluator: "mcq"
+
 
 general:
   logging:

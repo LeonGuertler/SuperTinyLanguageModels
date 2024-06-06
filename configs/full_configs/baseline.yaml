@@ -46,14 +46,24 @@ trainer:
     checkpoint_interval: 1000000000.0
     run_profiler: false
   eval:
-    benchmarks:
-    - winograd
-    - hellaswag
-    - arc
-    - mmlu
-    - blimp
-    num_samples: 5000
-    evaluator: mcq
+    - evaluator: "ft_qa"
+      benchmarks:
+        - "winograd"
+        - "hellaswag"
+        - "arc"
+        - "mmlu"
+        - "blimp"
+      max_train_samples: 1000
+      max_eval_samples: 1000
+    - evaluator: "glue"
+    - benchmarks:
+        - "winograd"
+        - "hellaswag"
+        - "arc"
+        - "mmlu"
+        - "blimp"
+      num_samples: 1000
+      evaluator: "mcq"
   optimizer:
     name: nanoGPTadamW
     lr: 0.0006

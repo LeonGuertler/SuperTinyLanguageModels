@@ -113,13 +113,11 @@ class BaseTrainer:
                 # use cached eval if available
 
                 if i in self.cached_sets[split]:
-                    print("use cached test set")
                     x = self.cached_sets[split][i]["x"]
                     y = self.cached_sets[split][i]["y"]
                     char_lengths = self.cached_sets[split][i]["char_lengths"]
                     mask = self.cached_sets[split][i]["mask"]
                 else:
-                    print("process test set")
                     x, y = self.dataloader.get_batch(split)
                     (
                         char_lengths,
@@ -142,9 +140,11 @@ class BaseTrainer:
                     )
             loss[split] = losses.mean().item()
             perplexity[split] = perplexities.mean().item()
-        benchmark_results = train_eval(self.cfg.trainer["eval"], self.model)
+        evaluator_results = {}
+        for evaluator in self.cfg.trainer["eval"]:
+            evaluator_results[evaluator["evaluator"]] = train_eval(evaluator, self.model)
         self.model.train()
-        return loss, perplexity, benchmark_results
+        return loss, perplexity, evaluator_results
 
     def _run_step(self):
         """Run a single step of training"""

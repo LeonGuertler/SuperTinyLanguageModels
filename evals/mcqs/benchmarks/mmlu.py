@@ -16,9 +16,10 @@ def load_mmlu(split="test"):
     Returns a geneator of:
     (prompt, ground_truth, fake_options)"""
     base_dataset = load_dataset("cais/mmlu", "all")
+    if split == "train":
+        split = "dev"
     index = list(range(len(base_dataset[split])))
     random.shuffle(index)
-
     for i in index:
         sample = base_dataset[split][i]
         ground_truth = sample["choices"][sample["answer"]]
