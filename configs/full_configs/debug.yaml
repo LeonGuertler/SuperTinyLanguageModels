@@ -65,13 +65,14 @@ trainer:
 
   eval:
     benchmarks:
-      - "winograd"
-      - "hellaswag"
-      - "arc"
-      - "mmlu"
-      - "blimp"
+      # - "winograd"
+      # - "hellaswag"
+      # - "arc"
+      # - "mmlu"
+      # - "blimp"
+      - "glue"
     num_samples: 1000
-    evaluator: "mcq"
+    evaluator: "glue"
 
 general:
   logging:
