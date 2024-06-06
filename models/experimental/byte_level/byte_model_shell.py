@@ -40,8 +40,8 @@ class ByteModelShell(ModelShell):
         # calculate the reconstruction loss 
         logits = self.model_head(x)[0]
         loss = torch.nn.functional.cross_entropy(
-            logits, 
-            token_ids, 
+            logits.view(-1, logits.size(-1)), 
+            token_ids.view(-1), 
             ignore_index=257
         )
 
