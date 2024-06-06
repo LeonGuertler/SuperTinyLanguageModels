@@ -72,7 +72,7 @@ trainer:
     - evaluator: "ft_qa"
       benchmarks:
         - "winograd"
-        # - "hellaswag"
+        - "hellaswag"
         - "arc"
         - "mmlu"
         - "blimp"
@@ -87,6 +87,7 @@ trainer:
         - "blimp"
       num_samples: 1000
       evaluator: "mcq"
+    - evaluator: "prog"
 
 
 general:

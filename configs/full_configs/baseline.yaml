@@ -64,6 +64,7 @@ trainer:
         - "blimp"
       num_samples: 1000
       evaluator: "mcq"
+    - evaluator: "prog"
   optimizer:
     name: nanoGPTadamW
     lr: 0.0006
