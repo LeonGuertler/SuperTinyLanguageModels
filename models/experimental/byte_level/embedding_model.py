@@ -115,24 +115,40 @@ class ByteLevelEmbedder(EmbedderInterface):
 
     def pad_batch(self, token_lists, direction="right"):
         """
-        Pad the batch of token lists.
-        Direction can be either 'left' or 'right'
+        Pad the batch of token lists into a tensor
+        Args:
+            token_lists: list of lists of tokens
+            direction: "right" or "left" - whether to add
+                padding to the right or left of the tokens
+        Returns:
+            padded_token_lists: torch.tensor(B, S, S_c)
+            mask: torch.tensor(B, S)
         """
         max_len = max([len(token_list) for token_list in token_lists])
         padded_token_lists = []
+        mask = []
         for token_list in token_lists:
             if direction == "right":
                 padded_token_list = token_list + [
                     [self.byte_tokenizer.pad_token]
                     * (self.model_cfg["byte_context_window"])
                 ] * (max_len - len(token_list))
+                padded_token_lists.append(padded_token_list)
+                mask.append(
+                    [1] * len(token_list)
+                    + [0] * (max_len - len(token_list))
+                )
             else:
                 padded_token_list = token_list + [
                     [self.byte_tokenizer.pad_token]
                     * (self.model_cfg["byte_context_window"])
                 ] * (max_len - len(token_list))
                 padded_token_lists.append(padded_token_list)
-        return padded_token_lists
+                mask.append(
+                    [0] * (max_len - len(token_list))
+                    + [1] * len(token_list)
+                )
+        return torch.tensor(padded_token_lists), torch.tensor(mask)
 
     def truncate(self, token_lists):
         # get model max length

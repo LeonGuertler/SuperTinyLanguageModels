@@ -100,6 +100,7 @@ class HFEmbedder(EmbedderInterface):
         return token_ids
 
     def pad_batch(self, token_lists, direction="right"):
+        """Pad the token lists into a tensor, and returns a mask"""
         return self.tokenizer.pad_batch(token_lists, direction)
 
     def truncate(self, token_lists):
