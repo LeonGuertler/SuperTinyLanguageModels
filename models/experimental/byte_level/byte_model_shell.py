@@ -49,7 +49,7 @@ class ByteModelShell(ModelShell):
         x = self.core_model(x)
 
         # pass the core model output through the model head
-        x = self.model_head(x)
+        x = self.model_head(x)[0]
 
         return x, loss 
     
