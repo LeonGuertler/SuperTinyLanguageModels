@@ -1,18 +1,25 @@
 """
 The main training code
 """
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "2,3"
 
 import hydra
 
 from models.build_models import build_model
-from trainers.build_trainers import build_trainer
+from trainers.build_trainers import build_trainer, ddp_setup
 from trainers.utils import create_folder_structure
 
+import torch
+from torch.distributed import destroy_process_group
+import torch.multiprocessing as mp
 
-@hydra.main(config_path="configs", config_name="train")
-def main(cfg):
-    """Creates folder structure as necessary, and runs train"""
-    # set data path to absolute path
+def ddp_main(rank, world_size, cfg):
+    """
+    Main function for distributed training
+    """
+    ddp_setup(rank=rank, world_size=world_size)
+
     if "full_configs" in cfg:
         cfg = cfg["full_configs"]
     cfg["general"]["paths"]["data_dir"] = hydra.utils.to_absolute_path(
@@ -29,12 +36,27 @@ def main(cfg):
     trainer = build_trainer(
         cfg=cfg,
         model=model,
+        gpu_id=rank
     )
     # preprocess the training data
     trainer.preprocess_data()
 
     # train the model
     trainer.train()
+
+    # clean up
+    destroy_process_group()
+
+
+@hydra.main(config_path="configs", config_name="train")
+def main(cfg):
+    world_size = torch.cuda.device_count()
+    mp.spawn(
+        ddp_main,
+        args=(world_size, cfg),
+        nprocs=world_size,
+        join=True,
+    )
 
 
 if __name__ == "__main__":

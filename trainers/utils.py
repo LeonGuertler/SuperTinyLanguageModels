@@ -9,6 +9,7 @@ import numpy as np
 import torch
 from datasets import load_dataset, DatasetDict, concatenate_datasets
 
+import torch.distributed as dist
 
 def set_seed(seed):
     """Setup the trainer"""
@@ -201,3 +202,12 @@ def profilize(model, classes=None):
             return outputs
 
         model.forward = forward_wrapper
+
+def aggregate_value(value, device = torch.device("cuda")): 
+    """
+    Since using DDP, calculation of metrics happen across all GPUs. 
+    This function aggregate the loss across all GPUs. 
+    """
+    all_loss = torch.tensor([value], device=device)
+    dist.all_reduce(all_loss, op=dist.ReduceOp.SUM)
+    return all_loss.item() / dist.get_world_size()

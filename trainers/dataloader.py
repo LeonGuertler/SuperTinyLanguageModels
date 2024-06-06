@@ -135,6 +135,17 @@ class BaseDataloader:
             # if we fail, destroy the file
             os.removedirs(self.tokenized_data_path)
             raise SystemExit from exc
+        
+    def get_data(self, split="train"):
+        """
+        Get the data
+        """
+        data = np.memmap(
+            os.path.join(self.tokenized_data_path, f"{split}.bin"),
+            dtype=np.uint16,
+            mode="r",
+        )
+        return data
 
 
 class StandardDataloader(BaseDataloader):

@@ -24,6 +24,22 @@ from trainers.scheduler import (
     LRScheduler,
 )
 
+import torch
+from torch.distributed import init_process_group
+import os
+
+def ddp_setup(rank, world_size):
+    """
+    Args:
+        rank: Unique identifier of each process
+        world_size: Total number of processes
+    """
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "12355"
+    init_process_group(backend="nccl", rank=rank, world_size=world_size)
+    torch.cuda.set_device(rank)
+
+
 OPTIMIZER_DICT = {
     "nanoGPTadamW": lambda model, trainer_cfg: configure_nanoGPT_optimizer(
         model=model,
@@ -119,7 +135,7 @@ TRAINER_DICT = {
 }
 
 
-def build_trainer(cfg, model):
+def build_trainer(cfg, model, gpu_id):
     """
     Given a config, this function builds a trainer
     and all relevant components of it.
@@ -151,6 +167,7 @@ def build_trainer(cfg, model):
         dropout_scheduler=dropout_scheduler,
         dataloader=dataloader,
         loss_fn=loss_fn,
+        gpu_id=gpu_id
     )
 
     return trainer

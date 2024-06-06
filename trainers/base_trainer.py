@@ -16,6 +16,39 @@ from trainers.loss_fn import (
 )
 from trainers.evaluator import train_eval
 
+import numpy as np
+from itertools import islice
+from torch.nn.parallel import DistributedDataParallel as DDP 
+from torch.utils.data.distributed import DistributedSampler
+from trainers.utils import aggregate_value
+
+class CustomDataset:
+    '''
+    Custom Dataset to be used with PyTorch Dataloader. This acts as 
+    a wrapper around the original dataloader class to make it compatible
+    with pytorch's DataLoader.
+    '''
+
+    def __init__(self, data, context_window, device):
+        self.data = data
+        self.context_window = context_window
+        self.device = device
+
+    def __len__(self):
+        return len(self.data) - self.context_window
+    
+    def __getitem__(self, idx):
+        '''
+        Similar to the get_batch method in the original dataloader class.
+        '''
+        X = torch.from_numpy((self.data[idx : idx + self.context_window]).astype(np.int64))
+        y = torch.from_numpy((self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64))
+
+        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
+            self.device, non_blocking=True
+        )
+
+        return X, y
 
 # pylint: disable invalid-name
 class BaseTrainer:
@@ -31,10 +64,13 @@ class BaseTrainer:
         optimizer,
         dataloader: train_dataloader.BaseDataloader,
         loss_fn,
+        gpu_id, ## new
         lr_scheduler=None,
         dropout_scheduler=None,
     ) -> None:
         self.model = model
+        self.model = DDP(self.model, device_ids=[gpu_id]) ## new
+        self.gpu_id = gpu_id ## new
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.dropout_scheduler = dropout_scheduler
@@ -43,18 +79,19 @@ class BaseTrainer:
         self.cfg = cfg
         self.gradient_accumulation_steps = cfg["trainer"]["training"][
             "gradient_accumulation_steps"
-        ]
+        ] // torch.cuda.device_count() ## divide by number of GPUs to maximise throughput
         self.scaler = None
         self.use_wandb = cfg["general"]["logging"]["wandb_log"]
         self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
         self.cached_sets = {"train": {}, "val": {}}
+        self.batch_size = cfg["trainer"]["training"]["batch_size"] ## new
 
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
         self.ctx = self._setup_ctx()
-        if self.use_wandb:
+        if self.use_wandb and self.gpu_id == 0: ## ensures that only the first GPU logs to wandb
             self._setup_logging()
-        if cfg.trainer.training.run_profiler:
+        if cfg.trainer.training.run_profiler and self.gpu_id == 0: ## ensures that only the first GPU runs the profiler
             self.run_profile()
             raise SystemExit
 
@@ -98,6 +135,18 @@ class BaseTrainer:
         print("Preprocessing the training data")
         self.dataloader.prepare_data()
 
+    def _prepare_dataloader(self, dataset: CustomDataset):
+        """
+        Take the custom data loader (from CustomDataset) and feed into PyTorch's DataLoader.
+        """
+        return torch.utils.data.DataLoader(
+            dataset,
+            batch_size = self.batch_size,
+            shuffle = False, ## previously True for SingleGPU
+            num_workers = 0,
+            sampler = DistributedSampler(dataset) ## needed for DDP
+        )
+
     @torch.no_grad()
     def estimate_performance(self, eval_iters=None):
         """Estimate the loss"""
@@ -109,22 +158,28 @@ class BaseTrainer:
         for split in ["train", "val"]:
             losses = torch.zeros(eval_iters)
             perplexities = torch.zeros(eval_iters)
-            for i in range(eval_iters):
+            
+            ## init Pytorch's DataLoader
+            dataloader = self._prepare_dataloader(CustomDataset(self.dataloader.get_data(split), self.cfg.model["context_window"], self.cfg.general.device))
+
+            for i, (x, y) in enumerate(islice(dataloader, eval_iters)):
+            # for i in range(eval_iters):
                 # use cached eval if available
 
                 if i in self.cached_sets[split]:
-                    print("use cached test set")
+                    if self.gpu_id == 0: ## ensure only the first GPU prints
+                        print("use cached test set")
                     x = self.cached_sets[split][i]["x"]
                     y = self.cached_sets[split][i]["y"]
                     char_lengths = self.cached_sets[split][i]["char_lengths"]
                     mask = self.cached_sets[split][i]["mask"]
                 else:
-                    print("process test set")
-                    x, y = self.dataloader.get_batch(split)
+                    if self.gpu_id == 0: ## ensure only the first GPU prints
+                        print("process test set")
                     (
                         char_lengths,
                         mask,
-                    ) = self.model.embedding_model.get_sequence_info(x)
+                    ) = self.model.module.embedding_model.get_sequence_info(x) ## added the 'module' attribute (https://discuss.pytorch.org/t/access-to-attributes-of-model-wrapped-in-ddp/130572/2)
                     self.cached_sets[split][i] = {
                         "x": x,
                         "y": y,
@@ -140,16 +195,28 @@ class BaseTrainer:
                         char_lengths=char_lengths,
                         mask=mask,
                     )
-            loss[split] = losses.mean().item()
-            perplexity[split] = perplexities.mean().item()
+            # print(f'{self.gpu_id} {split}', losses.mean().item(),perplexities.mean().item()) ## will delete if it is okay
+            ## aggregate the loss and perplexity across all GPUs
+            avg_loss = aggregate_value(losses.mean().item(), self.cfg.general.device)
+            loss[split] = avg_loss
+            avg_perplexity = aggregate_value(perplexities.mean().item(), self.cfg.general.device)
+            perplexity[split] = avg_perplexity
+
         benchmark_results = train_eval(self.cfg.trainer["eval"], self.model)
         self.model.train()
         return loss, perplexity, benchmark_results
 
-    def _run_step(self):
+    def _run_step(self, epoch = 0):
         """Run a single step of training"""
-        for _ in range(self.gradient_accumulation_steps):
-            x, y = self.dataloader.get_batch("train")
+        ## init Pytorch's DataLoader
+        dataloader = self._prepare_dataloader(CustomDataset(self.dataloader.get_data("train"), self.cfg.model["context_window"], self.cfg.general.device))
+
+        ## set the epoch for the DistributedSampler (https://discuss.pytorch.org/t/why-is-sampler-set-epoch-epoch-needed-for-distributedsampler/149672/2)
+        dataloader.sampler.set_epoch(epoch)
+
+        for iter, (x, y) in enumerate(islice(dataloader, self.gradient_accumulation_steps)): ## islice is used to limit the number of iterations
+        # for _ in range(self.gradient_accumulation_steps):
+            # x, y = self.dataloader.get_batch("train")
             with self.ctx:
                 output, aux_loss = self.model(x)
                 loss = self.loss_fn(output, y)
@@ -157,6 +224,7 @@ class BaseTrainer:
                     loss += aux_loss
                 loss = loss / self.gradient_accumulation_steps
             self.scaler.scale(loss).backward()
+        
         grad_clip = self.cfg.trainer.optimizer.grad_clip
         if grad_clip != 0.0:
             self.scaler.unscale_(self.optimizer)
@@ -184,10 +252,10 @@ class BaseTrainer:
         ) as prof:
             for i in range(10):
                 if i <= 3:
-                    self._run_step()
+                    self._run_step(i) ## set the 'epoch' to ensure shuffle
                 else:
                     with record_function("_run_step"):
-                        self._run_step()
+                        self._run_step(i) ## set the 'epoch' to ensure shuffle
             # place profile in dictionary
         backwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
         print(backwards_prof)
@@ -212,7 +280,7 @@ class BaseTrainer:
         store the current model checkpoint.
         """
         checkpoint = {
-            "model": self.model.state_dict(),
+            "model": self.model.module.state_dict(), ## added the 'module' attribute (https://discuss.pytorch.org/t/access-to-attributes-of-model-wrapped-in-ddp/130572/2)
             "optimizer": self.optimizer.state_dict(),
             "iter_num": iter_num,
             "config": self.cfg,
@@ -236,58 +304,70 @@ class BaseTrainer:
             ) and iter_num > 0:
                 s0 = time.time()
                 losses, perplexities, benchmark_results = self.estimate_performance()
-                print(
-                    f"step {iter_num}: train loss {losses['train']:.4f},"
-                    f" val loss {losses['val']:.4f}, dt {time.time()-s0:.1f}s"
-                )
-                print(
-                    f"step {iter_num}: train perplexity {perplexities['train']:.4f},"
-                    f" val perplexity {perplexities['val']:.4f}"
-                )
-                print(
-                    f"step {iter_num}: benchmark results {benchmark_results}"
-                )
-                if self.use_wandb:
-                    wandb.log(
-                        {
-                            "iter": iter_num,
-                            "train/loss": losses["train"],
-                            "val/loss": losses["val"],
-                            "lr": lr,
-                            "dropout": dropout,
-                            "train/perplexity": perplexities["train"],
-                            "val/perplexity": perplexities["val"],
-                            **{
-                                f"benchmark/{k}": v
-                                for k, v in benchmark_results.items()
-                            },
-                        }
+
+                if self.gpu_id == 0: ## ensure only the first GPU prints
+
+                    print(
+                        f"step {iter_num}: train loss {losses['train']:.4f},"
+                        f" val loss {losses['val']:.4f}, dt {time.time()-s0:.1f}s"
                     )
+                    print(
+                        f"step {iter_num}: train perplexity {perplexities['train']:.4f},"
+                        f" val perplexity {perplexities['val']:.4f}"
+                    )
+                    print(
+                        f"step {iter_num}: benchmark results {benchmark_results}"
+                    )
+                    if self.use_wandb:
+                        wandb.log(
+                            {
+                                "iter": iter_num,
+                                "train/loss": losses["train"],
+                                "val/loss": losses["val"],
+                                "lr": lr,
+                                "dropout": dropout,
+                                "train/perplexity": perplexities["train"],
+                                "val/perplexity": perplexities["val"],
+                                **{
+                                    f"benchmark/{k}": v
+                                    for k, v in benchmark_results.items()
+                                },
+                            }
+                        )
             # save checkpoints
             if (
                 not iter_num % self.cfg.trainer.training.checkpoint_interval
                 and iter_num > 0
+                and self.gpu_id == 0 ## ensure only the first GPU prints
             ):
                 self._save_model(iter_num)
 
-            loss = self._run_step()
+            loss = self._run_step(iter_num) ## set the 'epoch' to ensure shuffle
             end_time = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
                 lossf = loss.item() * self.gradient_accumulation_steps
-                print(
-                    f"step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s"
-                )
-                if self.use_wandb:
-                    wandb.log(
-                        {
-                            "iter": iter_num,
-                            "loss": lossf,
-                            "lr": lr,
-                            "dropout": dropout,
-                        }
-                    )
+
+                ## uncomment the following line to print the loss on all GPUs
+                # print(f"{self.gpu_id}: before step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
+
+                ## aggregate the loss across all GPUs
+                lossf = aggregate_value(lossf, self.cfg.general.device)
+
+                ## print and log the result only on the first GPU after aggregation
+                if self.gpu_id == 0:
+                    print(f"both: after step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
+                    if self.use_wandb:
+                        wandb.log(
+                            {
+                                "iter": iter_num,
+                                "loss": lossf,
+                                "lr": lr,
+                                "dropout": dropout,
+                            }
+                        )
         # save the final model
-        self._save_model(iter_num)
+        if self.gpu_id == 0: ## ensure only the first GPU saves the model
+            self._save_model(iter_num)
 
     def train(self, seed=42):
         """Train the model"""
