@@ -122,16 +122,17 @@ class ByteLevelEmbedder(EmbedderInterface):
                 padding to the right or left of the tokens
         Returns:
             padded_token_lists: torch.tensor(B, S, S_c)
-            mask: torch.tensor(B, S)
+            mask: torch.tensor(B, S, S_c)
         """
         max_len = max([len(token_list) for token_list in token_lists])
         padded_token_lists = []
         mask = []
+        byte_context_window = self.model_cfg["byte_context_window"]
         for token_list in token_lists:
             if direction == "right":
                 padded_token_list = token_list + [
                     [self.byte_tokenizer.pad_token]
-                    * (self.model_cfg["byte_context_window"])
+                    * byte_context_window
                 ] * (max_len - len(token_list))
                 padded_token_lists.append(padded_token_list)
                 mask.append(
@@ -141,13 +142,15 @@ class ByteLevelEmbedder(EmbedderInterface):
             else:
                 padded_token_list = token_list + [
                     [self.byte_tokenizer.pad_token]
-                    * (self.model_cfg["byte_context_window"])
+                    * byte_context_window
                 ] * (max_len - len(token_list))
                 padded_token_lists.append(padded_token_list)
                 mask.append(
                     [0] * (max_len - len(token_list))
                     + [1] * len(token_list)
                 )
+            # expand the mask to include the byte context window
+            mask[-1] = [[it] * byte_context_window for it in mask[-1]]
         return torch.tensor(padded_token_lists), torch.tensor(mask)
 
     def truncate(self, token_lists):
