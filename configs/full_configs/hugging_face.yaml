@@ -49,14 +49,7 @@ trainer:
   loss_fn:
     name: cross_entropy
   eval:
-    benchmarks:
-      - "winograd"
-      - "hellaswag"
-      - "arc"
-      - "mmlu"
-      - "blimp"
-    num_samples: 500
-    evaluator: "mcq"
+    - evaluator: "glue"
 
 general:
   logging:

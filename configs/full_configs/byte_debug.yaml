@@ -13,41 +13,45 @@ model:
       normalization: rms_norm
       group_size: 4
       bias: false
-      is_causal: false
+      is_causal: true
   embedder:
-    tokenizer_type: gpt2
-    embedding_model_type: generic
+    tokenizer_type: "gpt2"
+    byte_tokenizer_type: "bpe"
+    embedding_model_type: byte_level
+    byte_context_window: 12
     dataset_name: simple_en_wiki
   lm_head:
     normalization: rms_norm
     bias: false
-    lm_head_type: generic
-  hidden_dim: 512
+    lm_head_type: byte_level
+
+  hidden_dim: 768
   context_window: 512
   vocab_size: 50257
+  byte_vocab_size: 258
+  byte_context_window: 12
+  byte_embedding_dim: 128
   model_shell_type: standard
-  embedding_weight_tying: true
+  embedding_weight_tying: false
   positional_encoding_type: rope
 trainer:
   dropout_scheduler:
-    dropout_type: linear
-    start_dropout_p: 0.0
-    end_dropout_p: 0.1
-    start_iter: 0
-    end_iter: 10000
+    dropout_type: constant
+    dropout: 0.1
   dataset: simple_en_wiki
   training:
     trainer_type: base_trainer
-    batch_size: 24
-    gradient_accumulation_steps: 20
-    max_iters: 25000
-    lr_decay_iters: 25000
+    batch_size: 4
+    gradient_accumulation_steps: 5
+    max_iters: 20
+    lr_decay_iters: 20
     warmup_iters: 5000
     eval_interval: 10
-    log_interval: 1
-    eval_iters: 200
+    log_interval: 5
+    eval_iters: 100
     checkpoint_interval: 1000000000.0
     run_profiler: false
+
   optimizer:
     name: nanoGPTadamW
     lr: 0.0006
@@ -57,26 +61,37 @@ trainer:
     beta2: 0.95
     grad_clip: 1.0
     decay_lr: true
-    warmup_iters: 5000
+    warmup_iters: 10
   lr_scheduler:
     name: cosine
   dataloader:
-    name: next_token_mlm
+    name: byte_pooling
   loss_fn:
-    name: next_token_mlm
+    name: cross_entropy
   eval:
-    benchmarks:
-      - "winograd"
-      - "hellaswag"
-      - "arc"
-      - "mmlu"
-      - "blimp"
-    num_samples: 5000
-    evaluator: "mcq"
+    - evaluator: "ft_qa"
+      benchmarks:
+        - "winograd"
+        # - "hellaswag"
+        - "arc"
+        - "mmlu"
+        - "blimp"
+      max_train_samples: 1000
+      max_eval_samples: 1000
+    - evaluator: "glue"
+    - benchmarks:
+        - "winograd"
+        - "hellaswag"
+        - "arc"
+        - "mmlu"
+        - "blimp"
+      num_samples: 1000
+      evaluator: "mcq"
+
 
 general:
   logging:
-    wandb_log: false
+    wandb_log: true
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs

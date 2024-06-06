@@ -81,13 +81,26 @@ class HFEmbedder(EmbedderInterface):
         """
         return self.embeddings(token_ids)
 
-    def tokenize_input(self, input_string):
+    def tokenize_input(self, input_string, truncate=False, add_eot=True):
+        """This function should take a single input string and returns
+
+        the tokenized input.
+        Args:
+            input_string: str
+            truncate: bool - whether to perform (left) truncation
+            add_eot: bool
+        Returns:
+            typically token_ids of shape (S,)
         """
-        Tokenize the input string
-        """
-        return self.tokenizer.encode(input_string)
+        token_ids = self.tokenizer.encode(input_string)
+        if add_eot:
+            token_ids.append(self.tokenizer.eot_token)
+        if truncate:
+            token_ids = self.truncate([token_ids])[0]
+        return token_ids
 
     def pad_batch(self, token_lists, direction="right"):
+        """Pad the token lists into a tensor, and returns a mask"""
         return self.tokenizer.pad_batch(token_lists, direction)
 
     def truncate(self, token_lists):

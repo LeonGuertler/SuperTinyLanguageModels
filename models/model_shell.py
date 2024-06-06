@@ -71,7 +71,8 @@ class ModelShell(torch.nn.Module):
         # check if input is string
         if isinstance(model_input, str):
             # use inference function of the embedding model
-            model_input = self.embedding_model.tokenize_input(model_input)[:-1]
+            model_input = self.embedding_model.tokenize_input(model_input, truncate=True, add_eot=False)
+        x = torch.tensor(model_input, device=self.device, dtype=torch.long).unsqueeze(0)
         x = self.embedding_model(model_input)
 
         # pass the embeddings through the core model
@@ -94,9 +95,8 @@ class ModelShell(torch.nn.Module):
             ll: torch.tensor(B)
         """
         total_strings = [f"{prefix} {cont}" for prefix, cont in zip(prefixes, continuations)]
-        input_tokens = [self.embedding_model.tokenize_input(string) for string in total_strings]
-        input_tokens = self.embedding_model.truncate(input_tokens)
-        padded_batch, mask = self.embedding_model.pad_batch(input_tokens, direction="left")
+        input_tokens = [self.embedding_model.tokenize_input(string, truncate=True) for string in total_strings]
+        padded_batch, mask = self.embedding_model.pad_batch(input_tokens, direction="right")
         input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
         logits, _ = self.forward(input_tensor)
         logits = logits[:, :-1].reshape(-1, logits.size(-1))

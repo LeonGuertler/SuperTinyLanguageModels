@@ -23,10 +23,17 @@ class EmbedderInterface(torch.nn.Module):
         and return the embeddings."""
         raise NotImplementedError
 
-    def tokenize_input(self, input_string: str):
-        """This function should take an input string and return
+    def tokenize_input(self, input_string: str, truncate=False, add_eot=True):
+        """This function should take a single input string and returns
 
-        the tokenized input."""
+        the tokenized input.
+        Args:
+            input_string: str
+            truncate: bool - whether to perform (left) truncation
+            add_eot: bool
+        Returns:
+            typically token_ids of shape (S,)
+        """
         raise NotImplementedError
 
     def decode(self, tokens: torch.LongTensor):
@@ -37,9 +44,12 @@ class EmbedderInterface(torch.nn.Module):
         decode each sequence in the batch."""
         raise NotImplementedError
 
-    def inference(self, input_string: str):
+    def inference(self, input_string: str, add_eot=False):
         """This function should map string to embeddings."""
-        token_ids = self.tokenize_input(input_string)
+        token_ids = self.tokenize_input(input_string, truncate=True, add_eot=add_eot)
+        token_ids = torch.tensor(token_ids).unsqueeze(0).to(
+            next(self.parameters()).device
+        )
         return self.forward(token_ids)
 
     def pad_batch(self, token_lists, direction="right"):
@@ -125,11 +135,16 @@ class GenericEmbedder(EmbedderInterface):
 
         return x
 
-    def tokenize_input(self, input_string):
+    def tokenize_input(self, input_string, truncate=False, add_eot=True):
         """
         Tokenize an input string.
         """
-        return self.tokenizer.encode(input_string)
+        token_ids = self.tokenizer.encode(input_string)
+        if add_eot:
+            token_ids.append(self.eot_token)
+        if truncate:
+            token_ids = self.truncate([token_ids])[0]
+        return token_ids
 
     def pad_batch(self, token_lists, direction="right"):
         """Pad a list of token lists to the same length,
@@ -150,15 +165,3 @@ class GenericEmbedder(EmbedderInterface):
         Decode a tensor of tokens into a string.
         """
         return self.tokenizer.decode_batch(tokens)
-
-    def inference(self, input_string):
-        """
-        During inference, tokenize the input string
-        and return the embddings
-        Args:
-            input_string: str
-        Returns:
-            embeddings: torch.tensor(B, S, H)
-        """
-        token_ids = self.tokenize_input(input_string)
-        return self.forward(token_ids)

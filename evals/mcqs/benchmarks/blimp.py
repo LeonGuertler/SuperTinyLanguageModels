@@ -29,16 +29,21 @@ from datasets import load_dataset
 #            'wh_questions_subject_gap', 'wh_questions_subject_gap_long_distance', 'wh_vs_that_no_gap',
 #            'wh_vs_that_no_gap_long_distance', 'wh_vs_that_with_gap', 'wh_vs_that_with_gap_long_distance']
 
-INDEX_MAP = {"test": (0, 900), "validation": (900, 1000)}
-
+# TOTAL SIZE OF 67K, need to split into train, test, val
 
 def load_blimp(split="test"):
     """Load and process the benchmark"""
     base_dataset = load_dataset("WillHeld/blimp")["train"]
     index = list(range(len(base_dataset)))
     random.shuffle(index)
+    ds_size = len(index)
+    INDEX_MAP = {
+        "train": (0, int(0.1 * ds_size)),
+        "test": (int(0.1 * ds_size), int(0.6 * ds_size)),
+        "validation": (int(0.6 * ds_size), ds_size),
+    }
     for i in index:
         sample = base_dataset[i]
-        if i < INDEX_MAP[split][0] or i >= INDEX_MAP[split][1]:
+        if i not in range(*INDEX_MAP[split]):
             continue
         yield ("", sample["sentence_good"], [sample["sentence_bad"]])
