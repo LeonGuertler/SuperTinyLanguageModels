@@ -10,6 +10,7 @@ from trainers.dataloader import (
     BytePoolingDataloader,
     NextTokenMLMDataloader,
     ConversationalDataloader,
+    MLMDataloader
 )
 from trainers.loss_fn import (
     cross_entropy_loss_fn,
@@ -86,6 +87,7 @@ DATALOADER_DICT: dict[str, BaseDataloader] = {
     "byte_pooling": BytePoolingDataloader,
     "next_token_mlm": NextTokenMLMDataloader,
     "conversational": ConversationalDataloader,
+    "mlm": MLMDataloader
 }
 
 
