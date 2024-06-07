@@ -202,7 +202,7 @@ class BaseTrainer:
             avg_perplexity = aggregate_value(perplexities.mean().item(), self.cfg.general.device)
             perplexity[split] = avg_perplexity
 
-        benchmark_results = train_eval(self.cfg.trainer["eval"], self.model)
+        evaluator_results = train_eval(self.cfg.trainer["eval"], self.model)
         self.model.train()
         return loss, perplexity, evaluator_results
 

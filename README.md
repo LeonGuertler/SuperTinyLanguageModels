@@ -27,5 +27,9 @@ We include a .pylintrc file in the repository. For VSCode users, you can install
 }
 ```
 
+## Known Issues
+The initial tokenization step setting up the dataset takes a long time. Do a run with a single gpu first to make sure these are initialized properly (or even use a debug run) when you are using a new dataset or tokenizer.
+If it fails then it will always fail in the future due to some dodgy code. To fix this delete the contents of the data/{dataset_name} folder
+
 ## License
 We should probably add a license...
