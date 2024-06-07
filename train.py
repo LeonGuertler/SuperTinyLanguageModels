@@ -18,11 +18,6 @@ def ddp_main(rank, world_size, cfg):
     """
     ddp_setup(rank=rank, world_size=world_size)
 
-    if "full_configs" in cfg:
-        cfg = cfg["full_configs"]
-    cfg["general"]["paths"]["data_dir"] = hydra.utils.to_absolute_path(
-        cfg["general"]["paths"]["data_dir"]
-    )
     # create necessary folder structure
     create_folder_structure(path_config=cfg["general"]["paths"])
 
@@ -49,6 +44,11 @@ def ddp_main(rank, world_size, cfg):
 @hydra.main(config_path="configs", config_name="train")
 def main(cfg):
     world_size = torch.cuda.device_count()
+    if "full_configs" in cfg:
+        cfg = cfg["full_configs"]
+    cfg["general"]["paths"]["data_dir"] = hydra.utils.to_absolute_path(
+        cfg["general"]["paths"]["data_dir"]
+    ) # must be done before multiprocessing or else the path is wrong?
     mp.spawn(
         ddp_main,
         args=(world_size, cfg),
