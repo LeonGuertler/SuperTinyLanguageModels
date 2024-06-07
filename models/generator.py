@@ -33,7 +33,9 @@ class StandardGenerator(torch.nn.Module):
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
         Most likely you'll want to make sure to be in model.eval() mode of operation for this.
         """
-        idx = self.model.embedding_model.tokenize_input(input_string=input_text)
+        idx = self.model.embedding_model.tokenize_input(input_string=input_text,
+                                                        add_eot=False,
+                                                        truncate=True)
         # push to device
         idx = torch.tensor(idx).unsqueeze(0).to(torch.device("cuda"))
         for _ in range(max_new_tokens):

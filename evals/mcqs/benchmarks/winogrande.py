@@ -2,7 +2,7 @@
 
 from datasets import load_dataset
 
-SPLIT_REMAP = {"test": "validation", "validation": "train"}
+SPLIT_REMAP = {"test": "validation", "validation": "train", "train": "train"}
 INDEX_MAP = {"1": 0, "2": 1, "3": 2, "4": 3, "A": 0, "B": 1, "C": 2, "D": 3, "E": 4}
 import random
 
@@ -13,6 +13,10 @@ def load_winogrande(split="test"):
         "allenai/winogrande", "winogrande_xs", trust_remote_code=True
     )[SPLIT_REMAP[split]]
     index = list(range(len(base_dataset)))
+    if split == "train":
+        index = index[: len(index) // 2]
+    elif split == "validation":
+        index = index[len(index) // 2 :]
     random.shuffle(index)
     for i in index:
         sample = base_dataset[i]

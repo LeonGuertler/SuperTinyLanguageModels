@@ -204,7 +204,7 @@ class BaseTrainer:
 
         benchmark_results = train_eval(self.cfg.trainer["eval"], self.model)
         self.model.train()
-        return loss, perplexity, benchmark_results
+        return loss, perplexity, evaluator_results
 
     def _run_step(self, epoch = 0):
         """Run a single step of training"""

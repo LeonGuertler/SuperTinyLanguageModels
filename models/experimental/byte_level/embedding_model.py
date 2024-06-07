@@ -85,22 +85,26 @@ class ByteLevelEmbedder(EmbedderInterface):
             ]
         )
 
-    def tokenize_input(self, input_string: str):
+    def tokenize_input(self, input_string: str, truncate=False, add_eot=True):
         """Tokenize an input string.
 
         In this case we actually want to pre-tokenize using the pooling tokenizer,
         the byte tokenizer is then used in the forward pass. Its a bit complicated...
         """
         pooling_ids = self.pooling_tokenizer.encode(input_string)
+        if add_eot:
+            pooling_ids += [self.pooling_tokenizer.eot_token]
+        if truncate:
+            pooling_ids = self.truncate([pooling_ids])[0]
         tokens = [
             self.byte_tokenizer.encode(self.pooling_tokenizer.decode([pool_id]))
             for pool_id in pooling_ids
         ]
-        # truncate
+        # truncate bytes
         tokens = [
             token_seq[: self.model_cfg["byte_context_window"]] for token_seq in tokens
         ]
-        # pad
+        # pad bytes
         tokens = [
             token_seq
             + [self.byte_tokenizer.pad_token]
@@ -111,24 +115,43 @@ class ByteLevelEmbedder(EmbedderInterface):
 
     def pad_batch(self, token_lists, direction="right"):
         """
-        Pad the batch of token lists.
-        Direction can be either 'left' or 'right'
+        Pad the batch of token lists into a tensor
+        Args:
+            token_lists: list of lists of tokens
+            direction: "right" or "left" - whether to add
+                padding to the right or left of the tokens
+        Returns:
+            padded_token_lists: torch.tensor(B, S, S_c)
+            mask: torch.tensor(B, S, S_c)
         """
         max_len = max([len(token_list) for token_list in token_lists])
         padded_token_lists = []
+        mask = []
+        byte_context_window = self.model_cfg["byte_context_window"]
         for token_list in token_lists:
             if direction == "right":
                 padded_token_list = token_list + [
                     [self.byte_tokenizer.pad_token]
-                    * (self.model_cfg["byte_context_window"])
+                    * byte_context_window
                 ] * (max_len - len(token_list))
+                padded_token_lists.append(padded_token_list)
+                mask.append(
+                    [1] * len(token_list)
+                    + [0] * (max_len - len(token_list))
+                )
             else:
                 padded_token_list = token_list + [
                     [self.byte_tokenizer.pad_token]
-                    * (self.model_cfg["byte_context_window"])
+                    * byte_context_window
                 ] * (max_len - len(token_list))
                 padded_token_lists.append(padded_token_list)
-        return padded_token_lists
+                mask.append(
+                    [0] * (max_len - len(token_list))
+                    + [1] * len(token_list)
+                )
+            # expand the mask to include the byte context window
+            mask[-1] = [[it] * byte_context_window for it in mask[-1]]
+        return torch.tensor(padded_token_lists), torch.tensor(mask)
 
     def truncate(self, token_lists):
         # get model max length

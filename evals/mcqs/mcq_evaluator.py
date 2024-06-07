@@ -17,10 +17,11 @@ class MCQEvaluator(EvaluationInterface):
     and prints/logs the results.
     """
 
-    def __init__(self, model):
+    def __init__(self, model, num_samples=None, benchmarks=None):
         self.model = model
         self.wrapper = eval_wrapper.EvalWrapper(model)
-
+        self.num_samples = num_samples
+        self.benchmarks = benchmarks
         # make sure the model is in eval model
         self.model.eval()
 
@@ -70,15 +71,15 @@ class MCQEvaluator(EvaluationInterface):
 
         return score_dict
 
-    def evaluate(self, benchmark_names, num_samples=None):
+    def evaluate(self):
         """Given a list of benchmark names, load and evaluate them
 
         Only do so on  {num_samples} for each benchmark"""
         results = {}
-        for benchmark_name in benchmark_names:
+        for benchmark_name in self.benchmarks:
             print(f"evalling benchmark {benchmark_name}")
             score_dict = self.evaluate_benchmark(
-                benchmark_name=benchmark_name, num_samples=num_samples
+                benchmark_name=benchmark_name, num_samples=self.num_samples
             )
             results[benchmark_name] = score_dict
 

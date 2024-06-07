@@ -5,6 +5,8 @@ outputs
 checkpoints
 data/
 *.DS_store
+wandb
+*.out
 
 ### DEFAULTS FROM GITHUB ###
 __pycache__/
