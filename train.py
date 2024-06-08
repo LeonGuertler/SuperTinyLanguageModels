@@ -16,24 +16,25 @@ def ddp_main(rank, world_size, cfg):
     """
     Main function for distributed training
     """
+    print("Rank: ", rank, "World Size: ", world_size)
     ddp_setup(rank=rank, world_size=world_size)
 
     # create necessary folder structure
-    create_folder_structure(path_config=cfg["general"]["paths"])
 
     model = build_model(model_cfg=cfg["model"])
     model.to(cfg["general"]["device"])
     model.train()
-    
+    print(f"Rank{rank} Model built")
     # load the relevant trainer
     trainer = build_trainer(
         cfg=cfg,
         model=model,
         gpu_id=rank
     )
+    print(f"Rank{rank} Trainer built")
     # preprocess the training data
     trainer.preprocess_data()
-
+    print(f"Rank{rank} Data preprocessed")
     # train the model
     trainer.train()
 
@@ -49,6 +50,7 @@ def main(cfg):
     cfg["general"]["paths"]["data_dir"] = hydra.utils.to_absolute_path(
         cfg["general"]["paths"]["data_dir"]
     ) # must be done before multiprocessing or else the path is wrong?
+    create_folder_structure(path_config=cfg["general"]["paths"])
     mp.spawn(
         ddp_main,
         args=(world_size, cfg),
