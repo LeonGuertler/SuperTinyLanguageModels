@@ -51,54 +51,9 @@ def create_stlm_data_mix():
     # Transform to have a "text" column with both question and answers
     openhermes = openhermes.map(lambda x: {"text": f"Question: {x['conversations'][0]['value']}\nAnswers: {x['conversations'][1]['value']}"})
 
-
-    # Calculate and print the distribution of string lengths
-    def calculate_length_distribution(dataset):
-        lengths = [len(item["text"]) for item in dataset]
-        return sum(lengths), lengths
-
-    wiki_length, wiki_lengths = calculate_length_distribution(wiki)
-    python3_code_length, python3_code_lengths = calculate_length_distribution(code_dataset)
-    openhermes_length, openhermes_lengths = calculate_length_distribution(openhermes)
-
-    total_length = wiki_length + python3_code_length + openhermes_length
-
-    print(f"Wiki Text Length: {wiki_length} ({wiki_length/total_length*100:.2f}%)")
-    print(f"Python Code Text Length: {python3_code_length} ({python3_code_length/total_length*100:.2f}%)")
-    print(f"openhermes Text Length: {openhermes_length} ({openhermes_length/total_length*100:.2f}%)")
-
-    # Concatenate datasets
-    combined_dataset = concatenate_datasets([wiki, code_dataset, openhermes])
-
-    combined_dataset = DatasetDict({
-        "train": combined_dataset,
-    })
-
-    return combined_dataset
-
-def create_stlm_data_mix():
-    """
-    A small custom datamix for STLM models containing:
-    - simple English Wikipedia
-    - Python Code (Deepmind Code Contest) - sampled for easy questions
-    - technical QA style (StackExchange)
-    """
-    # Load simple English Wikipedia
-    wiki = load_dataset("wikimedia/wikipedia", "20231101.simple")["train"]
-
-    # Add a "text" column for simple English Wikipedia
-    wiki = wiki.map(lambda x: {"text": x["text"]})
-
-    # Load Python code from DeepMind Code Contests
-    code_dataset = load_dataset("jtatman/python-code-dataset-500k")["train"]
-    code_dataset = code_dataset.map(lambda x: {"text": f"Instruction: {x['instruction']}\nOutput: {x['output']}"})
-
-
-    # Load technical QA style data from StackExchange
-    openhermes = load_dataset("teknium/OpenHermes-2.5")["train"]
-
-    # Transform to have a "text" column with both question and answers
-    openhermes = openhermes.map(lambda x: {"text": f"Question: {x['conversations'][0]['value']}\nAnswers: {x['conversations'][1]['value']}"})
+    # Add tiny stories
+    tiny_stories = load_dataset("roneneldan/TinyStories")["train"]
+    tiny_stories = tiny_stories.map(lambda x: {"text": f"Title: {x['title']}\nStory: {x['story']}"})
 
 
     # Calculate and print the distribution of string lengths
@@ -109,15 +64,16 @@ def create_stlm_data_mix():
     wiki_length, wiki_lengths = calculate_length_distribution(wiki)
     python3_code_length, python3_code_lengths = calculate_length_distribution(code_dataset)
     openhermes_length, openhermes_lengths = calculate_length_distribution(openhermes)
+    tiny_stories_length, tiny_stories_lengths = calculate_length_distribution(tiny_stories)
 
-    total_length = wiki_length + python3_code_length + openhermes_length
+    total_length = wiki_length + python3_code_length + openhermes_length + tiny_stories_length
 
     print(f"Wiki Text Length: {wiki_length} ({wiki_length/total_length*100:.2f}%)")
     print(f"Python Code Text Length: {python3_code_length} ({python3_code_length/total_length*100:.2f}%)")
     print(f"openhermes Text Length: {openhermes_length} ({openhermes_length/total_length*100:.2f}%)")
 
     # Concatenate datasets
-    combined_dataset = concatenate_datasets([wiki, code_dataset, openhermes])
+    combined_dataset = concatenate_datasets([wiki, code_dataset, openhermes, tiny_stories])
 
     combined_dataset = DatasetDict({
         "train": combined_dataset,
@@ -135,6 +91,7 @@ DATASET_DICT = {
     "tinystories": lambda: load_dataset("roneneldan/TinyStories"), # https://huggingface.co/datasets/roneneldan/TinyStories
     "stlm": create_stlm_data_mix,
     "openhermes-2.5": lambda: load_dataset("teknium/OpenHermes-2.5"),
+    "openwebtext": lambda: load_dataset("Skylion007/openwebtext")
 }
 
 
