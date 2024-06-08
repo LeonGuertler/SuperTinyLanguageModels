@@ -2,7 +2,6 @@
 
 from evals.load_evaluators import load_evaluator
 
-
 def train_eval(eval_cfg, model):
     """Train the model"""
     evaluator_name = eval_cfg["evaluator"]

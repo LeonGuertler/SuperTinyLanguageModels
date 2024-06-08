@@ -206,3 +206,12 @@ def profilize(model, classes=None):
             return outputs
 
         model.forward = forward_wrapper
+
+def yes_grad(func):
+    def wrapper(*args, **kwargs):
+        prev = torch.is_grad_enabled()
+        torch.set_grad_enabled(True)
+        ret = func(*args, **kwargs)
+        torch.set_grad_enabled(prev)
+        return ret
+    return wrapper
