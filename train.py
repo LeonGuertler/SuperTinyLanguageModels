@@ -24,6 +24,7 @@ def main(cfg):
     model = build_model(model_cfg=cfg["model"])
     model.to(cfg["general"]["device"])
     model.train()
+    print(model)
     
     # load the relevant trainer
     trainer = build_trainer(
