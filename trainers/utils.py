@@ -259,3 +259,26 @@ def aggregate_value(value, device = torch.device("cuda")):
     all_loss = torch.tensor([value], device=device)
     dist.all_reduce(all_loss, op=dist.ReduceOp.SUM)
     return all_loss.item() / dist.get_world_size()
+
+def init_print_override():
+    '''
+    Override the print function to only print from rank 0
+    '''
+    import builtins as __builtin__
+    
+    original_print = __builtin__.print
+
+    def print(*args, **kwargs):
+        if os.getenv('GLOBAL_RANK') == '0':
+            original_print(*args, **kwargs)
+
+    __builtin__.print = print
+
+    return original_print
+
+def restore_print_override(original_print):
+    '''
+    Restore the original print function
+    '''
+    import builtins as __builtin__
+    __builtin__.print = original_print

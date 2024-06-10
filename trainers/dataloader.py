@@ -25,6 +25,7 @@ class BaseDataloader:
         tokenizer: the tokenizer object
             This is required to pre-tokenize the data
         """
+        self.cfg = cfg
         self.model_cfg = cfg.model
         self.trainer_cfg = cfg.trainer
         self.tokenized_data_dir = cfg["general"]["paths"]["data_dir"]
@@ -39,6 +40,32 @@ class BaseDataloader:
             self.dataset_name,
             f'{self.model_cfg["embedder"]["tokenizer_type"]}-{self.model_cfg["vocab_size"]}',
         )
+        self.masking_pct = cfg.get("trainer", {}).get("dataloader", {}).get("masking_pct", 0.15) # masking percentage for NextTokenMLMDataloader
+
+    def set_split(self, split):
+        """
+        Get a split of the data
+        """
+        self.split = split
+        self.data = self.get_data(split=split)
+        self.general_device = self.cfg.general.device
+
+    def __len__(self):
+        return len(self.data) - self.context_window
+        
+    def __getitem__(self, idx): ## works for BytePooling and StandardDataloader, but not for ConversationalDataloader and NextTokenMLMDataloader
+        '''
+        Similar to the get_batch method in the original dataloader class.
+        '''
+        X = torch.from_numpy((self.data[idx : idx + self.context_window]).astype(np.int64))
+        y = torch.from_numpy((self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64))
+
+        X, y = X.pin_memory().to(self.general_device, non_blocking=True), y.pin_memory().to(
+            self.general_device, non_blocking=True
+        )
+
+        return X, y
+
 
     def get_batch(self, split="train"):
         """
@@ -140,11 +167,43 @@ class BaseDataloader:
         """
         Get the data
         """
+        ## load the data
         data = np.memmap(
             os.path.join(self.tokenized_data_path, f"{split}.bin"),
             dtype=np.uint16,
             mode="r",
         )
+
+        ## additional steps for loading BytePooling and Conversational dataloaders
+        if hasattr(self, 'loading_shapes') and self.loading_shapes[split] is None:
+            if isinstance(self, BytePoolingDataloader):
+                self.loading_shapes[split] = (len(data)// self.model_cfg.embedder.byte_context_window, self.model_cfg.embedder.byte_context_window)
+
+                ## reset the data
+                data = None
+
+                ## re-load the data with loading shapes
+                data = np.memmap(
+                    os.path.join(self.tokenized_data_path, f"{split}.bin"),
+                    dtype=np.uint16,
+                    mode="r",
+                    shape=self.loading_shapes[split],
+                )
+            
+            elif isinstance(self, ConversationalDataloader):
+                self.loading_shapes[split] = (int(len(data)/2/self.context_window), 2, self.context_window)
+
+                ## reset the data
+                data = None
+
+                ## re-load the data with loading shapes
+                data = np.memmap(
+                    os.path.join(self.tokenized_data_path, f"{split}.bin"), 
+                    dtype=np.uint16, 
+                    mode="r+",
+                    shape=self.loading_shapes[split]
+                )
+            
         return data
 
 
@@ -356,6 +415,33 @@ class ConversationalDataloader(BaseDataloader):
             raise SystemExit from exc
 
 
+    def __len__(self):
+        '''
+        (different from the other dataloaders) 
+        Length of dataset includes the context window.
+        '''
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        '''
+        (different from the other dataloaders)
+        Method of getting X and y is different.
+        '''
+        
+        Xy = torch.stack(
+            torch.from_numpy((self.data[idx]).astype(np.int64))
+        )
+
+        # transpose and split into X y
+        X = Xy[:, 0]
+        y = Xy[:, 1]
+
+
+        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
+            self.device, non_blocking=True
+        )
+
+        return X, y
 
 
 class NextTokenMLMDataloader(BaseDataloader):
@@ -399,4 +485,22 @@ class NextTokenMLMDataloader(BaseDataloader):
 
         return X, (y, mask)
     
+    def __getitem__(self, idx):
+        '''
+        (different from the other dataloaders)
+        This returns y as a tuple of (y and mask)
+        '''
+        assert self.masking_pct is not None, "Masking percentage (self.masking_pct) must be set."
 
+        X = torch.from_numpy((self.data[idx : idx + self.context_window]).astype(np.int64))
+        y = torch.from_numpy((self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64))
+
+        X, y = X.pin_memory().to(self.general_device, non_blocking=True), y.pin_memory().to(
+            self.general_device, non_blocking=True
+        )
+
+        # mask out some tokens
+        mask = torch.rand(X.size()) < self.masking_pct
+        X[mask] = 0
+        
+        return X, (y, mask)
