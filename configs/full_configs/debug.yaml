@@ -64,29 +64,29 @@ trainer:
     name: cross_entropy
 
   eval:
-    # - evaluator: "ft_qa"
-    #   benchmarks:
-    #     - "winograd"
-    #     - "hellaswag"
-    #     - "arc"
-    #     - "mmlu"
-    #     - "blimp"
-    #   max_train_samples: 1000
-    #   max_eval_samples: 1000
-    # - evaluator: "glue"
-    # - benchmarks:
-    #     - "winograd"
-    #     - "hellaswag"
-    #     - "arc"
-    #     - "mmlu"
-    #     - "blimp"
-    #   num_samples: 1000
-    #   evaluator: "mcq"
+    - evaluator: "ft_qa"
+      benchmarks:
+        - "winograd"
+        - "hellaswag"
+        - "arc"
+        - "mmlu"
+        - "blimp"
+      max_train_samples: 1000
+      max_eval_samples: 1000
+    - evaluator: "glue"
+    - benchmarks:
+        - "winograd"
+        - "hellaswag"
+        - "arc"
+        - "mmlu"
+        - "blimp"
+      num_samples: 1000
+      evaluator: "mcq"
     - evaluator: "prog"
 
 general:
   logging:
-    wandb_log: true
+    wandb_log: false
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs
