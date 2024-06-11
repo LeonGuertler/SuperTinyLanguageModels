@@ -323,7 +323,11 @@ class BaseTrainer:
         model_copy.train()
         optimizer = torch.optim.Adam(model_copy.parameters(), lr=0.0001)
         mock_dataloader = _MockDataLoader(batches)
-        trainer = BaseTrainer(cfg=cfg, model=model_copy, optimizer=optimizer, dataloader=mock_dataloader, loss_fn=loss_fn)
+        fake_cfg = deepcopy(cfg)
+        fake_cfg["trainer"]["training"]["gradient_accumulation_steps"] = len(batches)
+        fake_cfg["general"]["logging"]["wandb_log"] = False
+        fake_cfg["trainer"]["training"]["run_profiler"] = False
+        trainer = BaseTrainer(cfg=fake_cfg, model=model_copy, optimizer=optimizer, dataloader=mock_dataloader, loss_fn=loss_fn)
         trainer.gradient_accumulation_steps = len(batches)
         # pylint: disable=protected-access
         for _ in range(len(batches)):

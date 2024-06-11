@@ -158,7 +158,7 @@ def get_classes_from_package(package_name):
 
 def register_backward_hooks(tensor, module_name):
     """Registers hooks to profile the backward pass of a tensor."""
-    if isinstance(tensor, torch.tensor) and tensor.requires_grad:
+    if isinstance(tensor, torch.Tensor) and tensor.requires_grad:
 
         def backward_hook(grad):
             with torch.autograd.profiler.record_function(f"{module_name}.backward"):
@@ -187,7 +187,7 @@ def profilize(model, classes=None):
     if (
         hasattr(model, "forward")
         and any(isinstance(model, cls) for cls in classes)
-        and not hasattr(model, "_forward")
+        and not hasattr(model, "old_forward")
     ):
         model.old_forward = model.forward
         print(f"added forward profiling wrapper for {model.__class__.__name__}")
@@ -208,6 +208,8 @@ def profilize(model, classes=None):
         model.forward = forward_wrapper
 
 def yes_grad(func):
+    """Decorator to enable gradients for a function (useful for eval code
+    that requires gradients e.g. on GLUE)"""
     def wrapper(*args, **kwargs):
         prev = torch.is_grad_enabled()
         torch.set_grad_enabled(True)
