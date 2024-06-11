@@ -330,8 +330,7 @@ class BaseTrainer:
         trainer = BaseTrainer(cfg=fake_cfg, model=model_copy, optimizer=optimizer, dataloader=mock_dataloader, loss_fn=loss_fn)
         trainer.gradient_accumulation_steps = len(batches)
         # pylint: disable=protected-access
-        for _ in range(len(batches)):
-            trainer._run_step()
+        trainer._run_step()
         # pylint: enable=protected-access
         # measure the difference in the logits
         score = 0
