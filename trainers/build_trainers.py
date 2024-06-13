@@ -22,6 +22,7 @@ from trainers.scheduler import (
     DropoutScheduler,
     LinearDropoutScheduler,
     LRScheduler,
+    TriangleDropoutScheduler
 )
 
 OPTIMIZER_DICT = {
@@ -75,6 +76,14 @@ def build_dropout_scheduler(trainer_cfg):
             end_dropout_p=trainer_cfg["dropout_scheduler"]["end_dropout_p"],
             start_iter=trainer_cfg["dropout_scheduler"]["start_iter"],
             end_iter=trainer_cfg["dropout_scheduler"]["end_iter"],
+        )
+    if trainer_cfg["dropout_scheduler"]["dropout_type"] == "triangle":
+        return TriangleDropoutScheduler(
+            dropout_min=trainer_cfg["dropout_scheduler"]["start_dropout_p"],
+            dropout_max=trainer_cfg["dropout_scheduler"]["end_dropout_p"],
+            max_iterations=trainer_cfg["training"]["max_iters"],
+            gradient_accumulated_steps=trainer_cfg["training"]["gradient_accumulation_steps"],
+            cycle_factor=trainer_cfg["dropout_scheduler"]["cycle_factor"],
         )
     raise NotImplementedError(
         f"dropout scheduler {trainer_cfg['dropout_scheduler']['dropout_type']} not implemented."
