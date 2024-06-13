@@ -79,8 +79,8 @@ def build_dropout_scheduler(trainer_cfg):
         )
     if trainer_cfg["dropout_scheduler"]["dropout_type"] == "triangle":
         return TriangleDropoutScheduler(
-            dropout_min=trainer_cfg["dropout_scheduler"]["start_dropout_p"],
-            dropout_max=trainer_cfg["dropout_scheduler"]["end_dropout_p"],
+            dropout_trough=trainer_cfg["dropout_scheduler"]["dropout_trough"],
+            dropout_peak=trainer_cfg["dropout_scheduler"]["dropout_peak"],
             max_iterations=trainer_cfg["training"]["max_iters"],
             gradient_accumulated_steps=trainer_cfg["training"]["gradient_accumulation_steps"],
             cycle_factor=trainer_cfg["dropout_scheduler"]["cycle_factor"],
