@@ -36,5 +36,19 @@ def path_confidence(confidences):
     mean_confidence = aggregate_value(softmaxed.mean())
     return mean_confidence
 
+def ground_confidence(confidences):
+    """
+    Calculate the confidence of the model on the ground truth
+    Assume that the ground truth is the first element in the list
+    Args:
+        confidences: (B, N) tensor of confidences
+    Returns:
+        ground_confidence: float of confidence on ground truth
+    See: https://arxiv.org/pdf/2406.04391 - this is equivalent to
+    $$P_\\theta^{\\text{Choices}}(\\text{Ground Truth})$$ over the
+    Path probabilities. (takeaway 3)
+    """
+    return confidences[:, 0].mean()
 
-MCQ_METRIC_DICT = {"accuracy": accuracy_metric, "path_confidence": path_confidence}
+
+MCQ_METRIC_DICT = {"accuracy": accuracy_metric, "path_confidence": path_confidence, "ground_confidence": ground_confidence}

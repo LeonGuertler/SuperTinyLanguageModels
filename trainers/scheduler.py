@@ -90,3 +90,27 @@ class LinearDropoutScheduler(DropoutScheduler):
         return self.start_dropout_p + (iter_num - self.start_iter) * (
             self.end_dropout_p - self.start_dropout_p
         ) / (self.end_iter - self.start_iter)
+
+
+class TriangleDropoutScheduler(DropoutScheduler):
+    '''Triangle Dropout Scheduler. Ref: https://arxiv.org/pdf/1506.01186'''
+    def __init__(self, dropout_trough, dropout_peak, max_iterations, gradient_accumulated_steps, cycle_factor = 4):
+        super().__init__(dropout_trough)
+        self.dropout_trough = dropout_trough
+        self.dropout_peak = dropout_peak
+        self.total_iterations = max_iterations * gradient_accumulated_steps
+        self.cycle_length = self.total_iterations // cycle_factor
+        self.num_cycles = cycle_factor 
+
+    def get_dropout(self, iter_num):
+        cycle_position = iter_num % self.cycle_length
+        half_cycle = self.cycle_length / 2
+        if cycle_position < half_cycle:
+            return self.dropout_trough + (self.dropout_peak - self.dropout_trough) * (cycle_position / half_cycle)
+        else:
+            return self.dropout_peak - (self.dropout_peak - self.dropout_trough) * ((cycle_position - half_cycle) / half_cycle)
+
+    def step(self, model, iter_num):
+        dropout_p = self.get_dropout(iter_num)
+        self.set_dropout(model, dropout_p)
+        return dropout_p

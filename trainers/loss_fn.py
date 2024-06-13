@@ -76,7 +76,7 @@ def compute_perplexity(logits, y, char_lengths, mask=None):
     loss = loss * mask / torch.tensor(char_lengths).view(-1, 1)
     loss = loss.sum(dim=-1)
 
-    return (torch.exp(loss) / B).mean().item()
+    return (torch.exp(loss)).mean().item()
 
 
 def build_loss_fn(loss_fn_type: str):

@@ -2,7 +2,6 @@
 The main training code
 """
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 import hydra
 
