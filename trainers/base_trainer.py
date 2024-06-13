@@ -137,12 +137,10 @@ class BaseTrainer:
                 with self.ctx:
                     output, _ = self.model(x)
                     losses[i] = self.loss_fn(output, y, mask=mask)
-                    perplexities[i] = compute_perplexity(
-                        logits=output,
-                        y=y,
-                        char_lengths=char_lengths,
-                        mask=mask,
+                    likelihood = self.model.loglikelihood(
+                        x, y, mask=mask
                     )
+                    perplexities[i] = compute_perplexity(likelihood, char_lengths)
                 batches.append((x,y))
             divergences[i] = self.distil_eval(self.model, self.cfg, batches, self.loss_fn)
             loss[split] = losses.mean().item()
@@ -315,34 +313,35 @@ class BaseTrainer:
 
     @yes_grad
     def distil_eval(self, model, cfg, batches, loss_fn):
-        """Copy the model, and create a version finetuned on the batches.
-        Then compare the distribution of the logits of the original model
-        and the 'finetuned model'.
-        """
-        model_copy = deepcopy(model)
-        model_copy.train()
-        optimizer = torch.optim.Adam(model_copy.parameters(), lr=0.0001)
-        mock_dataloader = _MockDataLoader(batches)
-        fake_cfg = deepcopy(cfg)
-        fake_cfg["trainer"]["training"]["gradient_accumulation_steps"] = len(batches)
-        fake_cfg["general"]["logging"]["wandb_log"] = False
-        fake_cfg["trainer"]["training"]["run_profiler"] = False
-        trainer = BaseTrainer(cfg=fake_cfg, model=model_copy, optimizer=optimizer, dataloader=mock_dataloader, loss_fn=loss_fn)
-        trainer.gradient_accumulation_steps = len(batches)
-        # pylint: disable=protected-access
-        trainer._run_step()
-        # pylint: enable=protected-access
-        # measure the difference in the logits
-        score = 0
-        with torch.no_grad():
-            for batch in batches:
-                logits, *_ = model(batch[0])
-                logits = torch.nn.functional.log_softmax(logits, dim=-1)
-                logits_batch, *_ = model_copy(batch[0])
-                logits_batch = torch.nn.functional.log_softmax(logits_batch, dim=-1)
-                _score = torch.nn.functional.kl_div(logits, logits_batch, reduction="batchmean", log_target=True)
-                score += _score / len(batches)
+        # """Copy the model, and create a version finetuned on the batches.
+        # Then compare the distribution of the logits of the original model
+        # and the 'finetuned model'.
+        # """
+        # model_copy = deepcopy(model)
+        # model_copy.train()
+        # optimizer = torch.optim.Adam(model_copy.parameters(), lr=0.0001)
+        # mock_dataloader = _MockDataLoader(batches)
+        # fake_cfg = deepcopy(cfg)
+        # fake_cfg["trainer"]["training"]["gradient_accumulation_steps"] = len(batches)
+        # fake_cfg["general"]["logging"]["wandb_log"] = False
+        # fake_cfg["trainer"]["training"]["run_profiler"] = False
+        # trainer = BaseTrainer(cfg=fake_cfg, model=model_copy, optimizer=optimizer, dataloader=mock_dataloader, loss_fn=loss_fn)
+        # trainer.gradient_accumulation_steps = len(batches)
+        # # pylint: disable=protected-access
+        # trainer._run_step()
+        # # pylint: enable=protected-access
+        # # measure the difference in the logits
+        # score = 0
+        # with torch.no_grad():
+        #     for batch in batches:
+        #         logits, *_ = model(batch[0])
+        #         logits = torch.nn.functional.log_softmax(logits, dim=-1)
+        #         logits_batch, *_ = model_copy(batch[0])
+        #         logits_batch = torch.nn.functional.log_softmax(logits_batch, dim=-1)
+        #         _score = torch.nn.functional.kl_div(logits, logits_batch, reduction="batchmean", log_target=True)
+        #         score += _score / len(batches)
         # batch logits and apply log_softmax
+        score = 0
         return score
 
 class _MockDataLoader:

@@ -12,6 +12,7 @@ from models.experimental.hugging_face import HFEmbedder, HFLMHead, HFTransformer
 from models.experimental.next_thought.embedding_models import HierarchicalEncoder
 from models.experimental.next_thought.model_heads import VariableLengthLatentDecoder
 from models.experimental.next_thought.core_models import BaselineCoreModel, Conv1dCoreModel
+from models.experimental.cascade_ntp.cascade_shell import CascadeTransformer, CascadeShell
 from models.model_heads import AutoregressiveLMHead
 from models.model_shell import ModelShell
 
@@ -70,7 +71,8 @@ CORE_MODEL_DICT = {
     "generic_ffn_sharing": GenericFFNSharedTransfomer,
     "hf_core": HFTransformerCore,
     "next_thought_baseline": BaselineCoreModel,
-    "conv": Conv1dCoreModel
+    "conv": Conv1dCoreModel,
+    "cascade": CascadeTransformer
 }
 
 
@@ -114,7 +116,8 @@ def build_model_head(model_cfg, embedding_model=None):
 
 MODEL_SHELL_DICT = {
     "standard": ModelShell,
-    "byte_shell": ByteModelShell
+    "byte_shell": ByteModelShell,
+    "cascade": CascadeShell
 }
 
 

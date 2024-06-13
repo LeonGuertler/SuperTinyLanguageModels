@@ -1,6 +1,6 @@
 model:
   core_model:
-    core_model_type: generic
+    core_model_type: cascade
     num_layers: 10
     ffn:
       ffn_type: swiglu
@@ -25,7 +25,7 @@ model:
   hidden_dim: 512
   context_window: 512
   vocab_size: 50257
-  model_shell_type: standard
+  model_shell_type: cascade
   embedding_weight_tying: true
   positional_encoding_type: rope
 trainer:
@@ -34,7 +34,7 @@ trainer:
     dropout: 0.1
   dataset: stlm
   training:
-    trainer_type: base_trainer
+    trainer_type: cascade_trainer
     batch_size: 4
     gradient_accumulation_steps: 5
     max_iters: 20
@@ -86,7 +86,7 @@ trainer:
 
 general:
   logging:
-    wandb_log: true
+    wandb_log: false
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs

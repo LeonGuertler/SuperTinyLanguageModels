@@ -84,7 +84,7 @@ class ModelShell(torch.nn.Module):
         return logits, model_input
 
     @torch.no_grad()
-    def loglikelihood(self, prefixes, continuations):
+    def continuation_likelihood(self, prefixes, continuations):
         """
         Compute the loglikelihood of continuation
         tokens given a prefix.
@@ -99,10 +99,30 @@ class ModelShell(torch.nn.Module):
         padded_batch, mask = self.embedding_model.pad_batch(input_tokens, direction="right")
         input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
         logits, _ = self.forward(input_tensor)
-        logits = logits[:, :-1].reshape(-1, logits.size(-1))
-        target_tensor = input_tensor[:, 1:].reshape(-1)
+        logits = logits[:, :-1]
+        target_tensor = input_tensor[:, 1:]
+        mask = mask[:, 1:].to(logits.device)
+        return self.loglikelihood(logits, target_tensor, mask)
+
+    def loglikelihood(self, logits, target_tensor, mask):
+        """Given output logits and the target tensor for them,
+        
+        Compute the path probability of the target tensor.
+        
+        Arguments:
+            logits {torch.tensor} -- Logits of the model output
+            target_tensor {torch.tensor} -- Target tensor
+                these should be right shifted by one...
+            mask {torch.tensor} -- Mask for the target tensor"""
+        # reshape the tensors
+        B, S, V = logits.size()
+        logits = logits.reshape(B * S, V)
+        target_tensor = target_tensor.reshape(-1)
+        mask = mask.reshape(-1)
+        # compute the log likelihood of the target_tensor
         ll = torch.nn.functional.cross_entropy(logits, target_tensor, reduction="none")
-        mask = mask[:, 1:].reshape(-1).to(ll.device)
+        # apply the mask
         ll = ll * mask
-        ll = ll.view(input_tensor.size(0), -1).sum(dim=1)
-        return -ll
+        # bring back the batch dim...
+        ll = ll.reshape(B, -1)
+        return -ll.sum(dim=1)

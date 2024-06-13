@@ -66,7 +66,7 @@ class ProgressionEvaluator(evaluator_interface.EvaluationInterface):
         results = {}
         for prompt, ground_truth, options in dataset:
             all_options = list(options.items())
-            options = [ground_truth] + [option for _, option in all_options] # (B+1)*T
+            options = [ground_truth] + [option for _, option in all_options] # N_options+1
             prompts = [prompt for _ in options]
             likelihoods.append(self.model_wrapper.loglikelihood(prompts, options))
         likelihoods = torch.tensor(likelihoods) # shape B * T

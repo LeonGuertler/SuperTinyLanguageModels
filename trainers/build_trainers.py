@@ -4,6 +4,7 @@ and the trainer itself.
 """
 
 from models.experimental.hugging_face import MockTrainer
+from models.experimental.cascade_ntp.trainer import CascadeTrainer
 from trainers.base_trainer import BaseTrainer
 from trainers.dataloader import (
     BaseDataloader,
@@ -116,6 +117,7 @@ def build_loss_fn(loss_fn_name):
 TRAINER_DICT = {
     "base_trainer": BaseTrainer,
     "mock_trainer": MockTrainer,
+    "cascade_trainer": CascadeTrainer,
 }
 
 
