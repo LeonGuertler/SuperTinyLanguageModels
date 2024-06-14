@@ -219,7 +219,8 @@ def aggregate_value(value, device = torch.device("cuda")):
 
 def init_print_override():
     '''
-    Override the print function to only print from rank 0
+    Overriding the print function is useful when running DDP. 
+    This way, only rank 0 prints to the console.
     '''
     import builtins as __builtin__
     
@@ -235,13 +236,16 @@ def init_print_override():
 
 def restore_print_override(original_print):
     '''
-    Restore the original print function
+    Restore the original print function.
     '''
     import builtins as __builtin__
     __builtin__.print = original_print
+
 def yes_grad(func):
-    """Decorator to enable gradients for a function (useful for eval code
-    that requires gradients e.g. on GLUE)"""
+    """
+    Decorator to enable gradients for a function (useful for eval code
+    that requires gradients e.g. on GLUE)
+    """
     def wrapper(*args, **kwargs):
         prev = torch.is_grad_enabled()
         torch.set_grad_enabled(True)

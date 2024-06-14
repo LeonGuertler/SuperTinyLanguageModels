@@ -10,13 +10,13 @@ Please note that this repository is an evolving work in progress, reflecting the
 
 
 ## Download
-### Access Hugging Face
+### Access to Hugging Face
 We aim to provide downloads on Hugging Face 🤗 in time shortly! 
 
 ## Quick Start
 Experiments are a big part of what we do. However, there's presently no visibility on 1/ what experiments we are actively running, 2/ how have these experiments performed, and 3/ what are the intuitions behind them. We see this as an urgent issue. Hence, we will add a sunmmary view of our experiments as soon as possible. From which, you may better inform yourself before trying them out.
 
-Till then, we are afraid we'll have to trouble you to scrappily explore our configs/full_configs folder. 
+Till then, we are afraid we'll have to trouble you to scrappily explore our configs/full_configs folder. Here are steps you can take to use them locally.
 
 ### Setup
 Please install a linter, formatter, and pre-commit hooks before contributing. You can do this by running the following commands:
@@ -46,9 +46,11 @@ python train.py --config-name full_configs/...
 
 ## Contribution
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change. 
+
 ## Known Issues
 The initial tokenization step setting up the dataset takes a long time. Do a run with a single gpu first to make sure these are initialized properly (or even use a debug run) when you are using a new dataset or tokenizer.
-If it fails then it will always fail in the future due to some dodgy code. To fix this delete the contents of the data/{dataset_name} folder
+
+If it fails then it will always fail in the future due to some dodgy code. To fix this delete the contents of the data/{dataset_name} folder.
 
 ## License
 MIT

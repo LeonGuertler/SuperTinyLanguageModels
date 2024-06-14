@@ -148,24 +148,27 @@ class BaseTrainer:
         divergency = {}
         self.model.eval()
         for split in ["train", "val"]:
+
+            ## initialize the loss, perplexity, and divergency
             losses = torch.zeros(eval_iters)
             perplexities = torch.zeros(eval_iters)
-            
-            ## init Pytorch's DataLoader
-            dataloader = self._prepare_dataloader(split)
             divergences = torch.zeros(eval_iters)
             batches = []
-            for i, (x, y) in enumerate(islice(dataloader, eval_iters)):
-                # use cached eval if available
+            
+            ## initialize Pytorch's DataLoader
+            dataloader = self._prepare_dataloader(split)
 
+            for i, (x, y) in enumerate(islice(dataloader, eval_iters)):
+
+                # use cached eval if available
                 if i in self.cached_sets[split]:
-                    print("use cached test set") ## ensure only the first GPU prints
+                    print("use cached test set")
                     x = self.cached_sets[split][i]["x"]
                     y = self.cached_sets[split][i]["y"]
                     char_lengths = self.cached_sets[split][i]["char_lengths"]
                     mask = self.cached_sets[split][i]["mask"]
                 else:
-                    print("process test set") ## ensure only the first GPU prints
+                    print("process test set")
                     (
                         char_lengths,
                         mask,
@@ -188,16 +191,15 @@ class BaseTrainer:
                     # divergences[i] = self.distil_eval(self.model, self.cfg, batches, self.loss_fn) # not ready yet
                     divergences[i] = 0
             batches.append((x,y))
-            # print(f'{self.gpu_id} {split}', losses.mean().item(),perplexities.mean().item()) ## will delete if it is okay
+
             ## aggregate the loss and perplexity across all GPUs
-
-
             avg_loss = aggregate_value(losses.mean().item(), self.cfg.general.device)
             loss[split] = avg_loss
             avg_perplexity = aggregate_value(perplexities.mean().item(), self.cfg.general.device)
             perplexity[split] = avg_perplexity
             avg_divergency = aggregate_value(divergences.mean().item(), self.cfg.general.device)
             divergency[split] = avg_divergency
+
         evaluator_results = {}
         for evaluator in self.cfg.trainer["eval"]:
             evaluator_results[evaluator["evaluator"]] = train_eval(evaluator, self.model.module)
@@ -217,9 +219,7 @@ class BaseTrainer:
         ## set the epoch for the DistributedSampler (https://discuss.pytorch.org/t/why-is-sampler-set-epoch-epoch-needed-for-distributedsampler/149672/2)
         dataloader.sampler.set_epoch(epoch)
 
-        for iter, (x, y) in enumerate(islice(dataloader, self.gradient_accumulation_steps)): ## islice is used to limit the number of iterations
-        # for _ in range(self.gradient_accumulation_steps):
-            # x, y = self.dataloader.get_batch("train")
+        for iter, (x, y) in enumerate(islice(dataloader, self.gradient_accumulation_steps)):
             with self.ctx:
                 output, aux_loss = self.model(x)
                 loss = self.loss_fn(output, y)
@@ -372,13 +372,13 @@ class BaseTrainer:
                 lossf = loss.item() * self.gradient_accumulation_steps
 
                 ## uncomment the following line to print the loss on all GPUs
-                # print(f"{self.gpu_id}: before step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
+                # print(f"GPU {self.gpu_id}: step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
 
                 ## aggregate the loss across all GPUs
                 lossf = aggregate_value(lossf, self.cfg.general.device)
 
                 ## print and log the result only on the first GPU after aggregation
-                print(f"both: after step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
+                print(f"All GPU(s): step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
                 if self.gpu_id == 0 and self.use_wandb:
                     wandb.log(
                         {
