@@ -4,6 +4,7 @@ A collection of metrics for evaluating models
 
 import torch
 
+from trainers.utils import aggregate_value
 
 def accuracy_metric(confidences):
     """
@@ -15,7 +16,9 @@ def accuracy_metric(confidences):
         accuracy: float of accuracy
     """
     _, predicted = torch.max(confidences, 1)
-    return (predicted == 0).float().mean()
+    ## aggregate the tensor values
+    mean_accuracy = aggregate_value((predicted == 0).float().mean())
+    return mean_accuracy#(predicted == 0).float().mean()
 
 
 def path_confidence(confidences):
@@ -29,7 +32,9 @@ def path_confidence(confidences):
     """
     softmaxed = torch.nn.functional.softmax(confidences, dim=-1)
     softmaxed = softmaxed[:, 0]
-    return softmaxed.mean()
+    ## aggregate the tensor values
+    mean_confidence = aggregate_value(softmaxed.mean())
+    return mean_confidence
 
 def ground_confidence(confidences):
     """
