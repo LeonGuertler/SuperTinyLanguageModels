@@ -25,6 +25,7 @@ class BaseDataloader:
         tokenizer: the tokenizer object
             This is required to pre-tokenize the data
         """
+        self.cfg = cfg
         self.model_cfg = cfg.model
         self.trainer_cfg = cfg.trainer
         self.tokenized_data_dir = cfg["general"]["paths"]["data_dir"]
@@ -39,35 +40,37 @@ class BaseDataloader:
             self.dataset_name,
             f'{self.model_cfg["embedder"]["tokenizer_type"]}-{self.model_cfg["vocab_size"]}',
         )
+        self.masking_pct = cfg.get("trainer", {}).get("dataloader", {}).get("masking_pct", 0.15) # masking percentage for NextTokenMLMDataloader
 
-    def get_batch(self, split="train"):
+    def set_split(self, split):
         """
-        Get a train/val batch
+        Get a split of the data
         """
-        data = np.memmap(
-            os.path.join(self.tokenized_data_path, f"{split}.bin"),
-            dtype=np.uint16,
-            mode="r",
-        )
+        self.split = split
+        self.data = self.get_data(split=split)
+        self.general_device = self.cfg.general.device
 
-        idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
-        X = torch.stack(
-            [
-                torch.from_numpy((data[i : i + self.context_window]).astype(np.int64))
-                for i in idxs
-            ]
-        )
-        y = torch.stack(
-            [
-                torch.from_numpy(
-                    (data[i + 1 : i + 1 + self.context_window]).astype(np.int64)
-                )
-                for i in idxs
-            ]
-        )
+    def __len__(self):
+        '''
+        The __len__ function returns the number of samples in our dataset.
+        Note: This works for BytePooling and StandardDataloader, but not for ConversationalDataloader and NextTokenMLMDataloader
+        '''
+        return len(self.data) - self.context_window
+        
+    def __getitem__(self, idx): 
+        '''
+        Similar to the get_batch method in the original dataloader class, but this ensures 
+        that our dataloader is useable in Pytorch's DataLoader class.
 
-        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
-            self.device, non_blocking=True
+        The __getitem__ function loads and returns a sample from the dataset at the given index idx
+        
+        Note: This works for BytePooling and StandardDataloader, but not for ConversationalDataloader and NextTokenMLMDataloader
+        '''
+        X = torch.from_numpy((self.data[idx : idx + self.context_window]).astype(np.int64))
+        y = torch.from_numpy((self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64))
+
+        X, y = X.pin_memory().to(self.general_device, non_blocking=True), y.pin_memory().to(
+            self.general_device, non_blocking=True
         )
 
         return X, y
@@ -135,6 +138,18 @@ class BaseDataloader:
             # if we fail, destroy the file
             os.removedirs(self.tokenized_data_path)
             raise SystemExit from exc
+        
+    def get_data(self, split="train"):
+        """
+        Get the data by the split - e.g. train or val
+        """
+        ## load the data
+        data = np.memmap(
+            os.path.join(self.tokenized_data_path, f"{split}.bin"),
+            dtype=np.uint16,
+            mode="r",
+        ) 
+        return data
 
 
 class StandardDataloader(BaseDataloader):
@@ -143,9 +158,6 @@ class StandardDataloader(BaseDataloader):
     tokenization, and then randomly loads batches as
     necessary.
     """
-
-
-
 
 
 class BytePoolingDataloader(BaseDataloader):
@@ -188,10 +200,8 @@ class BytePoolingDataloader(BaseDataloader):
                 idx += len(arr_batch)
             arr.flush()
 
-    def get_batch(self, split="train"):
-        """
-        Get a train/val batch
-        """
+    def get_data(self, split = 'train'):
+        ## load the data
         if self.loading_shapes[split] is None:
             data = np.memmap(
                 os.path.join(self.tokenized_data_path, f"{split}.bin"),
@@ -199,36 +209,18 @@ class BytePoolingDataloader(BaseDataloader):
                 mode="r",
             )
             self.loading_shapes[split] = (len(data)// self.model_cfg.embedder.byte_context_window, self.model_cfg.embedder.byte_context_window)
-            
+
+            ## reset the data
+            data = None
+
+        ## re-load the data with loading shapes
         data = np.memmap(
             os.path.join(self.tokenized_data_path, f"{split}.bin"),
             dtype=np.uint16,
             mode="r",
             shape=self.loading_shapes[split],
         )
-
-        idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
-        X = torch.stack(
-            [
-                torch.from_numpy((data[i : i + self.context_window]).astype(np.int64))
-                for i in idxs
-            ]
-        )
-        y = torch.stack(
-            [
-                torch.from_numpy(
-                    (data[i + 1 : i + 1 + self.context_window]).astype(np.int64)
-                )
-                for i in idxs
-            ]
-        )
-
-        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
-            self.device, non_blocking=True
-        )
-
-        return X, y
-
+        return data
 
 
 class ConversationalDataloader(BaseDataloader):
@@ -241,49 +233,6 @@ class ConversationalDataloader(BaseDataloader):
         self.loading_shapes = {"train": None, "val": None}
         # check if dataset is conversational
         assert cfg["trainer"]["dataset"] in ["openhermes-2.5"], "Dataset must be conversational"
-
-    def get_batch(self, split="train"):
-        """
-        Get a train/val batch
-        """
-        if self.loading_shapes[split] is None:
-            data = np.memmap(
-                os.path.join(self.tokenized_data_path, f"{split}.bin"),
-                dtype=np.uint16,
-                mode="r",
-            )
-            self.loading_shapes[split] = (int(len(data)/2/self.context_window), 2, self.context_window)
-            data = None 
-
-        # actually load the data
-        data = np.memmap(
-            os.path.join(self.tokenized_data_path, f"{split}.bin"), 
-            shape=self.loading_shapes[split],
-            dtype=np.uint16, 
-            mode="r+"
-        )
-
-        ix = torch.randint(len(data), (self.batch_size,))
-        # test load one 
-        a = data[ix[0]]
-        Xy = torch.stack(
-            [
-                torch.from_numpy((data[i]).astype(np.int64))
-                for i in ix
-            ]
-        )
-
-        # transpose and split into X y
-        X = Xy[:, 0]
-        y = Xy[:, 1]
-
-
-        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
-            self.device, non_blocking=True
-        )
-
-        return X, y
-
 
     def _write_tokenized_data(self, tokenized):
         # concatenate all the ids in each dataset into one large file we can use for training
@@ -305,7 +254,6 @@ class ConversationalDataloader(BaseDataloader):
                 arr[idx : idx + len(arr_batch)] = arr_batch
                 idx += len(arr_batch)
             arr.flush()
-
 
     def prepare_data(self):
         """
@@ -346,8 +294,56 @@ class ConversationalDataloader(BaseDataloader):
             # if we fail, destroy the file
             os.removedirs(self.tokenized_data_path)
             raise SystemExit from exc
+        
+    def get_data(self, split = 'train'):
+        ## load the data
+        if self.loading_shapes[split] is None:
+            data = np.memmap(
+                os.path.join(self.tokenized_data_path, f"{split}.bin"),
+                dtype=np.uint16,
+                mode="r",
+            )
+            self.loading_shapes[split] = (int(len(data)/2/self.context_window), 2, self.context_window)
+            
+            ## reset the data
+            data = None
+
+        ## re-load the data with loading shapes
+        data = np.memmap(
+            os.path.join(self.tokenized_data_path, f"{split}.bin"), 
+            dtype=np.uint16, 
+            mode="r+",
+            shape=self.loading_shapes[split]
+        )
+        return data
+
+    def __len__(self):
+        '''
+        (different from its parent class method) 
+        Length of dataset includes the context window.
+        '''
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        '''
+        (different from its parent class method)
+        Method of getting X and y is different.
+        '''
+        
+        Xy = torch.stack(
+            torch.from_numpy((self.data[idx]).astype(np.int64))
+        )
+
+        # transpose and split into X y
+        X = Xy[:, 0]
+        y = Xy[:, 1]
 
 
+        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
+            self.device, non_blocking=True
+        )
+
+        return X, y
 
 
 class NextTokenMLMDataloader(BaseDataloader):
@@ -355,40 +351,22 @@ class NextTokenMLMDataloader(BaseDataloader):
     Similarly to the generic dataloader, but mask out some tokens and
     return the mask used.
     """
-    def get_batch(self, split="train", masking_pct=0.15):
-        """
-        Get a train/val batch
-        """
-        data = np.memmap(
-            os.path.join(self.tokenized_data_path, f"{split}.bin"),
-            dtype=np.uint16,
-            mode="r",
-        )
+    def __getitem__(self, idx):
+        '''
+        (different from its parent class method)
+        This returns the last item as a tuple of (y and mask)
+        '''
+        assert self.masking_pct is not None, "Masking percentage (self.masking_pct) must be set."
 
-        idxs = torch.randint(len(data) - self.context_window, (self.batch_size,))
-        X = torch.stack(
-            [
-                torch.from_numpy((data[i : i + self.context_window]).astype(np.int64))
-                for i in idxs
-            ]
-        )
-        y = torch.stack(
-            [
-                torch.from_numpy(
-                    (data[i + 1 : i + 1 + self.context_window]).astype(np.int64)
-                )
-                for i in idxs
-            ]
-        )
+        X = torch.from_numpy((self.data[idx : idx + self.context_window]).astype(np.int64))
+        y = torch.from_numpy((self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64))
 
-        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
-            self.device, non_blocking=True
+        X, y = X.pin_memory().to(self.general_device, non_blocking=True), y.pin_memory().to(
+            self.general_device, non_blocking=True
         )
 
         # mask out some tokens
-        mask = torch.rand(X.size()) < masking_pct
+        mask = torch.rand(X.size()) < self.masking_pct
         X[mask] = 0
-
+        
         return X, (y, mask)
-    
-
