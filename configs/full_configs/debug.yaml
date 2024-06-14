@@ -36,7 +36,7 @@ trainer:
   training:
     trainer_type: cascade_trainer
     batch_size: 4
-    gradient_accumulation_steps: 5
+    gradient_accumulation_steps: 4
     max_iters: 20
     lr_decay_iters: 20
     warmup_iters: 5000

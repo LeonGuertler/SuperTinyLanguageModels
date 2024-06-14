@@ -9,6 +9,7 @@ import numpy as np
 import torch
 from datasets import load_dataset, DatasetDict, concatenate_datasets
 
+import torch.distributed as dist
 
 def set_seed(seed):
     """Setup the trainer"""
@@ -207,9 +208,44 @@ def profilize(model, classes=None):
 
         model.forward = forward_wrapper
 
+def aggregate_value(value, device = torch.device("cuda")): 
+    """
+    Since using DDP, calculation of metrics happen across all GPUs. 
+    This function aggregate the loss across all GPUs. 
+    """
+    all_loss = torch.tensor([value], device=device)
+    dist.all_reduce(all_loss, op=dist.ReduceOp.SUM)
+    return all_loss.item() / dist.get_world_size()
+
+def init_print_override():
+    '''
+    Overriding the print function is useful when running DDP. 
+    This way, only rank 0 prints to the console.
+    '''
+    import builtins as __builtin__
+    
+    original_print = __builtin__.print
+
+    def print(*args, **kwargs):
+        if os.getenv('GLOBAL_RANK') == '0':
+            original_print(*args, **kwargs)
+
+    __builtin__.print = print
+
+    return original_print
+
+def restore_print_override(original_print):
+    '''
+    Restore the original print function.
+    '''
+    import builtins as __builtin__
+    __builtin__.print = original_print
+
 def yes_grad(func):
-    """Decorator to enable gradients for a function (useful for eval code
-    that requires gradients e.g. on GLUE)"""
+    """
+    Decorator to enable gradients for a function (useful for eval code
+    that requires gradients e.g. on GLUE)
+    """
     def wrapper(*args, **kwargs):
         prev = torch.is_grad_enabled()
         torch.set_grad_enabled(True)
