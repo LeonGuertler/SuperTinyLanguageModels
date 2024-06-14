@@ -148,38 +148,7 @@ class BaseDataloader:
             os.path.join(self.tokenized_data_path, f"{split}.bin"),
             dtype=np.uint16,
             mode="r",
-        )
-
-        ## additional steps for loading BytePooling and Conversational dataloaders
-        if hasattr(self, 'loading_shapes') and self.loading_shapes[split] is None:
-            if isinstance(self, BytePoolingDataloader):
-                self.loading_shapes[split] = (len(data)// self.model_cfg.embedder.byte_context_window, self.model_cfg.embedder.byte_context_window)
-
-                ## reset the data
-                data = None
-
-                ## re-load the data with loading shapes
-                data = np.memmap(
-                    os.path.join(self.tokenized_data_path, f"{split}.bin"),
-                    dtype=np.uint16,
-                    mode="r",
-                    shape=self.loading_shapes[split],
-                )
-            
-            elif isinstance(self, ConversationalDataloader):
-                self.loading_shapes[split] = (int(len(data)/2/self.context_window), 2, self.context_window)
-
-                ## reset the data
-                data = None
-
-                ## re-load the data with loading shapes
-                data = np.memmap(
-                    os.path.join(self.tokenized_data_path, f"{split}.bin"), 
-                    dtype=np.uint16, 
-                    mode="r+",
-                    shape=self.loading_shapes[split]
-                )
-            
+        ) 
         return data
 
 
@@ -230,6 +199,28 @@ class BytePoolingDataloader(BaseDataloader):
                 arr[idx : idx + len(arr_batch)] = arr_batch
                 idx += len(arr_batch)
             arr.flush()
+
+    def get_data(self, split = 'train'):
+        ## load the data
+        if self.loading_shapes[split] is None:
+            data = np.memmap(
+                os.path.join(self.tokenized_data_path, f"{split}.bin"),
+                dtype=np.uint16,
+                mode="r",
+            )
+            self.loading_shapes[split] = (len(data)// self.model_cfg.embedder.byte_context_window, self.model_cfg.embedder.byte_context_window)
+
+            ## reset the data
+            data = None
+
+        ## re-load the data with loading shapes
+        data = np.memmap(
+            os.path.join(self.tokenized_data_path, f"{split}.bin"),
+            dtype=np.uint16,
+            mode="r",
+            shape=self.loading_shapes[split],
+        )
+        return data
 
 
 class ConversationalDataloader(BaseDataloader):
@@ -303,6 +294,28 @@ class ConversationalDataloader(BaseDataloader):
             # if we fail, destroy the file
             os.removedirs(self.tokenized_data_path)
             raise SystemExit from exc
+        
+    def get_data(self, split = 'train'):
+        ## load the data
+        if self.loading_shapes[split] is None:
+            data = np.memmap(
+                os.path.join(self.tokenized_data_path, f"{split}.bin"),
+                dtype=np.uint16,
+                mode="r",
+            )
+            self.loading_shapes[split] = (int(len(data)/2/self.context_window), 2, self.context_window)
+            
+            ## reset the data
+            data = None
+
+        ## re-load the data with loading shapes
+        data = np.memmap(
+            os.path.join(self.tokenized_data_path, f"{split}.bin"), 
+            dtype=np.uint16, 
+            mode="r+",
+            shape=self.loading_shapes[split]
+        )
+        return data
 
     def __len__(self):
         '''

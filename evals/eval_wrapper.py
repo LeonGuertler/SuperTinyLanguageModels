@@ -28,7 +28,7 @@ class EvalWrapper:
                 for prefix_batch, cont_batch in zip(
                     batch(prefixes, 32), batch(continuations, 32)
                 ):
-                    ll = self.model_shell.loglikelihood(prefix_batch, cont_batch) ## added the 'module' attribute (https://discuss.pytorch.org/t/access-to-attributes-of-model-wrapped-in-ddp/130572/2)
+                    ll = self.model_shell.loglikelihood(prefix_batch, cont_batch)
                     results.extend(ll.cpu().numpy())
         return results
 

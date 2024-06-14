@@ -39,13 +39,13 @@ class BaseTrainer:
         optimizer,
         dataloader: train_dataloader.BaseDataloader,
         loss_fn,
-        gpu_id, ## new
+        gpu_id, 
         lr_scheduler=None,
         dropout_scheduler=None,
     ) -> None:
         self.model = model
-        self.model = DDP(self.model, device_ids=[gpu_id]) ## new
-        self.gpu_id = gpu_id ## new
+        self.model = DDP(self.model, device_ids=[gpu_id])
+        self.gpu_id = gpu_id 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.dropout_scheduler = dropout_scheduler

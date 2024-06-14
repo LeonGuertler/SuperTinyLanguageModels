@@ -17,8 +17,7 @@ def accuracy_metric(confidences):
     """
     _, predicted = torch.max(confidences, 1)
     ## aggregate the tensor values
-    mean_accuracy = aggregate_value((predicted == 0).float().mean())
-    return mean_accuracy#(predicted == 0).float().mean()
+    return aggregate_value((predicted == 0).float().mean())
 
 
 def path_confidence(confidences):
@@ -33,8 +32,7 @@ def path_confidence(confidences):
     softmaxed = torch.nn.functional.softmax(confidences, dim=-1)
     softmaxed = softmaxed[:, 0]
     ## aggregate the tensor values
-    mean_confidence = aggregate_value(softmaxed.mean())
-    return mean_confidence
+    return aggregate_value(softmaxed.mean())
 
 def ground_confidence(confidences):
     """
