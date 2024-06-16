@@ -44,6 +44,30 @@ class IdentityEncoding(torch.nn.Module):
         """
         return x
 
+class SinCosPosEncoding(
+    torch.nn.Module
+):
+    def __init__(self, hidden_dim, context_window):
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.context_window = context_window
+
+    def forward(self, x):
+        """
+        Takes the input tensor and returns it positionally encoded.
+        Args:
+            x: torch.tensor(B, S, H)
+        Returns:
+            x: torch.tensor(B, S, H)
+        """
+        pos = torch.arange(x.size(1), device=x.device).unsqueeze(0)
+        dim = torch.arange(self.hidden_dim, device=x.device).unsqueeze(0)
+        pe = pos / torch.pow(10000, 2 * (dim // 2) / self.hidden_dim)
+        pe[:, 0::2] = torch.sin(pe[:, 0::2])
+        pe[:, 1::2] = torch.cos(pe[:, 1::2])
+        return x + pe
+
+
 
 POS_ENCODING_DICT = {
     "learned": lambda dim, size, **_: LearnedPosEncoding(
@@ -51,6 +75,9 @@ POS_ENCODING_DICT = {
     ),
     "rope": lambda **_: IdentityEncoding(),
     "none": lambda **_: IdentityEncoding(),
+    "sincos": lambda dim, size, **_: SinCosPosEncoding(
+        hidden_dim=dim, context_window=size
+    ),
 }
 
 
