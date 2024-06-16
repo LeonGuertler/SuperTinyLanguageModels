@@ -64,16 +64,16 @@ trainer:
     name: cross_entropy
 
   eval:
-    - evaluator: "ft_qa"
-      benchmarks:
-        - "winograd"
-        - "hellaswag"
-        - "arc"
-        - "mmlu"
-        - "blimp"
-      max_train_samples: 1000
-      max_eval_samples: 1000
-    - evaluator: "glue"
+    # - evaluator: "ft_qa"
+    #   benchmarks:
+    #     - "winograd"
+    #     - "hellaswag"
+    #     - "arc"
+    #     - "mmlu"
+    #     - "blimp"
+    #   max_train_samples: 1000
+    #   max_eval_samples: 1000
+    # - evaluator: "glue"
     - benchmarks:
         - "winograd"
         - "hellaswag"
