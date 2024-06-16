@@ -28,7 +28,7 @@ class EvalWrapper:
                 for prefix_batch, cont_batch in zip(
                     batch(prefixes, 32), batch(continuations, 32)
                 ):
-                    ll = self.model_shell.loglikelihood(prefix_batch, cont_batch)
+                    ll = self.model_shell.continuation_loglikehood(prefix_batch, cont_batch)
                     results.extend(ll.cpu().numpy())
         return results
 
