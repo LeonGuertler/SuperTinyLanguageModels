@@ -182,8 +182,8 @@ class BaseTrainer:
                 with self.ctx:
                     output, _ = self.model(x)
                     losses[i] = self.loss_fn(output, y, mask=mask)
-                    likelihood = self.model.loglikelihood(
-                        x, y, mask=mask
+                    likelihood = self.model.module.loglikelihood(
+                        output, y, mask=mask
                     )
                     perplexities[i] = compute_perplexity(likelihood, char_lengths)
                     # divergences[i] = self.distil_eval(self.model, self.cfg, batches, self.loss_fn) # not ready yet
