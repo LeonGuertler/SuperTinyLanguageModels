@@ -114,7 +114,7 @@ class CascadeShell(model_shell.ModelShell):
                 break
             return pred_logit
     
-    def loglikelihood(self, logits, target_tensor, mask):
+    def loglikelihood(self, logits, target_tensor, mask=None):
         """
         We use the confidences to determine at which layer the
         model would decode the token and use this to calculate
@@ -124,25 +124,35 @@ class CascadeShell(model_shell.ModelShell):
         # i.e. not the actual next token exceeds the threshold for that
         # layer
         confidences = torch.zeros_like(target_tensor, dtype=torch.float32)
-        predicted_mask = torch.ones_like(target_tensor, dtype=torch.bool)
+        unpredicted_mask = torch.ones_like(target_tensor, dtype=torch.bool)
+        if mask is not None:
+            unpredicted_mask = unpredicted_mask & mask
         for i, logit in enumerate(logits):
-            # first we get the greedy
-            _, predicted = logit.argmax(-1)
+            B, S, V = logit.size()
+            # first we get the logprobs through ce loss
+            logprobs = torch.nn.functional.cross_entropy(
+                logit.view(-1, V), target_tensor.view(-1), reduction="none"
+            )
+            logprobs = logprobs.view(B, S)
+            # then we get the greedy
+            predicted = logit.argmax(-1)
             # now we get a mask for tokens whereby the greedy loss
             # exceed the threshold
             mask = torch.nn.functional.cross_entropy(
                 logit.view(-1, logit.size(-1)),
                 predicted.view(-1),
-            ) < self.thresholds[i]
+                reduction="none"
+            ) > -self.thresholds[i] # TODO verify that this makes sense..
             mask = mask.view(target_tensor.size())
-            # and this with the predicted mask
-            mask = mask & predicted_mask
+            # we only want to update the mask for tokens that have not
+            # yet been predicted in earlier layers
+            mask = mask & unpredicted_mask
             # now write out the confidence for any that pass the mask
-            confidences[mask] = i
+            confidences[mask] = logprobs[mask]
             # update the predicted mask
-            predicted_mask = predicted_mask & ~mask
+            unpredicted_mask = unpredicted_mask & ~mask
         # now we can calculate the loss
-        return -confidences.sum()
+        return confidences.sum()
 
 
 def compute_cascade_loss(logits, targets, mask=None):
@@ -184,7 +194,7 @@ def compute_cascade_loss(logits, targets, mask=None):
         main_loss += current_loss.sum()
 
         # Update the correct mask for the current layer
-        correct_mask = correct_mask * ~delta_mask
+        correct_mask = correct_mask & ~delta_mask
 
 
 
