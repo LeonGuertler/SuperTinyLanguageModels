@@ -56,7 +56,7 @@ def prepare_data(cfg, embedder):
     it as memmap bin files
     """
     # check if the data is already preprocessed
-    dataloader_name = cfg["trainer"]["dataloader"]
+    dataloader_name = cfg["trainer"]["dataloader"]["name"]
     dataset_name = cfg["trainer"]["dataset"]
     tokenized_data_folder = os.path.join(
         cfg["general"]["paths"]["data_dir"],
@@ -89,7 +89,6 @@ def prepare_data(cfg, embedder):
         dataset_name=dataset_name,
     )
 
-    print(dataloader_name)
     processor_object = DATALOADER_PROCESSORS[dataloader_name](
         embedder=embedder
     )
