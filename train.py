@@ -8,6 +8,7 @@ import hydra
 from models.build_models import build_model
 from trainers.build_trainers import build_trainer, ddp_setup
 from trainers.utils import create_folder_structure, init_print_override, restore_print_override
+from trainers.prepare import prepare_training
 
 import torch
 from torch.distributed import destroy_process_group
@@ -20,6 +21,7 @@ def ddp_main(rank, world_size, cfg):
     os.environ["GLOBAL_RANK"] = str(rank)
 
     original_print = init_print_override()
+
 
     try:
         print("Rank: ", rank, "World Size: ", world_size)
@@ -53,6 +55,9 @@ def ddp_main(rank, world_size, cfg):
 @hydra.main(config_path="configs", config_name="train")
 def main(cfg):
     world_size = torch.cuda.device_count()
+
+    # prepare the data
+    prepare_training(cfg)
     
     if "full_configs" in cfg:
         cfg = cfg["full_configs"]

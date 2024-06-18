@@ -12,7 +12,85 @@ from models.embedding_models import GenericEmbedder
 from trainers.utils import load_data
 
 
-class BaseDataloader:
+class DatasetInterface(torch.utils.data.Dataset):
+    """
+    A basic interface to be used by the remaining datasets
+    """
+    def __init__(self, split, cfg):
+        """
+        Arguments:
+            cfg: the train script cfg
+        """
+        super().__init__()
+        self.cfg = cfg
+        self.dataset_name = self.cfg["trainer"]["dataset"]
+        self.context_window = self.cfg["model"]["context_window"]
+        self.data_path = os.path.join(
+            self.cfg["general"]["paths"]["data_dir"],
+            self.dataset_name,
+            f'{self.cfg["model"]["embedder"]["tokenizer_type"]}-{self.cfg["model"]["vocab_size"]}',
+            f"{split}.bin"
+        )
+
+        self._load_data()
+        self.dataset_len = len(self.data) - self.context_window
+
+
+    def _load_data(self):
+        """
+        Get data
+        """
+        self.data = np.memmap(
+            self.data_path,
+            dtype=np.uint16,
+            mode="r",
+        )
+
+    def __len__(self):
+        raise NotImplementedError
+    
+    def __getitem__(self, idx):
+        raise NotImplementedError
+    
+    def check_processed(self):
+        """
+        Check if the data has been preprocessed
+        """
+        # raise error if not exists
+        if not os.path.exists(self.data_path):
+            raise FileNotFoundError(f"{self.data_path} does not exist")
+        
+
+
+class BaseDataloader(DatasetInterface):
+    """
+    Simple base dataloader for standard gpt-2'esk architectures and training.
+    """
+    def __init__(self, cfg):
+        super().__init__(cfg)
+
+    def __len__(self):
+        """
+        Return dataset length
+        """
+        return self.dataset_len
+    
+    def __getitem__(self, idx):
+        """
+        Get a batch of data
+        """
+        x = torch.from_numpy((self.data[idx: idx + self.context_window]).astype(np.int64))
+        y = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
+        return x, y
+
+
+
+
+
+############################################################################
+
+
+class BaseDataloaderOLD:
     """Abstract class for dataloaders"""
 
     def __init__(
