@@ -174,8 +174,8 @@ def build_trainer(cfg, model, gpu_id):
     prepare_data(cfg, model.embedding_model)
 
     # build dataloder
-    train_dataset = build_dataloader(cfg=cfg)
-    val_dataset = build_dataloader(cfg=cfg)
+    train_dataset = build_dataloader(cfg=cfg, split="train")
+    val_dataset = build_dataloader(cfg=cfg, split="val")
 
     # downsample the val_dataset to eval iters
     val_dataset = val_dataset.downsample(cfg["trainer"]["training"]["eval_iters"])
