@@ -130,11 +130,15 @@ DATADAMPLER_DICT = {
     "standard": torch.utils.data.DataLoader
 }
 
-def build_datasampler(dataset, sampling):
+def build_datasampler(dataset, sampling, batch_size, shuffle):
     """
     Given the dataset and the sampling method, build the dataloader
     """
-    return DATADAMPLER_DICT[sampling](dataset)
+    return DATADAMPLER_DICT[sampling](
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle
+    )
 
 LOSS_FN_DICT = {
     "cross_entropy": cross_entropy_loss_fn,
@@ -181,11 +185,15 @@ def build_trainer(cfg, model, gpu_id):
     # wrap both in dataloaders
     train_dataloader = build_datasampler(
         dataset=train_dataset,
-        sampling=cfg["trainer"]["datasampling"]["name"]
+        sampling=cfg["trainer"]["datasampling"]["name"],
+        batch_size=cfg["trainer"]["training"]["batch_size"],
+        shuffle=True
     )
     val_dataloader = build_datasampler(
         dataset=val_dataset,
-        sampling=cfg["trainer"]["datasampling"]["name"]
+        sampling=cfg["trainer"]["datasampling"]["name"],
+        batch_size=cfg["trainer"]["training"]["batch_size"],
+        shuffle=False
     )
 
     # build loss function
