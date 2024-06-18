@@ -69,7 +69,6 @@ class BaseDataloader(torch.utils.data.Dataset):
         '''
         X = torch.from_numpy((self.data[idx : idx + self.context_window]).astype(np.int64))
         y = torch.from_numpy((self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64))
-
         X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
             self.device, non_blocking=True
         )

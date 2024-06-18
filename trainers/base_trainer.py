@@ -22,6 +22,7 @@ import numpy as np
 from itertools import islice
 from torch.nn.parallel import DistributedDataParallel as DDP 
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data import RandomSampler
 from trainers.utils import aggregate_value
 
 
@@ -39,12 +40,15 @@ class BaseTrainer:
         optimizer,
         dataloader: train_dataloader.BaseDataloader,
         loss_fn,
-        gpu_id, 
+        gpu_id=None, 
         lr_scheduler=None,
         dropout_scheduler=None,
     ) -> None:
         self.model = model
-        self.model = DDP(self.model, device_ids=[gpu_id])
+        if gpu_id is not None: # using ddp
+            self.DDP_model = DDP(self.model, device_ids=[gpu_id])
+        else:
+            self.DDP_model = model
         self.gpu_id = gpu_id 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
@@ -124,13 +128,17 @@ class BaseTrainer:
         # set the split data
         dataset = self.dataloader.split_dataloader(split)
         
+        if self.gpu_id is None:
+            sampler = RandomSampler(dataset)
+        else:
+            sampler = DistributedSampler(dataset)
         # create the dataset
         dataloader = torch.utils.data.DataLoader(
             dataset,
             batch_size = self.batch_size,
             shuffle = False, ## previously True for SingleGPU
             num_workers = 0,
-            sampler = DistributedSampler(dataset) ## needed for DDP
+            sampler=sampler
         )
 
         ## cache the dataloader
@@ -172,7 +180,7 @@ class BaseTrainer:
                     (
                         char_lengths,
                         mask,
-                    ) = self.model.module.embedding_model.get_sequence_info(x) ## added the 'module' attribute (https://discuss.pytorch.org/t/access-to-attributes-of-model-wrapped-in-ddp/130572/2)
+                    ) = self.model.embedding_model.get_sequence_info(x) ## added the 'module' attribute (https://discuss.pytorch.org/t/access-to-attributes-of-model-wrapped-in-ddp/130572/2)
                     self.cached_sets[split][i] = {
                         "x": x,
                         "y": y,
@@ -180,7 +188,7 @@ class BaseTrainer:
                         "mask": mask,
                     }
                 with self.ctx:
-                    output, _ = self.model(x)
+                    output, _ = self.DDP_model(x)
                     losses[i] = self.loss_fn(output, y, mask=mask)
                     perplexities[i] = compute_perplexity(
                         logits=output,
@@ -202,7 +210,7 @@ class BaseTrainer:
 
         evaluator_results = {}
         for evaluator in self.cfg.trainer["eval"]:
-            evaluator_results[evaluator["evaluator"]] = train_eval(evaluator, self.model.module)
+            evaluator_results[evaluator["evaluator"]] = train_eval(evaluator, self.model)
             # recurse over metrics to prepend the evaluator name as a prefix
             relabeled_results = {}
             for metric in evaluator_results[evaluator["evaluator"]]:
@@ -216,23 +224,32 @@ class BaseTrainer:
         ## init Pytorch's DataLoader
         dataloader = self._get_dataloader("train")
 
-        ## set the epoch for the DistributedSampler (https://discuss.pytorch.org/t/why-is-sampler-set-epoch-epoch-needed-for-distributedsampler/149672/2)
-        dataloader.sampler.set_epoch(epoch)
+        if self.gpu_id is not None:
+            ## set the epoch for the DistributedSampler (https://discuss.pytorch.org/t/why-is-sampler-set-epoch-epoch-needed-for-distributedsampler/149672/2)
+            dataloader.sampler.set_epoch(epoch)
 
         for iter, (x, y) in enumerate(dataloader):
             # Only use no_sync() when we're not on the last step
-            if iter % self.gradient_accumulation_steps != 0:
-                with self.model.no_sync():
+            if iter % self.gradient_accumulation_steps != 0 and self.gpu_id is not None:
+                with self.DDP_model.no_sync():
                     with self.ctx:
-                        output, aux_loss = self.model(x)
+                        output, aux_loss = self.DDP_model(x)
                         loss = self.loss_fn(output, y)
                         if aux_loss is not None:
                             loss += aux_loss
                         loss = loss / self.gradient_accumulation_steps
                     self.scaler.scale(loss).backward()
-            else:
+            elif iter % self.gradient_accumulation_steps == 0:
                 with self.ctx:
                     output, aux_loss = self.model(x)
+                    loss = self.loss_fn(output, y)
+                    if aux_loss is not None:
+                        loss += aux_loss
+                    loss = loss / self.gradient_accumulation_steps
+                self.scaler.scale(loss).backward()
+            else:
+                with self.ctx:
+                    output, aux_loss = self.DDP_model(x)
                     loss = self.loss_fn(output, y)
                     if aux_loss is not None:
                         loss += aux_loss
@@ -296,7 +313,7 @@ class BaseTrainer:
         store the current model checkpoint.
         """
         checkpoint = {
-            "model": self.model.module.state_dict(), ## added the 'module' attribute (https://discuss.pytorch.org/t/access-to-attributes-of-model-wrapped-in-ddp/130572/2)
+            "model": self.model.state_dict(), ## added the 'module' attribute (https://discuss.pytorch.org/t/access-to-attributes-of-model-wrapped-in-ddp/130572/2)
             "optimizer": self.optimizer.state_dict(),
             "iter_num": iter_num,
             "config": self.cfg,
