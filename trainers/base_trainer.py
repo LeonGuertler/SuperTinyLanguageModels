@@ -130,7 +130,7 @@ class BaseTrainer:
             batch_size = self.batch_size,
             shuffle = False, ## previously True for SingleGPU
             num_workers = 0,
-            sampler = DistributedSampler(self.dataloader) ## needed for DDP
+            sampler = DistributedSampler(dataset) ## needed for DDP
         )
 
         ## cache the dataloader
