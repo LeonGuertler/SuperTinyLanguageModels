@@ -7,6 +7,7 @@ import os
 import numpy as np
 import torch
 from tqdm import tqdm
+import random
 
 from models.embedding_models import GenericEmbedder
 from trainers.utils import load_data
@@ -67,6 +68,8 @@ class BaseDataloader(torch.utils.data.Dataset):
         
         Note: This works for BytePooling and StandardDataloader, but not for ConversationalDataloader and NextTokenMLMDataloader
         '''
+        idx = random.randint(0, len(self.data) - self.context_window) # lol
+
         X = torch.from_numpy((self.data[idx : idx + self.context_window]).astype(np.int64))
         y = torch.from_numpy((self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64))
         X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(

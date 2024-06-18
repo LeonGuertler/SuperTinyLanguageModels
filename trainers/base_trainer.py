@@ -8,6 +8,7 @@ from omegaconf import OmegaConf
 from torch.profiler import ProfilerActivity, profile, record_function
 from copy import deepcopy
 from trainers.utils import yes_grad
+from contextlib import nullcontext
 
 from models import model_shell
 from trainers import dataloader as train_dataloader
@@ -22,7 +23,7 @@ import numpy as np
 from itertools import islice
 from torch.nn.parallel import DistributedDataParallel as DDP 
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import RandomSampler
+from torch.utils.data import SequentialSampler
 from trainers.utils import aggregate_value
 
 
@@ -46,8 +47,10 @@ class BaseTrainer:
     ) -> None:
         self.model = model
         if gpu_id is not None: # using ddp
+            self.dist = True
             self.DDP_model = DDP(self.model, device_ids=[gpu_id])
         else:
+            self.dist = False
             self.DDP_model = model
         self.gpu_id = gpu_id 
         self.optimizer = optimizer
@@ -70,9 +73,9 @@ class BaseTrainer:
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
         self.ctx = self._setup_ctx()
-        if self.use_wandb and self.gpu_id == 0: ## ensures that only the first GPU logs to wandb
+        if self.use_wandb and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU logs to wandb
             self._setup_logging()
-        if cfg.trainer.training.run_profiler and self.gpu_id == 0: ## ensures that only the first GPU runs the profiler
+        if cfg.trainer.training.run_profiler and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU runs the profiler
             self.run_profile()
             raise SystemExit
 
@@ -129,14 +132,14 @@ class BaseTrainer:
         dataset = self.dataloader.split_dataloader(split)
         
         if self.gpu_id is None:
-            sampler = RandomSampler(dataset)
+            sampler = SequentialSampler(dataset)
         else:
-            sampler = DistributedSampler(dataset)
+            sampler = DistributedSampler(dataset, shuffle=False)
         # create the dataset
         dataloader = torch.utils.data.DataLoader(
             dataset,
             batch_size = self.batch_size,
-            shuffle = False, ## previously True for SingleGPU
+            shuffle = False,
             num_workers = 0,
             sampler=sampler
         )
@@ -166,8 +169,9 @@ class BaseTrainer:
             ## initialize Pytorch's DataLoader
             dataloader = self._get_dataloader(split)
 
-            for i, (x, y) in enumerate(islice(dataloader, eval_iters)):
-
+            for i, (x, y) in enumerate(dataloader):
+                if i > eval_iters:
+                    break
                 # use cached eval if available
                 if i in self.cached_sets[split]:
                     print("use cached test set")
@@ -223,31 +227,15 @@ class BaseTrainer:
         """Run a single step of training"""
         ## init Pytorch's DataLoader
         dataloader = self._get_dataloader("train")
-
-        if self.gpu_id is not None:
+        if self.dist:
             ## set the epoch for the DistributedSampler (https://discuss.pytorch.org/t/why-is-sampler-set-epoch-epoch-needed-for-distributedsampler/149672/2)
             dataloader.sampler.set_epoch(epoch)
-
         for iter, (x, y) in enumerate(dataloader):
-            # Only use no_sync() when we're not on the last step
-            if iter % self.gradient_accumulation_steps != 0 and self.gpu_id is not None:
-                with self.DDP_model.no_sync():
-                    with self.ctx:
-                        output, aux_loss = self.DDP_model(x)
-                        loss = self.loss_fn(output, y)
-                        if aux_loss is not None:
-                            loss += aux_loss
-                        loss = loss / self.gradient_accumulation_steps
-                    self.scaler.scale(loss).backward()
-            elif iter % self.gradient_accumulation_steps == 0:
-                with self.ctx:
-                    output, aux_loss = self.model(x)
-                    loss = self.loss_fn(output, y)
-                    if aux_loss is not None:
-                        loss += aux_loss
-                    loss = loss / self.gradient_accumulation_steps
-                self.scaler.scale(loss).backward()
+            if iter != self.gradient_accumulation_steps - 1 and self.dist:
+                ddp_no_sync_ctx = self.DDP_model.no_sync()
             else:
+                ddp_no_sync_ctx = nullcontext()
+            with ddp_no_sync_ctx:
                 with self.ctx:
                     output, aux_loss = self.DDP_model(x)
                     loss = self.loss_fn(output, y)
@@ -255,7 +243,7 @@ class BaseTrainer:
                         loss += aux_loss
                     loss = loss / self.gradient_accumulation_steps
                 self.scaler.scale(loss).backward()
-                # done with the gradient accumulation
+            if iter == self.gradient_accumulation_steps - 1:
                 break
 
         grad_clip = self.cfg.trainer.optimizer.grad_clip
@@ -353,7 +341,7 @@ class BaseTrainer:
                     f"step {iter_num}: benchmark results {benchmark_results}"
                 )
 
-                if self.gpu_id == 0: ## ensure only the first GPU logs
+                if self.gpu_id == 0 or not self.dist: ## ensure only the first GPU logs
                     if self.use_wandb:
                         wandb.log(
                             {
@@ -376,7 +364,7 @@ class BaseTrainer:
             if (
                 not iter_num % self.cfg.trainer.training.checkpoint_interval
                 and iter_num > 0
-                and self.gpu_id == 0 ## ensure only the first GPU prints
+                and self.gpu_id == 0 or not self.dist ## ensure only the first GPU prints
             ):
                 self._save_model(iter_num)
 
@@ -389,11 +377,11 @@ class BaseTrainer:
                 # print(f"GPU {self.gpu_id}: step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
 
                 ## aggregate the loss across all GPUs
-                lossf = aggregate_value(lossf, self.cfg.general.device)
+                lossf = aggregate_value(lossf, self.cfg.general.device, self.dist)
 
                 ## print and log the result only on the first GPU after aggregation
                 print(f"All GPU(s): step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
-                if self.gpu_id == 0 and self.use_wandb:
+                if (self.gpu_id == 0 or not self.dist) and self.use_wandb:
                     wandb.log(
                         {
                             "iter": iter_num,
@@ -403,7 +391,7 @@ class BaseTrainer:
                         }
                     )
         # save the final model
-        if self.gpu_id == 0: ## ensure only the first GPU saves the model
+        if self.gpu_id == 0 or not self.dist: ## ensure only the first GPU saves the model
             self._save_model(iter_num)
 
     def train(self, seed=42):

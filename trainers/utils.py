@@ -208,14 +208,23 @@ def profilize(model, classes=None):
 
         model.forward = forward_wrapper
 
+def is_dist():
+    """
+    Check if the current process is distributed.
+    """
+    return dist.is_initialized()
+
 def aggregate_value(value, device = torch.device("cuda")): 
     """
     Since using DDP, calculation of metrics happen across all GPUs. 
     This function aggregate the loss across all GPUs. 
     """
+    if not is_dist():
+        return value
     all_loss = torch.tensor([value], device=device)
     dist.all_reduce(all_loss, op=dist.ReduceOp.SUM)
     return all_loss.item() / dist.get_world_size()
+    # return value
 
 def init_print_override():
     '''
