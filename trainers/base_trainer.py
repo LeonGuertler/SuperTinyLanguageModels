@@ -38,7 +38,7 @@ class BaseTrainer:
         model: model_shell.ModelShell,
         optimizer,
         train_dataloader,
-        val_dataloader
+        val_dataloader,
         loss_fn,
         gpu_id, 
         lr_scheduler=None,
