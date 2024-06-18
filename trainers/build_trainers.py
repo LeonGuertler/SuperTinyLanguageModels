@@ -220,3 +220,4 @@ def build_trainer(cfg, model, gpu_id):
     )
 
     return trainer
+
