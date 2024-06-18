@@ -112,7 +112,7 @@ class BaseTrainer:
         print("Preprocessing the training data")
         self.dataloader.prepare_data()
 
-    def _prepare_dataloader(self, split):
+    def _get_dataloader(self, split):
         """
         Feeds dataloader into PyTorch's DataLoader.
         """
@@ -122,11 +122,11 @@ class BaseTrainer:
         
         ## if the dataloader has not been created, create it
         # set the split data
-        self.dataloader.set_split(split)
+        dataset = self.dataloader.split_dataloader(split)
         
         # create the dataset
         dataloader = torch.utils.data.DataLoader(
-            self.dataloader,
+            dataset,
             batch_size = self.batch_size,
             shuffle = False, ## previously True for SingleGPU
             num_workers = 0,
@@ -153,10 +153,10 @@ class BaseTrainer:
             losses = torch.zeros(eval_iters)
             perplexities = torch.zeros(eval_iters)
             divergences = torch.zeros(eval_iters)
-            batches = []
+            # batches = []
             
             ## initialize Pytorch's DataLoader
-            dataloader = self._prepare_dataloader(split)
+            dataloader = self._get_dataloader(split)
 
             for i, (x, y) in enumerate(islice(dataloader, eval_iters)):
 
@@ -190,7 +190,7 @@ class BaseTrainer:
                     )
                     # divergences[i] = self.distil_eval(self.model, self.cfg, batches, self.loss_fn) # not ready yet
                     divergences[i] = 0
-            batches.append((x,y))
+            # batches.append((x,y))
 
             ## aggregate the loss and perplexity across all GPUs
             avg_loss = aggregate_value(losses.mean().item(), self.cfg.general.device)
@@ -214,20 +214,33 @@ class BaseTrainer:
     def _run_step(self, epoch = 0):
         """Run a single step of training"""
         ## init Pytorch's DataLoader
-        dataloader = self._prepare_dataloader("train")
+        dataloader = self._get_dataloader("train")
 
         ## set the epoch for the DistributedSampler (https://discuss.pytorch.org/t/why-is-sampler-set-epoch-epoch-needed-for-distributedsampler/149672/2)
         dataloader.sampler.set_epoch(epoch)
 
-        for iter, (x, y) in enumerate(islice(dataloader, self.gradient_accumulation_steps)):
-            with self.ctx:
-                output, aux_loss = self.model(x)
-                loss = self.loss_fn(output, y)
-                if aux_loss is not None:
-                    loss += aux_loss
-                loss = loss / self.gradient_accumulation_steps
-            self.scaler.scale(loss).backward()
-        
+        for iter, (x, y) in enumerate(dataloader):
+            # Only use no_sync() when we're not on the last step
+            if iter % self.gradient_accumulation_steps != 0:
+                with self.model.no_sync():
+                    with self.ctx:
+                        output, aux_loss = self.model(x)
+                        loss = self.loss_fn(output, y)
+                        if aux_loss is not None:
+                            loss += aux_loss
+                        loss = loss / self.gradient_accumulation_steps
+                    self.scaler.scale(loss).backward()
+            else:
+                with self.ctx:
+                    output, aux_loss = self.model(x)
+                    loss = self.loss_fn(output, y)
+                    if aux_loss is not None:
+                        loss += aux_loss
+                    loss = loss / self.gradient_accumulation_steps
+                self.scaler.scale(loss).backward()
+                # done with the gradient accumulation
+                break
+
         grad_clip = self.cfg.trainer.optimizer.grad_clip
         if grad_clip != 0.0:
             self.scaler.unscale_(self.optimizer)
@@ -334,30 +347,14 @@ class BaseTrainer:
                                 "dropout": dropout,
                                 "train/perplexity": perplexities["train"],
                                 "val/perplexity": perplexities["val"],
+                                # "train/divergency": divergency["train"],
+                                # "val/divergency": divergency["val"],
                                 **{
-                                    f"benchmark/{k}": v
+                                    k: v
                                     for k, v in benchmark_results.items()
                                 },
                             }
                         )
-                if self.use_wandb:
-                    wandb.log(
-                        {
-                            "iter": iter_num,
-                            "train/loss": losses["train"],
-                            "val/loss": losses["val"],
-                            "lr": lr,
-                            "dropout": dropout,
-                            "train/perplexity": perplexities["train"],
-                            "val/perplexity": perplexities["val"],
-                            "train/divergency": divergency["train"],
-                            "val/divergency": divergency["val"],
-                            **{
-                                k: v
-                                for k, v in benchmark_results.items()
-                            },
-                        }
-                    )
             # save checkpoints
             if (
                 not iter_num % self.cfg.trainer.training.checkpoint_interval
