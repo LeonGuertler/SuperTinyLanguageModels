@@ -132,6 +132,8 @@ class BaseTrainer:
                         y=y,
                     )
                 )
+            if i >= eval_iters:
+                break
         
         # aggregate the loss and perplexity across all GPUs
         avg_loss = aggregate_value(np.mean(losses), self.cfg.general.device)
