@@ -57,7 +57,7 @@ def main(cfg):
     world_size = torch.cuda.device_count()
 
     # prepare the data
-    prepare_training(cfg)
+    prepare_data(cfg)
     
     if "full_configs" in cfg:
         cfg = cfg["full_configs"]
