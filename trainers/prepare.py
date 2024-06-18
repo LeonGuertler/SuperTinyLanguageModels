@@ -89,6 +89,7 @@ def prepare_data(cfg, embedder):
         dataset_name=dataset_name,
     )
 
+    input(dataloader_name)
     processor_object = DATALOADER_PROCESSORS[dataloader_name](
         embedder=embedder
     )
