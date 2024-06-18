@@ -158,6 +158,9 @@ class BaseTrainer:
     def _run_step(self, epoch = 0):
         """Run a single step of training"""
         for iter, (x, y) in enumerate(islice(self.train_dataloader, self.gradient_accumulation_steps)):
+            # push x,y to device
+            x = x.to(self.gpu_id)
+            y = y.to(self.gpu_id)
             with self.ctx:
                 output, aux_loss = self.model(x)
                 loss = self.loss_fn(output, y)
@@ -284,8 +287,6 @@ class BaseTrainer:
                             "dropout": dropout,
                             "train/perplexity": perplexities["train"],
                             "val/perplexity": perplexities["val"],
-                            "train/divergency": divergency["train"],
-                            "val/divergency": divergency["val"],
                             **{
                                 k: v
                                 for k, v in benchmark_results.items()
