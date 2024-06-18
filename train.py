@@ -65,6 +65,9 @@ def main(cfg):
 
     create_folder_structure(path_config=cfg["general"]["paths"])
 
+    # prepare data
+    _ = build_trainer(cfg=cfg, model=None, gpu_id=0)
+    _ = None
     mp.spawn(
         ddp_main,
         args=(world_size, cfg),
