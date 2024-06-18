@@ -37,7 +37,8 @@ class BaseTrainer:
         cfg,
         model: model_shell.ModelShell,
         optimizer,
-        dataloader: train_dataloader.BaseDataloader,
+        train_dataloader,
+        val_dataloader
         loss_fn,
         gpu_id, 
         lr_scheduler=None,
@@ -49,7 +50,8 @@ class BaseTrainer:
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.dropout_scheduler = dropout_scheduler
-        self.dataloader = dataloader
+        self.train_dataloader = train_dataloader
+        self.val_dataloader = val_dataloader
         self.train_val_dataloaders = {}
         self.loss_fn = loss_fn
         self.cfg = cfg
@@ -105,38 +107,6 @@ class BaseTrainer:
         """Setup the scaler"""
         self.scaler = torch.cuda.amp.GradScaler(enabled=dtype == torch.float16)
 
-    def preprocess_data(self):
-        """
-        Preprocess the data
-        """
-        print("Preprocessing the training data")
-        self.dataloader.prepare_data()
-
-    def _prepare_dataloader(self, split):
-        """
-        Feeds dataloader into PyTorch's DataLoader.
-        """
-        ## return the dataloader if it has already been cached
-        if split in self.train_val_dataloaders:
-            return self.train_val_dataloaders[split]
-        
-        ## if the dataloader has not been created, create it
-        # set the split data
-        self.dataloader.set_split(split)
-        
-        # create the dataset
-        dataloader = torch.utils.data.DataLoader(
-            self.dataloader,
-            batch_size = self.batch_size,
-            shuffle = False, ## previously True for SingleGPU
-            num_workers = 0,
-            sampler = DistributedSampler(self.dataloader) ## needed for DDP
-        )
-
-        ## cache the dataloader
-        self.train_val_dataloaders[split] = dataloader
-
-        return dataloader
 
     @torch.no_grad()
     def estimate_performance(self, eval_iters=None):
@@ -147,58 +117,27 @@ class BaseTrainer:
         perplexity = {}
         divergency = {}
         self.model.eval()
-        for split in ["train", "val"]:
 
-            ## initialize the loss, perplexity, and divergency
-            losses = torch.zeros(eval_iters)
-            perplexities = torch.zeros(eval_iters)
-            divergences = torch.zeros(eval_iters)
-            batches = []
-            
-            ## initialize Pytorch's DataLoader
-            dataloader = self._prepare_dataloader(split)
-
-            for i, (x, y) in enumerate(islice(dataloader, eval_iters)):
-
-                # use cached eval if available
-                if i in self.cached_sets[split]:
-                    print("use cached test set")
-                    x = self.cached_sets[split][i]["x"]
-                    y = self.cached_sets[split][i]["y"]
-                    char_lengths = self.cached_sets[split][i]["char_lengths"]
-                    mask = self.cached_sets[split][i]["mask"]
-                else:
-                    print("process test set")
-                    (
-                        char_lengths,
-                        mask,
-                    ) = self.model.module.embedding_model.get_sequence_info(x) ## added the 'module' attribute (https://discuss.pytorch.org/t/access-to-attributes-of-model-wrapped-in-ddp/130572/2)
-                    self.cached_sets[split][i] = {
-                        "x": x,
-                        "y": y,
-                        "char_lengths": char_lengths,
-                        "mask": mask,
-                    }
-                with self.ctx:
-                    output, _ = self.model(x)
-                    losses[i] = self.loss_fn(output, y, mask=mask)
-                    perplexities[i] = compute_perplexity(
+        # eval on val set 
+        losses = []
+        perplexities = []
+        for i, (X, y) in enumerate(self.val_dataloader):
+            with self.ctx:
+                output, _ = self.model(X)
+                loss = self.loss_fn(output, y)
+                losses.append(loss.item())
+                perplexities.append(
+                    compute_perplexity(
                         logits=output,
                         y=y,
-                        char_lengths=char_lengths,
-                        mask=mask,
                     )
-                    # divergences[i] = self.distil_eval(self.model, self.cfg, batches, self.loss_fn) # not ready yet
-                    divergences[i] = 0
-            batches.append((x,y))
-
-            ## aggregate the loss and perplexity across all GPUs
-            avg_loss = aggregate_value(losses.mean().item(), self.cfg.general.device)
-            loss[split] = avg_loss
-            avg_perplexity = aggregate_value(perplexities.mean().item(), self.cfg.general.device)
-            perplexity[split] = avg_perplexity
-            avg_divergency = aggregate_value(divergences.mean().item(), self.cfg.general.device)
-            divergency[split] = avg_divergency
+                )
+        
+        # aggregate the loss and perplexity across all GPUs
+        avg_loss = aggregate_value(np.mean(losses), self.cfg.general.device)
+        loss["val"] = avg_loss
+        avg_perplexity = aggregate_value(np.mean(perplexities), self.cfg.general.device)
+        perplexity["val"] = avg_perplexity
 
         evaluator_results = {}
         for evaluator in self.cfg.trainer["eval"]:
@@ -209,17 +148,14 @@ class BaseTrainer:
                 relabeled_results[f"{evaluator['evaluator']}/{metric}"] = evaluator_results[evaluator["evaluator"]][metric]
             evaluator_results[evaluator["evaluator"]] = relabeled_results
         self.model.train()
-        return loss, perplexity, divergency, evaluator_results
+        return loss, perplexity, evaluator_results
+
+
+
 
     def _run_step(self, epoch = 0):
         """Run a single step of training"""
-        ## init Pytorch's DataLoader
-        dataloader = self._prepare_dataloader("train")
-
-        ## set the epoch for the DistributedSampler (https://discuss.pytorch.org/t/why-is-sampler-set-epoch-epoch-needed-for-distributedsampler/149672/2)
-        dataloader.sampler.set_epoch(epoch)
-
-        for iter, (x, y) in enumerate(islice(dataloader, self.gradient_accumulation_steps)):
+        for iter, (x, y) in enumerate(islice(self.train_dataloader, self.gradient_accumulation_steps)):
             with self.ctx:
                 output, aux_loss = self.model(x)
                 loss = self.loss_fn(output, y)
@@ -306,7 +242,7 @@ class BaseTrainer:
                 not iter_num % self.cfg.trainer.training.eval_interval
             ) and iter_num > 0:
                 s0 = time.time()
-                losses, perplexities, divergency, benchmark_results = self.estimate_performance()
+                losses, perplexities, benchmark_results = self.estimate_performance()
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f},"
                     f" val loss {losses['val']:.4f}, dt {time.time()-s0:.1f}s"
@@ -314,10 +250,6 @@ class BaseTrainer:
                 print(
                     f"step {iter_num}: train perplexity {perplexities['train']:.4f},"
                     f" val perplexity {perplexities['val']:.4f}"
-                )
-                print(
-                    f"step {iter_num}: train divergency {divergency['train']:.4f},"
-                    f" val divergency {divergency['val']:.4f}"
                 )
                 print(
                     f"step {iter_num}: benchmark results {benchmark_results}"

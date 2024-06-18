@@ -125,6 +125,16 @@ def build_dataloader(cfg):
     )
 
 
+DATADAMPLER_DICT = {
+    "standard": torch.utils.data.DataLoader
+}
+
+def build_datasampler(dataset, sampling):
+    """
+    Given the dataset and the sampling method, build the dataloader
+    """
+    return DATADAMPLER_DICT[sampling](dataset)
+
 LOSS_FN_DICT = {
     "cross_entropy": cross_entropy_loss_fn,
     "next_token_mlm": next_token_mlm_loss_fn,
@@ -162,8 +172,23 @@ def build_trainer(cfg, model, gpu_id):
 
     # prepare data
     prepare_data(cfg, model.embedding_model)
+
     # build dataloder
-    dataloader = build_dataloader(cfg=cfg)
+    train_dataset = build_dataloader(cfg=cfg)
+    val_dataset = build_dataloader(cfg=cfg)
+
+    # downsample the val_dataset to eval iters
+    val_dataset = val_dataset.downsample(cfg["trainer"]["training"]["eval_iters"])
+
+    # wrap both in dataloaders
+    train_dataloader = build_datasampler(
+        dataset=train_dataset,
+        sampling=cfg["trainer"]["datasampling"]["name"]
+    )
+    val_dataloader = build_datasampler(
+        dataset=val_dataset,
+        sampling=cfg["trainer"]["datasampling"]["name"]
+    )
 
     # build loss function
     loss_fn = build_loss_fn(loss_fn_name=cfg.trainer["loss_fn"]["name"])
@@ -176,7 +201,8 @@ def build_trainer(cfg, model, gpu_id):
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
         dropout_scheduler=dropout_scheduler,
-        dataloader=dataloader,
+        train_dataloader=train_dataloader,
+        val_dataloader=val_dataloader,
         loss_fn=loss_fn,
         gpu_id=gpu_id
     )

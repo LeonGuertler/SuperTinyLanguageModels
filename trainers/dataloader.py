@@ -66,8 +66,8 @@ class BaseDataloader(DatasetInterface):
     """
     Simple base dataloader for standard gpt-2'esk architectures and training.
     """
-    def __init__(self, cfg):
-        super().__init__(cfg)
+    def __init__(self, split, cfg):
+        super().__init__(split, cfg)
 
     def __len__(self):
         """
