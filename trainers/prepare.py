@@ -57,7 +57,7 @@ def prepare_data(cfg, embedder):
     """
     # check if the data is already preprocessed
     dataloader_name = cfg["trainer"]["dataloader"]
-    dataset_name = cfg["general"]["dataset_name"]
+    dataset_name = cfg["trainer"]["dataset"]
     tokenized_data_folder = os.path.join(
         cfg["general"]["paths"]["data_dir"],
         dataset_name,
