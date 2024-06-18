@@ -49,7 +49,13 @@ OPTIMIZER_DICT = {
         weight_decay=trainer_cfg["weight_decay"],
         learning_rate=trainer_cfg["lr"],
         betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
-    )
+    ),
+    "adamW": lambda model, trainer_cfg: torch.optim.AdamW(
+        model.parameters(),
+        lr=trainer_cfg["lr"],
+        betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
+        weight_decay=trainer_cfg["weight_decay"],
+    ),
 }
 
 
