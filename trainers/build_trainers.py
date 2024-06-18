@@ -116,12 +116,13 @@ DATALOADER_DICT: dict[str, BaseDataloader] = {
 }
 
 
-def build_dataloader(cfg):
+def build_dataloader(cfg, split):
     """
     Given the config, build the dataloader
     """
     return DATALOADER_DICT[cfg.trainer["dataloader"]["name"]](
         cfg=cfg,
+        split=split
     )
 
 
