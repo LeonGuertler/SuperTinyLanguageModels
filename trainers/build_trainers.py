@@ -25,6 +25,8 @@ from trainers.scheduler import (
     TriangleDropoutScheduler
 )
 
+from trainers.prepare import prepare_data
+
 import torch
 from torch.distributed import init_process_group
 import os
@@ -114,13 +116,12 @@ DATALOADER_DICT: dict[str, BaseDataloader] = {
 }
 
 
-def build_dataloader(cfg, embedder):
+def build_dataloader(cfg):
     """
     Given the config, build the dataloader
     """
     return DATALOADER_DICT[cfg.trainer["dataloader"]["name"]](
         cfg=cfg,
-        embedder=embedder,
     )
 
 
@@ -159,9 +160,10 @@ def build_trainer(cfg, model, gpu_id):
     # build dropout scheduler
     dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg.trainer)
 
+    # prepare data
+    prepare_data(cfg, model.embedding_model)
     # build dataloder
-    dataloader = build_dataloader(cfg=cfg, embedder=model.embedding_model)
-    dataloader.prepare_data()
+    dataloader = build_dataloader(cfg=cfg)
 
     # build loss function
     loss_fn = build_loss_fn(loss_fn_name=cfg.trainer["loss_fn"]["name"])

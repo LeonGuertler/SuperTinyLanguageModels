@@ -50,7 +50,7 @@ DATALOADER_PROCESSORS = {
 
 
 
-def prepare_data(self, cfg, embedder):
+def prepare_data(cfg, embedder):
     """
     Split the data, process & tokenize it, and store 
     it as memmap bin files
