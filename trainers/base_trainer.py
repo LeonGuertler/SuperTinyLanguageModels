@@ -162,6 +162,7 @@ class BaseTrainer:
 
     def _run_step(self, epoch = 0):
         """Run a single step of training"""
+        input(self.gradient_accumulation_steps)
         for iter, (x, y) in enumerate(islice(self.train_dataloader, self.gradient_accumulation_steps)):
             # push x,y to device
             # if gpu_id is not none, push to it
