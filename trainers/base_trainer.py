@@ -160,7 +160,7 @@ class BaseTrainer:
             dataloader = self._get_dataloader(split)
 
             for i, (x, y) in enumerate(dataloader):
-                if i > eval_iters:
+                if i > eval_iters - 1:
                     break
                 # use cached eval if available
                 if i in self.cached_sets[split]:
