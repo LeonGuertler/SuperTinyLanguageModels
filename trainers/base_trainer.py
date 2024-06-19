@@ -174,9 +174,6 @@ class BaseTrainer:
                 y = y.to(self.model.device)
 
             with self.ctx:
-                # check device of x, y and model
-                print(f"GPU {self.gpu_id}: x.device: {x.device}, y.device: {y.device}, model.device: {self.model.device}")
-                input()
                 output, aux_loss = self.DDP_model(x)
                 loss = self.loss_fn(output, y)
                 if aux_loss is not None:
