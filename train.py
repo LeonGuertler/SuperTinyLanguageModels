@@ -59,7 +59,7 @@ def ddp_main(rank, world_size, cfg):
 
 @hydra.main(config_path="configs", config_name="train", version_base="1.1")
 def main(cfg):
-    world_size = torch.cuda.device_count()
+    #world_size = torch.cuda.device_count()
 
     if "full_configs" in cfg:
         cfg = cfg["full_configs"]
@@ -69,12 +69,12 @@ def main(cfg):
     print('Preparing training data')
     prepare_data(cfg=cfg)
 
-    if world_size > 1:
-        print("Starting distributed training...")
-        mp.spawn(ddp_main, args=(world_size, cfg), nprocs=world_size, join=True)
-    else:
-        print("Starting single GPU training...")
-        single_gpu_training(cfg)
+    #if world_size > 1:
+    #    print("Starting distributed training...")
+    #    mp.spawn(ddp_main, args=(world_size, cfg), nprocs=world_size, join=True)
+    #else:
+    print("Starting single GPU training...")
+    single_gpu_training(cfg)
 
     # Cleanup potentially leaked processes
     for process in mp.active_children():
