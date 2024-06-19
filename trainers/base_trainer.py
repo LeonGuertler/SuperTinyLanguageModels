@@ -169,7 +169,7 @@ class BaseTrainer:
             y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
 
             # Enable or disable gradient synchronization based on the need for accumulation
-            if self.use_ddp and hasattr(self.DDP_model, 'no_sync'):
+            if self.dist and hasattr(self.DDP_model, 'no_sync'):
                 context_manager = self.DDP_model.no_sync() if i != self.gradient_accumulation_steps - 1 else nullcontext()
             else:
                 context_manager = nullcontext()
