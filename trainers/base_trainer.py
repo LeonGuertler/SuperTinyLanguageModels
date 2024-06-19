@@ -188,6 +188,8 @@ class BaseTrainer:
                 input('breaking')
                 break
             print(i)
+
+        print('left loop')
         
         grad_clip = self.cfg.trainer.optimizer.grad_clip
         if grad_clip != 0.0:
