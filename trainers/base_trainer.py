@@ -162,29 +162,21 @@ class BaseTrainer:
 
     def _run_step(self, epoch = 0):
         """Run a single step of training"""
-        input(self.gradient_accumulation_steps)
-        for iter, (x, y) in enumerate(islice(self.train_dataloader, self.gradient_accumulation_steps)):
-            # push x,y to device
-            # if gpu_id is not none, push to it
-            if self.gpu_id is not None:
-                x = x.to(self.gpu_id)
-                y = y.to(self.gpu_id)
+        for iter, (x, y) in enumerate(self.train_dataloader):
+            if iter != self.gradient_accumulation_steps - 1 and self.dist:
+                ddp_no_sync_ctx = self.DDP_model.no_sync()
             else:
-                # push to model device
-                x = x.to(self.model.device)
-                y = y.to(self.model.device)
-
-            with self.ctx:
-                print(x.size())
-                input(x[0])
-                output, aux_loss = self.DDP_model(x)
-                print(output.size())
-                loss = self.loss_fn(output, y)
-                if aux_loss is not None:
-                    loss += aux_loss
-                loss = loss / self.gradient_accumulation_steps
-            self.scaler.scale(loss).backward()
-            print(iter)
+                ddp_no_sync_ctx = nullcontext()
+            with ddp_no_sync_ctx:
+                with self.ctx:
+                    output, aux_loss = self.DDP_model(x)
+                    loss = self.loss_fn(output, y)
+                    if aux_loss is not None:
+                        loss += aux_loss
+                    loss = loss / self.gradient_accumulation_steps
+                self.scaler.scale(loss).backward()
+            if iter == self.gradient_accumulation_steps - 1:
+                break
         
         grad_clip = self.cfg.trainer.optimizer.grad_clip
         if grad_clip != 0.0:
