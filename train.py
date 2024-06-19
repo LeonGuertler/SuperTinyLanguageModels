@@ -1,7 +1,7 @@
 import os
-import hydra
 import torch
 import torch.multiprocessing as mp
+import hydra
 from torch.distributed import destroy_process_group
 
 from models.build_models import build_model
@@ -48,8 +48,6 @@ def ddp_main(rank, world_size, cfg):
         print(f"Rank {rank} Model built")
 
         trainer = build_trainer(cfg=cfg, model=model, gpu_id=rank)
-        print(f"Rank {rank} Trainer built")
-
         trainer.train()
     
     finally:
@@ -62,7 +60,6 @@ def main(cfg):
 
     if "full_configs" in cfg:
         cfg = cfg["full_configs"]
-
     cfg["general"]["paths"]["data_dir"] = hydra.utils.to_absolute_path(cfg["general"]["paths"]["data_dir"])
     create_folder_structure(path_config=cfg["general"]["paths"])
 
