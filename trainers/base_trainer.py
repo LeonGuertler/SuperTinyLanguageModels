@@ -321,7 +321,7 @@ class BaseTrainer:
             loss = self._run_step(iter_num) ## set the 'epoch' to ensure shuffle
             end_time = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
-                lossf = loss.item() * self.gradient_accumulation_steps
+                lossf = loss * self.gradient_accumulation_steps
 
                 ## uncomment the following line to print the loss on all GPUs
                 # print(f"GPU {self.gpu_id}: step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
