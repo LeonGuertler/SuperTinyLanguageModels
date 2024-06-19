@@ -66,8 +66,8 @@ class BaseDataloader:
         
         Note: This works for BytePooling and StandardDataloader, but not for ConversationalDataloader and NextTokenMLMDataloader
         '''
-        idx = torch.randint(0, len(self.data) - self.context_window, (1,)).item()
-        
+        idx = torch.randint(0, len(self.data) - self.context_window, (1,)).item() ## implementing our own random sampling here to avoid issues with Pytorch's DataLoader
+
         X = torch.from_numpy((self.data[idx : idx + self.context_window]).astype(np.int64))
         y = torch.from_numpy((self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64))
 
