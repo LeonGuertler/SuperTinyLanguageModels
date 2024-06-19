@@ -176,6 +176,7 @@ class BaseTrainer:
             with self.ctx:
                 print(x.size())
                 output, aux_loss = self.DDP_model(x)
+                input(output)
                 print(output.size())
                 loss = self.loss_fn(output, y)
                 if aux_loss is not None:
