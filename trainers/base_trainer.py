@@ -164,8 +164,8 @@ class BaseTrainer:
         """Run a single step of training"""
         for iter, (x, y) in enumerate(islice(self.train_dataloader, self.gradient_accumulation_steps)):
             # push x,y to device
-            x = x.to(self.gpu_id)
-            y = y.to(self.gpu_id)
+            #x = x.to(self.gpu_id)
+            #y = y.to(self.gpu_id)
             with self.ctx:
                 # check device of x, y and model
                 print(f"GPU {self.gpu_id}: x.device: {x.device}, y.device: {y.device}, model.device: {self.model.device}")
