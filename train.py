@@ -14,44 +14,32 @@ from torch.distributed import destroy_process_group
 import torch.multiprocessing as mp
 
 def ddp_main(rank, world_size, cfg):
-    """
-    Main function for distributed training
-    """
     os.environ["GLOBAL_RANK"] = str(rank)
-
     original_print = init_print_override()
-
 
     try:
         print("Rank: ", rank, "World Size: ", world_size)
         ddp_setup(rank=rank, world_size=world_size)
-
-        model = build_model(model_cfg=cfg["model"])
-        model.to(cfg["general"]["device"])
+        
+        torch.cuda.set_device(rank)
+        model = build_model(model_cfg=cfg["model"]).to(rank)
         model.train()
-        print(f"Rank{rank} Model built")
-        # load the relevant trainer
-        trainer = build_trainer(
-            cfg=cfg,
-            model=model,
-            gpu_id=rank
-        )
-        print(f"Rank{rank} Trainer built")
-        # preprocess the training data
-        #trainer.preprocess_data()
-        print(f"Rank{rank} Data preprocessed")
-        # train the model
-        trainer.train()
-    
-    finally:
-        # clean up
-        destroy_process_group()
+        print(f"Rank {rank} Model built on GPU {rank}")
 
-        # restore the print function
+        trainer = build_trainer(cfg=cfg, model=model, gpu_id=rank)
+        print(f"Rank {rank} Trainer built")
+        
+        # Assume preprocess_data() and train() methods are properly defined within the trainer
+        trainer.preprocess_data()  # Uncomment if preprocessing is needed per process
+        print(f"Rank {rank} Data preprocessed")
+        
+        trainer.train()
+    finally:
+        destroy_process_group()
         restore_print_override(original_print)
 
 
-@hydra.main(config_path="configs", config_name="train")
+@hydra.main(config_path="configs", config_name="train", version_base="1.1")
 def main(cfg):
     world_size = torch.cuda.device_count()
 
