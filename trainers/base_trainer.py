@@ -183,6 +183,7 @@ class BaseTrainer:
                     loss += aux_loss
                 loss = loss / self.gradient_accumulation_steps
             self.scaler.scale(loss).backward()
+            print(iter)
         
         grad_clip = self.cfg.trainer.optimizer.grad_clip
         if grad_clip != 0.0:
