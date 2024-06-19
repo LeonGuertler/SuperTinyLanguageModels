@@ -170,6 +170,7 @@ class BaseTrainer:
                 # push to model device
                 x = x.to(self.model.device)
                 y = y.to(self.model.device)
+
             if iter != self.gradient_accumulation_steps - 1 and self.dist:
                 ddp_no_sync_ctx = self.DDP_model.no_sync()
             else:
@@ -184,6 +185,7 @@ class BaseTrainer:
                 self.scaler.scale(loss).backward()
             if iter == self.gradient_accumulation_steps - 1:
                 break
+            print(iter)
         
         grad_clip = self.cfg.trainer.optimizer.grad_clip
         if grad_clip != 0.0:
