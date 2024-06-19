@@ -183,6 +183,7 @@ class BaseTrainer:
                         loss += aux_loss
                     loss = loss / self.gradient_accumulation_steps
                 self.scaler.scale(loss).backward()
+            print(iter, self.gradient_accumulation_steps)
             if iter == self.gradient_accumulation_steps - 1:
                 break
             print(iter)
