@@ -129,18 +129,12 @@ class BaseTrainer:
         ## if the dataloader has not been created, create it
         # set the split data
         dataset = self.dataloader.split_dataloader(split)
-        
-        if self.gpu_id is None:
-            sampler = SequentialSampler(dataset)
-        else:
-            sampler = DistributedSampler(dataset, shuffle=False)
         # create the dataset
         dataloader = torch.utils.data.DataLoader(
             dataset,
             batch_size = self.batch_size,
             shuffle = False,
             num_workers = 0,
-            sampler=sampler
         )
 
         ## cache the dataloader
@@ -214,13 +208,10 @@ class BaseTrainer:
         self.model.train()
         return loss, perplexity, evaluator_results
 
-    def _run_step(self, epoch = 0):
+    def _run_step(self):
         """Run a single step of training"""
         ## init Pytorch's DataLoader
         dataloader = self._get_dataloader("train")
-        if self.dist:
-            ## set the epoch for the DistributedSampler (https://discuss.pytorch.org/t/why-is-sampler-set-epoch-epoch-needed-for-distributedsampler/149672/2)
-            dataloader.sampler.set_epoch(epoch)
         for iter, (x, y) in enumerate(dataloader):
             if iter != self.gradient_accumulation_steps - 1 and self.dist:
                 ddp_no_sync_ctx = self.DDP_model.no_sync()
@@ -264,10 +255,10 @@ class BaseTrainer:
         ) as prof:
             for i in range(10):
                 if i <= 3:
-                    self._run_step(i) ## set the 'epoch' to ensure shuffle
+                    self._run_step() ## set the 'epoch' to ensure shuffle
                 else:
                     with record_function("_run_step"):
-                        self._run_step(i) ## set the 'epoch' to ensure shuffle
+                        self._run_step() ## set the 'epoch' to ensure shuffle
             # place profile in dictionary
         backwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
         print(backwards_prof)
@@ -353,7 +344,7 @@ class BaseTrainer:
             ):
                 self._save_model(iter_num)
 
-            loss = self._run_step(iter_num) ## set the 'epoch' to ensure shuffle
+            loss = self._run_step() ## set the 'epoch' to ensure shuffle
             end_time = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
                 lossf = loss.item() * self.gradient_accumulation_steps
