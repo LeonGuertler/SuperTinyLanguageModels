@@ -130,7 +130,7 @@ class BaseTrainer:
             batch_size = self.batch_size,
             shuffle = False, ## previously True for SingleGPU
             num_workers = 0,
-            sampler = DistributedSampler(self.dataloader) ## needed for DDP
+            # sampler = DistributedSampler(self.dataloader) ## needed for DDP
         )
 
         ## cache the dataloader
@@ -217,7 +217,7 @@ class BaseTrainer:
         dataloader = self._prepare_dataloader("train")
 
         ## set the epoch for the DistributedSampler (https://discuss.pytorch.org/t/why-is-sampler-set-epoch-epoch-needed-for-distributedsampler/149672/2)
-        dataloader.sampler.set_epoch(epoch)
+        # dataloader.sampler.set_epoch(epoch)
 
         for iter, (x, y) in enumerate(islice(dataloader, self.gradient_accumulation_steps)):
             with self.ctx:
