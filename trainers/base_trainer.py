@@ -182,10 +182,8 @@ class BaseTrainer:
                     loss /= self.gradient_accumulation_steps
                 self.scaler.scale(loss).backward()
             
-            print(f"Iteration: {i}, Breaking condition met: {i == self.gradient_accumulation_steps - 1}")
             
             if i == self.gradient_accumulation_steps - 1:
-                input('breaking')
                 break
 
         grad_clip = self.cfg.trainer.optimizer.grad_clip

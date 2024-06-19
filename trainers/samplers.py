@@ -25,7 +25,7 @@ class BaseSampler(torch.utils.data.Sampler[int]):
         # Generate random indices each time __iter__ is called
         return iter(torch.randint(
             high=self.num_samples, 
-            size=(20*24,), 
+            size=(20*24,),  # TODO
             dtype=torch.int64, 
             generator=self.generator).tolist()
         )
