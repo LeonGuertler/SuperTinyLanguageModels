@@ -163,6 +163,13 @@ class BaseTrainer:
     def _run_step(self, epoch = 0):
         """Run a single step of training"""
         for iter, (x, y) in enumerate(self.train_dataloader):
+            if self.gpu_id is not None:
+                x = x.to(self.gpu_id)
+                y = y.to(self.gpu_id)
+            else:
+                # push to model device
+                x = x.to(self.model.device)
+                y = y.to(self.model.device)
             if iter != self.gradient_accumulation_steps - 1 and self.dist:
                 ddp_no_sync_ctx = self.DDP_model.no_sync()
             else:
