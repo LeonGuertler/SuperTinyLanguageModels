@@ -26,6 +26,9 @@ def ddp_main(rank, world_size, cfg):
         model.train()
         print(f"Rank {rank} Model built on GPU {rank}")
 
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[rank], output_device=rank)
+
+
         trainer = build_trainer(cfg=cfg, model=model, gpu_id=rank)
         print(f"Rank {rank} Trainer built")
         
