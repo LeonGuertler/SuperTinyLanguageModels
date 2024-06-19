@@ -36,10 +36,6 @@ def ddp_main(rank, world_size, cfg):
         trainer = build_trainer(cfg=cfg, model=model, gpu_id=rank)
         print(f"Rank {rank} Trainer built")
         
-        # Assume preprocess_data() and train() methods are properly defined within the trainer
-        trainer.preprocess_data()  # Uncomment if preprocessing is needed per process
-        print(f"Rank {rank} Data preprocessed")
-        
         trainer.train()
     finally:
         destroy_process_group()
