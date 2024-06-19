@@ -7,6 +7,8 @@ import numpy as np
 from tqdm import tqdm 
 from trainers.utils import load_data
 
+from models.build_models import build_embedding_model 
+
 
 class StandardProcessor:
     """
@@ -50,7 +52,7 @@ DATALOADER_PROCESSORS = {
 
 
 
-def prepare_data(cfg, embedder):
+def prepare_data(cfg):
     """
     Split the data, process & tokenize it, and store 
     it as memmap bin files
@@ -83,6 +85,10 @@ def prepare_data(cfg, embedder):
     # create the folder if it doesn't exist   
     if not os.path.exists(tokenized_data_folder):
         os.makedirs(tokenized_data_folder)
+
+
+    # load embedder
+    embedder = build_embedding_model(cfg["model"])
 
     # load the dataset
     split_dataset = load_data(

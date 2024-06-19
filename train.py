@@ -13,6 +13,10 @@ import torch
 from torch.distributed import destroy_process_group
 import torch.multiprocessing as mp
 
+from trainers.prepare import prepare_data
+
+
+
 def ddp_main(rank, world_size, cfg):
     os.environ["GLOBAL_RANK"] = str(rank)
     original_print = init_print_override()
@@ -57,9 +61,10 @@ def main(cfg):
     create_folder_structure(path_config=cfg["general"]["paths"])
 
     # prepare data
-    model = build_model(model_cfg=cfg["model"])
-    _ = build_trainer(cfg=cfg, model=model, gpu_id=0)
-    _ = None
+    print('Preparing training data')
+    prepare_data(cfg=cfg)
+
+    # ddp
     mp.spawn(
         ddp_main,
         args=(world_size, cfg),

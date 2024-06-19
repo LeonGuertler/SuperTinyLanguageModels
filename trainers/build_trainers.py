@@ -28,7 +28,6 @@ from trainers.scheduler import (
     TriangleDropoutScheduler
 )
 
-from trainers.prepare import prepare_data
 
 import torch
 from torch.distributed import init_process_group
@@ -181,9 +180,6 @@ def build_trainer(cfg, model, gpu_id):
 
     # build dropout scheduler
     dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg.trainer)
-
-    # prepare data
-    prepare_data(cfg, model.embedding_model)
 
     # build dataloder
     train_dataset = build_dataset(cfg=cfg, split="train")
