@@ -38,7 +38,7 @@ def ddp_main(rank, world_size, cfg):
     original_print = init_print_override()
 
     try:
-        print("Rank: ", rank, "World Size: ", world_size)
+        print(f"Rank: {rank}, World Size: {world_size}")
         ddp_setup(rank=rank, world_size=world_size)
 
         model = build_model(model_cfg=cfg["model"])
@@ -47,9 +47,12 @@ def ddp_main(rank, world_size, cfg):
         model.train()
         print(f"Rank {rank} Model built")
 
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[rank], output_device=rank)
+        
         trainer = build_trainer(cfg=cfg, model=model, gpu_id=rank)
+        print(f"Rank {rank} Trainer built")
         trainer.train()
-    
+
     finally:
         destroy_process_group()
         restore_print_override(original_print)
@@ -67,10 +70,10 @@ def main(cfg):
     prepare_data(cfg=cfg)
 
     if world_size > 1:
-        # Use distributed training
+        print("Starting distributed training...")
         mp.spawn(ddp_main, args=(world_size, cfg), nprocs=world_size, join=True)
     else:
-        # Fallback to single GPU training
+        print("Starting single GPU training...")
         single_gpu_training(cfg)
 
     # Cleanup potentially leaked processes
