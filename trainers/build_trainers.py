@@ -189,10 +189,12 @@ def build_trainer(cfg, model, gpu_id):
     train_data_sampler = build_datasampler(
         dataset=train_dataset,
         sampling=cfg["trainer"]["datasampling"]["name"],
+        batch_size=cfg["trainer"]["training"]["batch_size"]*cfg["trainer"]["training"]["gradient_accumulation_steps"],
     )
     val_data_sampler = build_datasampler(
         dataset=val_dataset,
         sampling=cfg["trainer"]["datasampling"]["name"],
+        batch_size=cfg["trainer"]["training"]["batch_size"]*cfg["trainer"]["training"]["gradient_accumulation_steps"]
     )
 
     # wrap in dataloaders
