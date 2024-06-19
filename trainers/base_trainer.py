@@ -7,7 +7,7 @@ import wandb
 from omegaconf import OmegaConf
 from torch.profiler import ProfilerActivity, profile, record_function
 from copy import deepcopy
-from trainers.utils import yes_grad
+from contextlib import nullcontext
 
 from models import model_shell
 from trainers import datasets as train_dataloader
@@ -40,12 +40,17 @@ class BaseTrainer:
         train_dataloader,
         val_dataloader,
         loss_fn,
-        gpu_id, 
+        gpu_id=None, 
         lr_scheduler=None,
         dropout_scheduler=None,
     ) -> None:
         self.model = model
-        #self.model = DDP(self.model, device_ids=[gpu_id])
+        if gpu_id is not None: # using ddp
+            self.dist = True
+            self.DDP_model = DDP(self.model, device_ids=[gpu_id])
+        else:
+            self.dist = False
+            self.DDP_model = model
         self.gpu_id = gpu_id 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
@@ -68,9 +73,9 @@ class BaseTrainer:
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
         self.ctx = self._setup_ctx()
-        if self.use_wandb and self.gpu_id == 0: ## ensures that only the first GPU logs to wandb
+        if self.use_wandb and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU logs to wandb
             self._setup_logging()
-        if cfg.trainer.training.run_profiler and self.gpu_id == 0: ## ensures that only the first GPU runs the profiler
+        if cfg.trainer.training.run_profiler and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU runs the profiler
             self.run_profile()
             raise SystemExit
 
@@ -162,7 +167,7 @@ class BaseTrainer:
             x = x.to(self.gpu_id)
             y = y.to(self.gpu_id)
             with self.ctx:
-                output, aux_loss = self.model(x)
+                output, aux_loss = self.DDP_model(x)
                 loss = self.loss_fn(output, y)
                 if aux_loss is not None:
                     loss += aux_loss
