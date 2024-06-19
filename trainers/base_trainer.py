@@ -177,8 +177,9 @@ class BaseTrainer:
             with context_manager:
                 with self.ctx:  # Assuming self.ctx is something like torch.cuda.amp.autocast
                     output, aux_loss = self.DDP_model(x)
-                    loss = self.loss_fn(output, y) + (aux_loss if aux_loss is not None else 0)
-                
+                    loss = self.loss_fn(output, y) #+ (aux_loss if aux_loss is not None else 0)
+                    if aux_loss is not None:
+                        loss += aux_loss
                 # Scale loss to simulate larger effective batch size
                 loss = loss / self.gradient_accumulation_steps
                 self.scaler.scale(loss).backward()
