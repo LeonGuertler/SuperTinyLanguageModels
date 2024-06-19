@@ -169,10 +169,10 @@ class BaseTrainer:
             y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
 
             # Enable or disable gradient synchronization based on the need for accumulation
-            if i % self.gradient_accumulation_steps != self.gradient_accumulation_steps - 1:
-                context_manager = self.DDP_model.no_sync()
+            if self.use_ddp and hasattr(self.DDP_model, 'no_sync'):
+                context_manager = self.DDP_model.no_sync() if i != self.gradient_accumulation_steps - 1 else nullcontext()
             else:
-                context_manager = nullcontext()  # On the last accumulation step, synchronize gradients
+                context_manager = nullcontext()
 
             with context_manager:
                 with self.ctx:  # Assuming self.ctx is something like torch.cuda.amp.autocast
