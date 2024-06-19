@@ -138,12 +138,13 @@ DATASAMPLER_DICT = {
     "standard": BaseSampler
 }
 
-def build_datasampler(dataset, sampling):
+def build_datasampler(dataset, sampling, batch_size):
     """
     Given the dataset and the sampling method, build the dataloader
     """
     return DATASAMPLER_DICT[sampling](
         data_source=dataset,
+        batch_size=batch_size,
     )
 
 LOSS_FN_DICT = {
