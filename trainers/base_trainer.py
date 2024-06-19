@@ -163,45 +163,40 @@ class BaseTrainer:
     def _run_step(self, epoch = 0):
         """Run a single step of training"""
         for i, (x, y) in enumerate(self.train_dataloader):
-            if self.gpu_id is not None:
-                x = x.to(self.gpu_id)
-                y = y.to(self.gpu_id)
-            else:
-                # push to model device
-                x = x.to(self.model.device)
-                y = y.to(self.model.device)
+            # Push x, y to the correct device
+            x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+            y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+
 
             if i != self.gradient_accumulation_steps - 1 and self.dist:
                 ddp_no_sync_ctx = self.DDP_model.no_sync()
             else:
                 ddp_no_sync_ctx = nullcontext()
+            
             with ddp_no_sync_ctx:
                 with self.ctx:
                     output, aux_loss = self.DDP_model(x)
                     loss = self.loss_fn(output, y)
                     if aux_loss is not None:
                         loss += aux_loss
-                    loss = loss / self.gradient_accumulation_steps
+                    loss /= self.gradient_accumulation_steps
                 self.scaler.scale(loss).backward()
-            print(i, self.gradient_accumulation_steps)
+            
+            print(f"Iteration: {i}, Breaking condition met: {i == self.gradient_accumulation_steps - 1}")
+            
             if i == self.gradient_accumulation_steps - 1:
                 input('breaking')
                 break
-            print(i)
 
-        print('left loop')
-        
         grad_clip = self.cfg.trainer.optimizer.grad_clip
         if grad_clip != 0.0:
             self.scaler.unscale_(self.optimizer)
-            torch.nn.utils.clip_grad_norm_(
-                self.model.parameters(),
-                grad_clip,
-            )
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), grad_clip)
+        
         self.scaler.step(self.optimizer)
         self.scaler.update()
-
         self.optimizer.zero_grad(set_to_none=True)
+        
         return loss
 
     def run_profile(self):
