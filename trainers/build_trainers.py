@@ -5,11 +5,14 @@ and the trainer itself.
 
 from models.experimental.hugging_face import MockTrainer
 from trainers.base_trainer import BaseTrainer
-from trainers.dataloader import (
+from trainers.datasets import (
     BaseDataloader,
     BytePoolingDataloader,
     NextTokenMLMDataloader,
     ConversationalDataloader,
+)
+from trainers.samplers import (
+    BaseSampler,
 )
 from trainers.loss_fn import (
     cross_entropy_loss_fn,
@@ -114,7 +117,7 @@ def build_dropout_scheduler(trainer_cfg):
     )
 
 
-DATALOADER_DICT: dict[str, BaseDataloader] = {
+DATASET_DICT: dict[str, BaseDataloader] = {
     "standard": BaseDataloader,
     "byte_pooling": BytePoolingDataloader,
     "next_token_mlm": NextTokenMLMDataloader,
@@ -122,28 +125,26 @@ DATALOADER_DICT: dict[str, BaseDataloader] = {
 }
 
 
-def build_dataloader(cfg, split):
+def build_dataset(cfg, split):
     """
     Given the config, build the dataloader
     """
-    return DATALOADER_DICT[cfg.trainer["dataloader"]["name"]](
+    return DATASET_DICT[cfg.trainer["dataloader"]["name"]](
         cfg=cfg,
         split=split
     )
 
 
-DATADAMPLER_DICT = {
-    "standard": torch.utils.data.DataLoader
+DATASAMPLER_DICT = {
+    "standard": BaseSampler
 }
 
-def build_datasampler(dataset, sampling, batch_size, shuffle):
+def build_datasampler(dataset, sampling):
     """
     Given the dataset and the sampling method, build the dataloader
     """
-    return DATADAMPLER_DICT[sampling](
-        dataset,
-        batch_size=batch_size,
-        shuffle=shuffle
+    return DATASAMPLER_DICT[sampling](
+        data_source=dataset,
     )
 
 LOSS_FN_DICT = {
@@ -185,22 +186,33 @@ def build_trainer(cfg, model, gpu_id):
     prepare_data(cfg, model.embedding_model)
 
     # build dataloder
-    train_dataset = build_dataloader(cfg=cfg, split="train")
-    val_dataset = build_dataloader(cfg=cfg, split="val")
+    train_dataset = build_dataset(cfg=cfg, split="train")
+    val_dataset = build_dataset(cfg=cfg, split="val")
 
-    # wrap both in dataloaders
-    train_dataloader = build_datasampler(
+    # initialize datasamplers
+    train_data_sampler = build_datasampler(
         dataset=train_dataset,
         sampling=cfg["trainer"]["datasampling"]["name"],
-        batch_size=cfg["trainer"]["training"]["batch_size"],
-        shuffle=True
     )
-    val_dataloader = build_datasampler(
+    val_data_sampler = build_datasampler(
         dataset=val_dataset,
         sampling=cfg["trainer"]["datasampling"]["name"],
-        batch_size=cfg["trainer"]["training"]["batch_size"],
-        shuffle=False
     )
+
+    # wrap in dataloaders
+    train_dataloader = torch.utils.data.DataLoader(
+        dataset=train_dataset,
+        batch_size=cfg["trainer"]["training"]["batch_size"],
+        sampler=train_data_sampler,
+        num_workers=1,
+    )
+    val_dataloader = torch.utils.data.DataLoader(
+        dataset=val_dataset,
+        batch_size=cfg["trainer"]["training"]["batch_size"],
+        sampler=val_data_sampler,
+        num_workers=1,
+    )
+
 
     # build loss function
     loss_fn = build_loss_fn(loss_fn_name=cfg.trainer["loss_fn"]["name"])
