@@ -240,16 +240,3 @@ def restore_print_override(original_print):
     '''
     import builtins as __builtin__
     __builtin__.print = original_print
-
-def yes_grad(func):
-    """
-    Decorator to enable gradients for a function (useful for eval code
-    that requires gradients e.g. on GLUE)
-    """
-    def wrapper(*args, **kwargs):
-        prev = torch.is_grad_enabled()
-        torch.set_grad_enabled(True)
-        ret = func(*args, **kwargs)
-        torch.set_grad_enabled(prev)
-        return ret
-    return wrapper

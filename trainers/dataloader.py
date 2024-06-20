@@ -7,12 +7,13 @@ import os
 import numpy as np
 import torch
 from tqdm import tqdm
+import random
 
 from models.embedding_models import GenericEmbedder
 from trainers.utils import load_data
 
 
-class BaseDataloader:
+class BaseDataloader(torch.utils.data.Dataset):
     """Abstract class for dataloaders"""
 
     def __init__(
@@ -40,15 +41,16 @@ class BaseDataloader:
             self.dataset_name,
             f'{self.model_cfg["embedder"]["tokenizer_type"]}-{self.model_cfg["vocab_size"]}',
         )
-        self.masking_pct = cfg.get("trainer", {}).get("dataloader", {}).get("masking_pct", 0.15) # masking percentage for NextTokenMLMDataloader
+        self.data = ...
 
-    def set_split(self, split):
+    def split_dataloader(self, split):
         """
-        Get a split of the data
+        Create a sub-dataloader for a specific split
         """
-        self.split = split
-        self.data = self.get_data(split=split)
-        self.general_device = self.cfg.general.device
+        split_dl = self.__class__(self.cfg, self.embedder)
+        split_dl.data = self.get_data(split)
+        return split_dl
+        
 
     def __len__(self):
         '''
@@ -56,6 +58,15 @@ class BaseDataloader:
         Note: This works for BytePooling and StandardDataloader, but not for ConversationalDataloader and NextTokenMLMDataloader
         '''
         return len(self.data) - self.context_window
+
+    def _remap_idxs(self, idx):
+        """
+        Randomly maps the idx to a new idx
+        Over the data
+        This is used to shuffle the data artificially, but its a bit dodgy and mainly
+        for the torch dataloader. Alternatively, just use get_data directly and access
+        """
+        return random.randint(0, len(self.data) - self.context_window)
         
     def __getitem__(self, idx): 
         '''
@@ -63,14 +74,13 @@ class BaseDataloader:
         that our dataloader is useable in Pytorch's DataLoader class.
 
         The __getitem__ function loads and returns a sample from the dataset at the given index idx
-        
-        Note: This works for BytePooling and StandardDataloader, but not for ConversationalDataloader and NextTokenMLMDataloader
         '''
+        idx = self._remap_idxs(idx)
+
         X = torch.from_numpy((self.data[idx : idx + self.context_window]).astype(np.int64))
         y = torch.from_numpy((self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64))
-
-        X, y = X.pin_memory().to(self.general_device, non_blocking=True), y.pin_memory().to(
-            self.general_device, non_blocking=True
+        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
+            self.device, non_blocking=True
         )
 
         return X, y
@@ -329,6 +339,7 @@ class ConversationalDataloader(BaseDataloader):
         (different from its parent class method)
         Method of getting X and y is different.
         '''
+        idx = self._remap_idxs(idx)
         
         Xy = torch.stack(
             torch.from_numpy((self.data[idx]).astype(np.int64))
@@ -351,18 +362,25 @@ class NextTokenMLMDataloader(BaseDataloader):
     Similarly to the generic dataloader, but mask out some tokens and
     return the mask used.
     """
+    def __init__(self, cfg, embedder):
+        super().__init__(cfg, embedder=embedder)
+        self.masking_pct = cfg.get("trainer", {}).get("dataloader", {}).get("masking_pct", 0.15)
+        # masking percentage for NextTokenMLMDataloader
+
+
     def __getitem__(self, idx):
         '''
         (different from its parent class method)
         This returns the last item as a tuple of (y and mask)
         '''
+        idx = self._remap_idxs(idx)
         assert self.masking_pct is not None, "Masking percentage (self.masking_pct) must be set."
 
         X = torch.from_numpy((self.data[idx : idx + self.context_window]).astype(np.int64))
         y = torch.from_numpy((self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64))
 
-        X, y = X.pin_memory().to(self.general_device, non_blocking=True), y.pin_memory().to(
-            self.general_device, non_blocking=True
+        X, y = X.pin_memory().to(self.device, non_blocking=True), y.pin_memory().to(
+            self.device, non_blocking=True
         )
 
         # mask out some tokens
