@@ -58,6 +58,13 @@ class BaseDataloader(torch.utils.data.Dataset):
         Note: This works for BytePooling and StandardDataloader, but not for ConversationalDataloader and NextTokenMLMDataloader
         '''
         return len(self.data) - self.context_window
+
+    def _remap_idxs(self, idx):
+        """
+        Randomly maps the idx to a new idx
+        Over the data
+        """
+        return random.randint(0, len(self.data) - self.context_window)
         
     def __getitem__(self, idx): 
         '''
@@ -68,7 +75,7 @@ class BaseDataloader(torch.utils.data.Dataset):
         
         Note: This works for BytePooling and StandardDataloader, but not for ConversationalDataloader and NextTokenMLMDataloader
         '''
-        idx = random.randint(0, len(self.data) - self.context_window) # lol
+        idx = self._remap_idxs(idx)
 
         X = torch.from_numpy((self.data[idx : idx + self.context_window]).astype(np.int64))
         y = torch.from_numpy((self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64))
@@ -332,6 +339,7 @@ class ConversationalDataloader(BaseDataloader):
         (different from its parent class method)
         Method of getting X and y is different.
         '''
+        idx = self._remap_idxs(idx)
         
         Xy = torch.stack(
             torch.from_numpy((self.data[idx]).astype(np.int64))
@@ -365,6 +373,7 @@ class NextTokenMLMDataloader(BaseDataloader):
         (different from its parent class method)
         This returns the last item as a tuple of (y and mask)
         '''
+        idx = self._remap_idxs(idx)
         assert self.masking_pct is not None, "Masking percentage (self.masking_pct) must be set."
 
         X = torch.from_numpy((self.data[idx : idx + self.context_window]).astype(np.int64))

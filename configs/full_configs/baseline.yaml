@@ -1,7 +1,7 @@
 model:
   core_model:
     core_model_type: generic
-    num_layers: 10
+    num_layers: 8
     ffn:
       ffn_type: swiglu
       ffn_dim: 1320
@@ -27,7 +27,7 @@ model:
   vocab_size: 50257
   model_shell_type: standard
   embedding_weight_tying: true
-  positional_encoding_type: learned
+  positional_encoding_type: rope
 trainer:
   dropout_scheduler:
     dropout_type: constant
