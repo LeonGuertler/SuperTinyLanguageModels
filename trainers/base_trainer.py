@@ -45,12 +45,7 @@ class BaseTrainer:
         dropout_scheduler=None,
     ) -> None:
         self.model = model
-        if gpu_id is not None: # using ddp
-            self.dist = True
-            self.DDP_model = DDP(self.model, device_ids=[gpu_id])
-        else:
-            self.dist = False
-            self.DDP_model = model
+        self.DDP_model = DDP(self.model, device_ids=[gpu_id])
         self.gpu_id = gpu_id 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
@@ -72,9 +67,9 @@ class BaseTrainer:
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
         self.ctx = self._setup_ctx()
-        if self.use_wandb and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU logs to wandb
+        if self.use_wandb and self.gpu_id == 0: ## ensures that only the first GPU logs to wandb
             self._setup_logging()
-        if cfg.trainer.training.run_profiler and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU runs the profiler
+        if cfg.trainer.training.run_profiler and self.gpu_id == 0: ## ensures that only the first GPU runs the profiler
             self.run_profile()
             raise SystemExit
 
@@ -213,7 +208,7 @@ class BaseTrainer:
         ## init Pytorch's DataLoader
         dataloader = self._get_dataloader("train")
         for iter, (x, y) in enumerate(dataloader):
-            if iter != self.gradient_accumulation_steps - 1 and self.dist:
+            if iter != self.gradient_accumulation_steps - 1:
                 ddp_no_sync_ctx = self.DDP_model.no_sync()
             else:
                 ddp_no_sync_ctx = nullcontext()
@@ -319,7 +314,7 @@ class BaseTrainer:
                     f"step {iter_num}: benchmark results {benchmark_results}"
                 )
 
-                if self.gpu_id == 0 or not self.dist: ## ensure only the first GPU logs
+                if self.gpu_id == 0: ## ensure only the first GPU logs
                     if self.use_wandb:
                         wandb.log(
                             {
@@ -340,7 +335,7 @@ class BaseTrainer:
             if (
                 not iter_num % self.cfg.trainer.training.checkpoint_interval
                 and iter_num > 0
-                and (self.gpu_id == 0 or not self.dist) ## ensure only the first GPU prints
+                and self.gpu_id == 0 ## ensure only the first GPU prints
             ):
                 self._save_model(iter_num)
 
@@ -357,7 +352,7 @@ class BaseTrainer:
 
                 ## print and log the result only on the first GPU after aggregation
                 print(f"All GPU(s): step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
-                if (self.gpu_id == 0 or not self.dist) and self.use_wandb:
+                if self.gpu_id == 0 and self.use_wandb:
                     wandb.log(
                         {
                             "iter": iter_num,
@@ -367,7 +362,7 @@ class BaseTrainer:
                         }
                     )
         # save the final model
-        if self.gpu_id == 0 or not self.dist: ## ensure only the first GPU saves the model
+        if self.gpu_id == 0: ## ensure only the first GPU saves the model
             self._save_model(iter_num)
 
     def train(self, seed=42):

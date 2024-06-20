@@ -54,7 +54,6 @@ class SinCosPosEncoding(
     def __init__(self, hidden_dim, context_window):
         """Set up the pe buffer etc."""
         super().__init__()
-        self.dropout = torch.nn.Dropout()
         pe = torch.zeros(context_window, hidden_dim)
         position = torch.arange(0, context_window, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, hidden_dim, 2).float() * (-math.log(10000.0) / hidden_dim))
@@ -68,8 +67,9 @@ class SinCosPosEncoding(
 
     def forward(self, x):
         """Add the pe to the input tensor."""
-        x = x + self.pe[:x.size(0), :]
-        return self.dropout(x)
+        # x of shape (B, S, H)
+        print(x.shape, self.pe.shape)
+        return x + self.pe[:x.size(1), :].unsqueeze(0)
 
 
 POS_ENCODING_DICT = {
