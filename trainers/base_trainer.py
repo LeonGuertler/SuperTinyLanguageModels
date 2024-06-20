@@ -278,7 +278,7 @@ class BaseTrainer:
         store the current model checkpoint.
         """
         checkpoint = {
-            "model": self.model.state_dict(), ## added the 'module' attribute (https://discuss.pytorch.org/t/access-to-attributes-of-model-wrapped-in-ddp/130572/2)
+            "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "iter_num": iter_num,
             "config": self.cfg,
