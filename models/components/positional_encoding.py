@@ -3,6 +3,7 @@ A collection of positional encoding modules.
 """
 
 import torch
+import math
 
 
 class LearnedPosEncoding(torch.nn.Module):
@@ -44,6 +45,32 @@ class IdentityEncoding(torch.nn.Module):
         """
         return x
 
+class SinCosPosEncoding(
+    torch.nn.Module
+):
+    """SinCos encoding taken from:
+    \\url{https://github.com/pytorch/examples/blob/main/word_language_model/model.py#L65}
+    As used in the Vaiswani et al. paper..."""
+    def __init__(self, hidden_dim, context_window):
+        """Set up the pe buffer etc."""
+        super().__init__()
+        self.dropout = torch.nn.Dropout()
+        pe = torch.zeros(context_window, hidden_dim)
+        position = torch.arange(0, context_window, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, hidden_dim, 2).float() * (-math.log(10000.0) / hidden_dim))
+
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
+
+        self.pe = torch.nn.Parameter(pe) # hack for distributed data parallel
+        self.pe.requires_grad = False
+
+    def forward(self, x):
+        """Add the pe to the input tensor."""
+        x = x + self.pe[:x.size(0), :]
+        return self.dropout(x)
+
 
 POS_ENCODING_DICT = {
     "learned": lambda dim, size, **_: LearnedPosEncoding(
@@ -51,8 +78,10 @@ POS_ENCODING_DICT = {
     ),
     "rope": lambda **_: IdentityEncoding(),
     "none": lambda **_: IdentityEncoding(),
+    "sincos": lambda dim, size, **_: SinCosPosEncoding(
+        hidden_dim=dim, context_window=size
+    ),
 }
-
 
 def build_positional_encodings(model_cfg):
     """
