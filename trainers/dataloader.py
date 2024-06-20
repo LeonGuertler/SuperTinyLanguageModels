@@ -63,6 +63,8 @@ class BaseDataloader(torch.utils.data.Dataset):
         """
         Randomly maps the idx to a new idx
         Over the data
+        This is used to shuffle the data artificially, but its a bit dodgy and mainly
+        for the torch dataloader. Alternatively, just use get_data directly and access
         """
         return random.randint(0, len(self.data) - self.context_window)
         
@@ -72,8 +74,6 @@ class BaseDataloader(torch.utils.data.Dataset):
         that our dataloader is useable in Pytorch's DataLoader class.
 
         The __getitem__ function loads and returns a sample from the dataset at the given index idx
-        
-        Note: This works for BytePooling and StandardDataloader, but not for ConversationalDataloader and NextTokenMLMDataloader
         '''
         idx = self._remap_idxs(idx)
 
