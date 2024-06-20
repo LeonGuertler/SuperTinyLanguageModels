@@ -7,7 +7,7 @@ import wandb
 from omegaconf import OmegaConf
 from torch.profiler import ProfilerActivity, profile, record_function
 from copy import deepcopy
-from trainers.utils import yes_grad
+from contextlib import nullcontext
 
 from models import model_shell
 from trainers import dataloader as train_dataloader
@@ -22,6 +22,7 @@ import numpy as np
 from itertools import islice
 from torch.nn.parallel import DistributedDataParallel as DDP 
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data import SequentialSampler
 from trainers.utils import aggregate_value
 
 
@@ -44,7 +45,7 @@ class BaseTrainer:
         dropout_scheduler=None,
     ) -> None:
         self.model = model
-        self.model = DDP(self.model, device_ids=[gpu_id])
+        self.DDP_model = DDP(self.model, device_ids=[gpu_id])
         self.gpu_id = gpu_id 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
@@ -112,7 +113,7 @@ class BaseTrainer:
         print("Preprocessing the training data")
         self.dataloader.prepare_data()
 
-    def _prepare_dataloader(self, split):
+    def _get_dataloader(self, split):
         """
         Feeds dataloader into PyTorch's DataLoader.
         """
@@ -122,15 +123,13 @@ class BaseTrainer:
         
         ## if the dataloader has not been created, create it
         # set the split data
-        self.dataloader.set_split(split)
-        
+        dataset = self.dataloader.split_dataloader(split)
         # create the dataset
         dataloader = torch.utils.data.DataLoader(
-            self.dataloader,
+            dataset,
             batch_size = self.batch_size,
-            shuffle = False, ## previously True for SingleGPU
+            shuffle = False,
             num_workers = 0,
-            sampler = DistributedSampler(self.dataloader) ## needed for DDP
         )
 
         ## cache the dataloader
@@ -145,21 +144,19 @@ class BaseTrainer:
             eval_iters = self.cfg.trainer.training.eval_iters
         loss = {}
         perplexity = {}
-        divergency = {}
         self.model.eval()
         for split in ["train", "val"]:
 
-            ## initialize the loss, perplexity, and divergency
+            ## initialize the loss, perplexity
             losses = torch.zeros(eval_iters)
             perplexities = torch.zeros(eval_iters)
-            divergences = torch.zeros(eval_iters)
-            batches = []
             
             ## initialize Pytorch's DataLoader
-            dataloader = self._prepare_dataloader(split)
+            dataloader = self._get_dataloader(split)
 
-            for i, (x, y) in enumerate(islice(dataloader, eval_iters)):
-
+            for i, (x, y) in enumerate(dataloader):
+                if i > eval_iters - 1:
+                    break
                 # use cached eval if available
                 if i in self.cached_sets[split]:
                     print("use cached test set")
@@ -172,7 +169,7 @@ class BaseTrainer:
                     (
                         char_lengths,
                         mask,
-                    ) = self.model.module.embedding_model.get_sequence_info(x) ## added the 'module' attribute (https://discuss.pytorch.org/t/access-to-attributes-of-model-wrapped-in-ddp/130572/2)
+                    ) = self.model.embedding_model.get_sequence_info(x)
                     self.cached_sets[split][i] = {
                         "x": x,
                         "y": y,
@@ -180,52 +177,49 @@ class BaseTrainer:
                         "mask": mask,
                     }
                 with self.ctx:
-                    output, _ = self.model(x)
+                    output, _ = self.DDP_model(x)
                     losses[i] = self.loss_fn(output, y, mask=mask)
                     likelihood = self.model.module.loglikelihood(
                         output, y, mask=mask
                     )
-                    perplexities[i] = compute_perplexity(likelihood, char_lengths)
-                    # divergences[i] = self.distil_eval(self.model, self.cfg, batches, self.loss_fn) # not ready yet
-                    divergences[i] = 0
-            batches.append((x,y))
 
             ## aggregate the loss and perplexity across all GPUs
             avg_loss = aggregate_value(losses.mean().item(), self.cfg.general.device)
             loss[split] = avg_loss
             avg_perplexity = aggregate_value(perplexities.mean().item(), self.cfg.general.device)
             perplexity[split] = avg_perplexity
-            avg_divergency = aggregate_value(divergences.mean().item(), self.cfg.general.device)
-            divergency[split] = avg_divergency
 
         evaluator_results = {}
         for evaluator in self.cfg.trainer["eval"]:
-            evaluator_results[evaluator["evaluator"]] = train_eval(evaluator, self.model.module)
+            evaluator_results[evaluator["evaluator"]] = train_eval(evaluator, self.model)
             # recurse over metrics to prepend the evaluator name as a prefix
             relabeled_results = {}
             for metric in evaluator_results[evaluator["evaluator"]]:
                 relabeled_results[f"{evaluator['evaluator']}/{metric}"] = evaluator_results[evaluator["evaluator"]][metric]
             evaluator_results[evaluator["evaluator"]] = relabeled_results
         self.model.train()
-        return loss, perplexity, divergency, evaluator_results
+        return loss, perplexity, evaluator_results
 
-    def _run_step(self, epoch = 0):
+    def _run_step(self):
         """Run a single step of training"""
         ## init Pytorch's DataLoader
-        dataloader = self._prepare_dataloader("train")
+        dataloader = self._get_dataloader("train")
+        for iter, (x, y) in enumerate(dataloader):
+            if iter != self.gradient_accumulation_steps - 1:
+                ddp_no_sync_ctx = self.DDP_model.no_sync()
+            else:
+                ddp_no_sync_ctx = nullcontext()
+            with ddp_no_sync_ctx:
+                with self.ctx:
+                    output, aux_loss = self.DDP_model(x)
+                    loss = self.loss_fn(output, y)
+                    if aux_loss is not None:
+                        loss += aux_loss
+                    loss = loss / self.gradient_accumulation_steps
+                self.scaler.scale(loss).backward()
+            if iter == self.gradient_accumulation_steps - 1:
+                break
 
-        ## set the epoch for the DistributedSampler (https://discuss.pytorch.org/t/why-is-sampler-set-epoch-epoch-needed-for-distributedsampler/149672/2)
-        dataloader.sampler.set_epoch(epoch)
-
-        for iter, (x, y) in enumerate(islice(dataloader, self.gradient_accumulation_steps)):
-            with self.ctx:
-                output, aux_loss = self.model(x)
-                loss = self.loss_fn(output, y)
-                if aux_loss is not None:
-                    loss += aux_loss
-                loss = loss / self.gradient_accumulation_steps
-            self.scaler.scale(loss).backward()
-        
         grad_clip = self.cfg.trainer.optimizer.grad_clip
         if grad_clip != 0.0:
             self.scaler.unscale_(self.optimizer)
@@ -253,10 +247,10 @@ class BaseTrainer:
         ) as prof:
             for i in range(10):
                 if i <= 3:
-                    self._run_step(i) ## set the 'epoch' to ensure shuffle
+                    self._run_step() ## set the 'epoch' to ensure shuffle
                 else:
                     with record_function("_run_step"):
-                        self._run_step(i) ## set the 'epoch' to ensure shuffle
+                        self._run_step() ## set the 'epoch' to ensure shuffle
             # place profile in dictionary
         backwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
         print(backwards_prof)
@@ -281,7 +275,7 @@ class BaseTrainer:
         store the current model checkpoint.
         """
         checkpoint = {
-            "model": self.model.module.state_dict(), ## added the 'module' attribute (https://discuss.pytorch.org/t/access-to-attributes-of-model-wrapped-in-ddp/130572/2)
+            "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "iter_num": iter_num,
             "config": self.cfg,
@@ -304,7 +298,7 @@ class BaseTrainer:
                 not iter_num % self.cfg.trainer.training.eval_interval
             ) and iter_num > 0:
                 s0 = time.time()
-                losses, perplexities, divergency, benchmark_results = self.estimate_performance()
+                losses, perplexities, benchmark_results = self.estimate_performance()
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f},"
                     f" val loss {losses['val']:.4f}, dt {time.time()-s0:.1f}s"
@@ -312,10 +306,6 @@ class BaseTrainer:
                 print(
                     f"step {iter_num}: train perplexity {perplexities['train']:.4f},"
                     f" val perplexity {perplexities['val']:.4f}"
-                )
-                print(
-                    f"step {iter_num}: train divergency {divergency['train']:.4f},"
-                    f" val divergency {divergency['val']:.4f}"
                 )
                 print(
                     f"step {iter_num}: benchmark results {benchmark_results}"
@@ -333,29 +323,11 @@ class BaseTrainer:
                                 "train/perplexity": perplexities["train"],
                                 "val/perplexity": perplexities["val"],
                                 **{
-                                    f"benchmark/{k}": v
+                                    k: v
                                     for k, v in benchmark_results.items()
                                 },
                             }
                         )
-                if self.use_wandb:
-                    wandb.log(
-                        {
-                            "iter": iter_num,
-                            "train/loss": losses["train"],
-                            "val/loss": losses["val"],
-                            "lr": lr,
-                            "dropout": dropout,
-                            "train/perplexity": perplexities["train"],
-                            "val/perplexity": perplexities["val"],
-                            "train/divergency": divergency["train"],
-                            "val/divergency": divergency["val"],
-                            **{
-                                k: v
-                                for k, v in benchmark_results.items()
-                            },
-                        }
-                    )
             # save checkpoints
             if (
                 not iter_num % self.cfg.trainer.training.checkpoint_interval
@@ -364,7 +336,7 @@ class BaseTrainer:
             ):
                 self._save_model(iter_num)
 
-            loss = self._run_step(iter_num) ## set the 'epoch' to ensure shuffle
+            loss = self._run_step() ## set the 'epoch' to ensure shuffle
             end_time = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
                 lossf = loss.item() * self.gradient_accumulation_steps
@@ -394,46 +366,3 @@ class BaseTrainer:
         """Train the model"""
         utils.set_seed(seed)
         self.run_training_loop()
-
-    @yes_grad
-    def distil_eval(self, model, cfg, batches, loss_fn):
-        # """Copy the model, and create a version finetuned on the batches.
-        # Then compare the distribution of the logits of the original model
-        # and the 'finetuned model'.
-        # """
-        # model_copy = deepcopy(model)
-        # model_copy.train()
-        # optimizer = torch.optim.Adam(model_copy.parameters(), lr=0.0001)
-        # mock_dataloader = _MockDataLoader(batches)
-        # fake_cfg = deepcopy(cfg)
-        # fake_cfg["trainer"]["training"]["gradient_accumulation_steps"] = len(batches)
-        # fake_cfg["general"]["logging"]["wandb_log"] = False
-        # fake_cfg["trainer"]["training"]["run_profiler"] = False
-        # trainer = BaseTrainer(cfg=fake_cfg, model=model_copy, optimizer=optimizer, dataloader=mock_dataloader, loss_fn=loss_fn)
-        # trainer.gradient_accumulation_steps = len(batches)
-        # # pylint: disable=protected-access
-        # trainer._run_step()
-        # # pylint: enable=protected-access
-        # # measure the difference in the logits
-        # score = 0
-        # with torch.no_grad():
-        #     for batch in batches:
-        #         logits, *_ = model(batch[0])
-        #         logits = torch.nn.functional.log_softmax(logits, dim=-1)
-        #         logits_batch, *_ = model_copy(batch[0])
-        #         logits_batch = torch.nn.functional.log_softmax(logits_batch, dim=-1)
-        #         _score = torch.nn.functional.kl_div(logits, logits_batch, reduction="batchmean", log_target=True)
-        #         score += _score / len(batches)
-        # batch logits and apply log_softmax
-        score = 0
-        return score
-
-class _MockDataLoader:
-    def __init__(self, batches):
-        self.batches = batches
-        self.current_batch_idx = 0
-
-    def get_batch(self, *args, **kwargs):
-        batch = self.batches[self.current_batch_idx]
-        self.current_batch_idx = (self.current_batch_idx + 1) % len(self.batches)
-        return batch

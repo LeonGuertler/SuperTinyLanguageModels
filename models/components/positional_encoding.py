@@ -3,6 +3,7 @@ A collection of positional encoding modules.
 """
 
 import torch
+import math
 
 
 class LearnedPosEncoding(torch.nn.Module):
@@ -47,26 +48,27 @@ class IdentityEncoding(torch.nn.Module):
 class SinCosPosEncoding(
     torch.nn.Module
 ):
+    """SinCos encoding taken from:
+    \\url{https://github.com/pytorch/examples/blob/main/word_language_model/model.py#L65}
+    As used in the Vaiswani et al. paper..."""
     def __init__(self, hidden_dim, context_window):
+        """Set up the pe buffer etc."""
         super().__init__()
-        self.hidden_dim = hidden_dim
-        self.context_window = context_window
+        pe = torch.zeros(context_window, hidden_dim)
+        position = torch.arange(0, context_window, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, hidden_dim, 2).float() * (-math.log(10000.0) / hidden_dim))
+
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0) # pe has shape (1, S, H)
+
+        self.pe = torch.nn.Parameter(pe) # hack for distributed data parallel
+        self.pe.requires_grad = False
 
     def forward(self, x):
-        """
-        Takes the input tensor and returns it positionally encoded.
-        Args:
-            x: torch.tensor(B, S, H)
-        Returns:
-            x: torch.tensor(B, S, H)
-        """
-        pos = torch.arange(x.size(1), device=x.device).unsqueeze(0)
-        dim = torch.arange(self.hidden_dim, device=x.device).unsqueeze(0)
-        pe = pos / torch.pow(10000, 2 * (dim // 2) / self.hidden_dim)
-        pe[:, 0::2] = torch.sin(pe[:, 0::2])
-        pe[:, 1::2] = torch.cos(pe[:, 1::2])
-        return x + pe
-
+        """Add the pe to the input tensor."""
+        # x of shape (B, S, H)
+        return x + self.pe[:, :x.size(1)]
 
 
 POS_ENCODING_DICT = {
@@ -79,7 +81,6 @@ POS_ENCODING_DICT = {
         hidden_dim=dim, context_window=size
     ),
 }
-
 
 def build_positional_encodings(model_cfg):
     """
