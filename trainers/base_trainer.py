@@ -40,7 +40,7 @@ class BaseTrainer:
         optimizer,
         dataloader: train_dataloader.BaseDataloader,
         loss_fn,
-        gpu_id=None, 
+        gpu_id, 
         lr_scheduler=None,
         dropout_scheduler=None,
     ) -> None:

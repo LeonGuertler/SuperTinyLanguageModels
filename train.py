@@ -61,7 +61,6 @@ def main(cfg):
     ) # must be done before multiprocessing or else the path is wrong?
 
     create_folder_structure(path_config=cfg["general"]["paths"])
-    # otherwise we use ddp
     mp.spawn(
         ddp_main,
         args=(world_size, cfg),

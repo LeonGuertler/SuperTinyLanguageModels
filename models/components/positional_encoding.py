@@ -60,7 +60,7 @@ class SinCosPosEncoding(
 
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
+        pe = pe.unsqueeze(0) # pe has shape (1, S, H)
 
         self.pe = torch.nn.Parameter(pe) # hack for distributed data parallel
         self.pe.requires_grad = False
@@ -68,8 +68,7 @@ class SinCosPosEncoding(
     def forward(self, x):
         """Add the pe to the input tensor."""
         # x of shape (B, S, H)
-        print(x.shape, self.pe.shape)
-        return x + self.pe[:x.size(1), :].unsqueeze(0)
+        return x + self.pe[:, :x.size(1)]
 
 
 POS_ENCODING_DICT = {
