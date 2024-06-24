@@ -8,6 +8,7 @@ import hydra
 from models.build_models import build_model
 from trainers.build_trainers import build_trainer, ddp_setup
 from trainers.utils import create_folder_structure, init_print_override, restore_print_override
+from models.utils import print_model_stats
 
 import torch
 from torch.distributed import destroy_process_group
@@ -29,6 +30,7 @@ def ddp_main(rank, world_size, cfg):
         model.to(cfg["general"]["device"])
         model.train()
         print(f"Rank{rank} Model built")
+        print_model_stats(model)
         # load the relevant trainer
         trainer = build_trainer(
             cfg=cfg,
