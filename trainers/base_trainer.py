@@ -45,7 +45,7 @@ class BaseTrainer:
         dropout_scheduler=None,
     ) -> None:
         self.model = model
-        self.DDP_model = DDP(self.model, device_ids=[gpu_id])
+        self.DDP_model = DDP(self.model, device_ids=[gpu_id], find_unused_parameters=True)
         self.gpu_id = gpu_id 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler

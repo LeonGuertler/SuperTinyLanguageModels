@@ -114,17 +114,41 @@ class HFTransformerCore(torch.nn.Module):
 
     def __init__(self, model_cfg):
         super().__init__()
+        
+        ## set the model name (has to be from huggingface)
+        model_name = model_cfg["model_string"]
+
+        ## load the model from the model hub
         self.model = AutoModelForCausalLM.from_pretrained(
-            model_cfg["model_string"],
+            model_name,
             trust_remote_code=True,
             attn_implementation="flash_attention_2",
             torch_dtype=torch.float16,
-        )
+            )
+
+        ## Determine the attribute of the model that corresponds to the final linear layer
+        if hasattr(self.model, 'lm_head'):
+            self.lm_head = self.model.lm_head
+            self.model.lm_head = None
 
     def forward(self, x):
         """Calls the huggingface model in question"""
-        return self.model(inputs_embeds=x).logits
 
+        ## Determine the attribute of the model that corresponds to the final linear layer
+        if hasattr(self.model, 'transformer'):
+            model_body = self.model.transformer
+        elif hasattr(self.model, 'model'):
+            model_body = self.model.model
+        else:
+            raise AttributeError("Unable to find the main model body. Please check the model architecture.")
+        
+        ## Forward pass through the base model
+        outputs = model_body(inputs_embeds=x)
+
+        ## extract the hidden states
+        hidden_states = outputs.last_hidden_state if hasattr(outputs, 'last_hidden_state') else outputs[0]
+        print('HIDDEN STATES', hidden_states.shape)
+        return hidden_states
 
 class HFLMHead(torch.nn.Module):
     """Poses as the language model head but is just an identity function"""
