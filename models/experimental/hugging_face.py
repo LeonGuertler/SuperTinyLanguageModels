@@ -68,6 +68,7 @@ class HFEmbedder(EmbedderInterface):
             attn_impl = "flash_attention_2"
         else:
             attn_impl = "eager"
+
         self.tokenizer = HFTokenizerWrapper(model_string)
         self.embeddings = AutoModelForCausalLM.from_pretrained(
             model_string,
@@ -135,6 +136,7 @@ class HFTransformerCore(torch.nn.Module):
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,
             trust_remote_code=True,
+            attn_implementation=attn_impl,
             attn_implementation=attn_impl,
             torch_dtype=torch.float16,
             )
