@@ -9,6 +9,7 @@ from trainers.datasets import (
     DatasetInterface,
     BaseDataset,
     BytePoolingDataset,
+    BytePoolingAutoencodingDataset,
 )
 from trainers.samplers import (
     BaseSampler,
@@ -123,6 +124,7 @@ def build_dropout_scheduler(trainer_cfg):
 DATASET_DICT: dict[str, DatasetInterface] = {
     "standard": BaseDataset,
     "byte_pooling": BytePoolingDataset,
+    "byte_pooling_autoencoder": BytePoolingAutoencodingDataset,
 }
 
 

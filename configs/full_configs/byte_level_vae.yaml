@@ -29,7 +29,7 @@ trainer:
     end_dropout_p: 0.1
     start_iter: 0
     end_iter: 10000
-  dataset: stlm
+  dataset: simple_en_wiki
   training:
     trainer_type: base_trainer
     batch_size: 16
@@ -43,7 +43,7 @@ trainer:
     checkpoint_interval: 1000000000.0
     run_profiler: false
   optimizer:
-    name: nanoGPTadamW
+    name: adamW
     lr: 0.0006
     min_lr: 6.0e-05
     weight_decay: 0.1
@@ -56,28 +56,11 @@ trainer:
     name: cosine
   dataloader:
     name: byte_pooling
+  datasampling:
+    name: standard
   loss_fn:
-    name: masked_cross_entropy
+    name: cross_entropy
   eval:
-    - evaluator: "ft_qa"
-      benchmarks:
-        - "winograd"
-        - "hellaswag"
-        - "arc"
-        - "mmlu"
-        - "blimp"
-      max_train_samples: 1000
-      max_eval_samples: 1000
-    - evaluator: "glue"
-    - benchmarks:
-        - "winograd"
-        - "hellaswag"
-        - "arc"
-        - "mmlu"
-        - "blimp"
-      num_samples: 1000
-      evaluator: "mcq"
-    - evaluator: "prog"
 
 general:
   logging:
@@ -88,4 +71,4 @@ general:
     data_dir: data
     checkpoint_dir: checkpoints
   seed: 489
-  device: cuda
+  device: cpu

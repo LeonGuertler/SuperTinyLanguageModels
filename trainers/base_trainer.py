@@ -13,9 +13,6 @@ from models import model_shell
 from trainers import datasets as train_dataloader
 from trainers import utils
 
-from trainers.loss_fn import (
-    compute_perplexity
-)
 from trainers.evaluator import train_eval
 
 import numpy as np
@@ -46,16 +43,12 @@ class BaseTrainer:
         dropout_scheduler=None,
     ) -> None:
         self.model = model
-<<<<<<< HEAD
-        self.DDP_model = DDP(self.model, device_ids=[gpu_id])
-=======
         if gpu_id is not None: # using ddp
             self.dist = True
             self.DDP_model = DDP(self.model, device_ids=[gpu_id])
         else:
             self.dist = False
             self.DDP_model = model
->>>>>>> debugging
         self.gpu_id = gpu_id 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
@@ -65,10 +58,10 @@ class BaseTrainer:
         self.train_val_dataloaders = {}
         self.loss_fn = loss_fn
         self.cfg = cfg
-        assert self.cfg["trainer"]["training"]["gradient_accumulation_steps"] % torch.cuda.device_count() == 0, "Gradient Accumulation Steps must be divisible by the number of GPUs"
+        #assert self.cfg["trainer"]["training"]["gradient_accumulation_steps"] % torch.cuda.device_count() == 0, "Gradient Accumulation Steps must be divisible by the number of GPUs"
         self.gradient_accumulation_steps = cfg["trainer"]["training"][
             "gradient_accumulation_steps"
-        ] // torch.cuda.device_count() ## divide by number of GPUs to maximise throughput
+        ] #// torch.cuda.device_count() ## divide by number of GPUs to maximise throughput
         self.scaler = None
         self.use_wandb = cfg["general"]["logging"]["wandb_log"]
         self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
@@ -76,7 +69,7 @@ class BaseTrainer:
         self.batch_size = cfg["trainer"]["training"]["batch_size"] ## new
 
         # For training, always force the device to be cuda
-        assert torch.cuda.is_available(), "CUDA must be available for training"
+        #assert torch.cuda.is_available(), "CUDA must be available for training"
         self.ctx = self._setup_ctx()
         if self.use_wandb and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU logs to wandb
             self._setup_logging()
@@ -117,39 +110,6 @@ class BaseTrainer:
         """Setup the scaler"""
         self.scaler = torch.cuda.amp.GradScaler(enabled=dtype == torch.float16)
 
-<<<<<<< HEAD
-    def preprocess_data(self):
-        """
-        Preprocess the data
-        """
-        print("Preprocessing the training data")
-        self.dataloader.prepare_data()
-
-    def _get_dataloader(self, split):
-        """
-        Feeds dataloader into PyTorch's DataLoader.
-        """
-        ## return the dataloader if it has already been cached
-        if split in self.train_val_dataloaders:
-            return self.train_val_dataloaders[split]
-        
-        ## if the dataloader has not been created, create it
-        # set the split data
-        dataset = self.dataloader.split_dataloader(split)
-        # create the dataset
-        dataloader = torch.utils.data.DataLoader(
-            dataset,
-            batch_size = self.batch_size,
-            shuffle = False,
-            num_workers = 0,
-        )
-
-        ## cache the dataloader
-        self.train_val_dataloaders[split] = dataloader
-
-        return dataloader
-=======
->>>>>>> debugging
 
     @torch.no_grad()
     def estimate_performance(self, eval_iters=None):
@@ -157,76 +117,21 @@ class BaseTrainer:
         if eval_iters is None:
             eval_iters = self.cfg.trainer.training.eval_iters
         loss = {}
-        perplexity = {}
         self.model.eval()
 
-<<<<<<< HEAD
-            ## initialize the loss, perplexity
-            losses = torch.zeros(eval_iters)
-            perplexities = torch.zeros(eval_iters)
-            
-            ## initialize Pytorch's DataLoader
-            dataloader = self._get_dataloader(split)
-
-            for i, (x, y) in enumerate(dataloader):
-                if i > eval_iters - 1:
-                    break
-                # use cached eval if available
-                if i in self.cached_sets[split]:
-                    print("use cached test set")
-                    x = self.cached_sets[split][i]["x"]
-                    y = self.cached_sets[split][i]["y"]
-                    char_lengths = self.cached_sets[split][i]["char_lengths"]
-                    mask = self.cached_sets[split][i]["mask"]
-                else:
-                    print("process test set")
-                    (
-                        char_lengths,
-                        mask,
-                    ) = self.model.embedding_model.get_sequence_info(x)
-                    self.cached_sets[split][i] = {
-                        "x": x,
-                        "y": y,
-                        "char_lengths": char_lengths,
-                        "mask": mask,
-                    }
-                with self.ctx:
-                    output, _ = self.DDP_model(x)
-                    losses[i] = self.loss_fn(output, y, mask=mask)
-                    perplexities[i] = compute_perplexity(
-=======
         # eval on val set 
         losses = []
-        perplexities = []
         for i, (X, y) in enumerate(self.val_dataloader):
             with self.ctx:
                 output, _ = self.model(X)
                 loss = self.loss_fn(output, y)
                 losses.append(loss.item())
-                perplexities.append(
-                    compute_perplexity(
->>>>>>> debugging
-                        logits=output,
-                        y=y,
-                    )
-<<<<<<< HEAD
 
-            ## aggregate the loss and perplexity across all GPUs
-            avg_loss = aggregate_value(losses.mean().item(), self.cfg.general.device)
-            loss[split] = avg_loss
-            avg_perplexity = aggregate_value(perplexities.mean().item(), self.cfg.general.device)
-            perplexity[split] = avg_perplexity
-=======
-                )
             if i >= eval_iters:
                 break
         
-        # aggregate the loss and perplexity across all GPUs
         avg_loss = aggregate_value(np.mean(losses), self.cfg.general.device)
         loss["val"] = avg_loss
-        avg_perplexity = aggregate_value(np.mean(perplexities), self.cfg.general.device)
-        perplexity["val"] = avg_perplexity
->>>>>>> debugging
 
         evaluator_results = {}
         for evaluator in self.cfg.trainer["eval"]:
@@ -237,39 +142,8 @@ class BaseTrainer:
                 relabeled_results[f"{evaluator['evaluator']}/{metric}"] = evaluator_results[evaluator["evaluator"]][metric]
             evaluator_results[evaluator["evaluator"]] = relabeled_results
         self.model.train()
-        return loss, perplexity, evaluator_results
+        return loss, evaluator_results
 
-<<<<<<< HEAD
-    def _run_step(self):
-        """Run a single step of training"""
-        ## init Pytorch's DataLoader
-        dataloader = self._get_dataloader("train")
-        for iter, (x, y) in enumerate(dataloader):
-            if iter != self.gradient_accumulation_steps - 1:
-                ddp_no_sync_ctx = self.DDP_model.no_sync()
-            else:
-                ddp_no_sync_ctx = nullcontext()
-            with ddp_no_sync_ctx:
-                with self.ctx:
-                    output, aux_loss = self.DDP_model(x)
-                    loss = self.loss_fn(output, y)
-                    if aux_loss is not None:
-                        loss += aux_loss
-                    loss = loss / self.gradient_accumulation_steps
-                self.scaler.scale(loss).backward()
-            if iter == self.gradient_accumulation_steps - 1:
-                break
-
-        grad_clip = self.cfg.trainer.optimizer.grad_clip
-        if grad_clip != 0.0:
-            self.scaler.unscale_(self.optimizer)
-            torch.nn.utils.clip_grad_norm_(
-                self.model.parameters(),
-                grad_clip,
-            )
-        self.scaler.step(self.optimizer)
-        self.scaler.update()
-=======
 
 
 
@@ -296,7 +170,6 @@ class BaseTrainer:
                 # Scale loss to simulate larger effective batch size
                 loss = loss / self.gradient_accumulation_steps
                 self.scaler.scale(loss).backward()
->>>>>>> debugging
 
             # Step and update only after accumulating enough gradients
             if (i + 1) % self.gradient_accumulation_steps == 0 or (i + 1) == len(self.train_dataloader):
@@ -378,14 +251,10 @@ class BaseTrainer:
                 not iter_num % self.cfg.trainer.training.eval_interval
             ) and iter_num > 0:
                 s0 = time.time()
-                losses, perplexities, benchmark_results = self.estimate_performance()
+                losses, benchmark_results = self.estimate_performance()
                 print(
                     f"step {iter_num}: train loss {losses['train']:.4f},"
                     f" val loss {losses['val']:.4f}, dt {time.time()-s0:.1f}s"
-                )
-                print(
-                    f"step {iter_num}: train perplexity {perplexities['train']:.4f},"
-                    f" val perplexity {perplexities['val']:.4f}"
                 )
                 print(
                     f"step {iter_num}: benchmark results {benchmark_results}"
@@ -400,16 +269,12 @@ class BaseTrainer:
                                 "val/loss": losses["val"],
                                 "lr": lr,
                                 "dropout": dropout,
-                                "train/perplexity": perplexities["train"],
-                                "val/perplexity": perplexities["val"],
                                 **{
                                     k: v
                                     for k, v in benchmark_results.items()
                                 },
                             }
                         )
-<<<<<<< HEAD
-=======
                 if self.use_wandb:
                     wandb.log(
                         {
@@ -418,15 +283,12 @@ class BaseTrainer:
                             "val/loss": losses["val"],
                             "lr": lr,
                             "dropout": dropout,
-                            "train/perplexity": perplexities["train"],
-                            "val/perplexity": perplexities["val"],
                             **{
                                 k: v
                                 for k, v in benchmark_results.items()
                             },
                         }
                     )
->>>>>>> debugging
             # save checkpoints
             if (
                 not iter_num % self.cfg.trainer.training.checkpoint_interval
@@ -465,7 +327,3 @@ class BaseTrainer:
         """Train the model"""
         utils.set_seed(seed)
         self.run_training_loop()
-<<<<<<< HEAD
-=======
-
->>>>>>> debugging

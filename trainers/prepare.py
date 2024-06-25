@@ -54,7 +54,7 @@ class ByteLevelProcessor(StandardProcessor):
     def __init__(self, embedder):
         super().__init__(embedder)
 
-    def _write_tokenized_data(self, tokenized, tokenized_data_folder):
+    def write_tokenized_data(self, tokenized, tokenized_data_folder):
         for split, dset in tokenized.items():
             arr_len = np.sum(dset["len"], dtype=np.uint64)
             filename = os.path.join(tokenized_data_folder, f"{split}.bin")
@@ -84,7 +84,7 @@ class ByteLevelProcessor(StandardProcessor):
 
 DATALOADER_PROCESSORS = {
     "standard": StandardProcessor,
-    "byte_level": ByteLevelProcessor
+    "byte_pooling": ByteLevelProcessor
 }
 
 
@@ -156,7 +156,7 @@ def prepare_data(cfg):
 
     except Exception as exc:
         for split in tokenized.keys():
-            os.remove(os.path.join(processor_object.tokenized_data_folder, f"{split}.bin"))
+            os.remove(os.path.join(tokenized_data_folder, f"{split}.bin"))
         raise RuntimeError("Failed to process and write data") from exc
 
 
