@@ -6,10 +6,9 @@ and the trainer itself.
 from models.experimental.hugging_face import MockTrainer
 from trainers.base_trainer import BaseTrainer
 from trainers.datasets import (
-    BaseDataloader,
-    BytePoolingDataloader,
-    NextTokenMLMDataloader,
-    ConversationalDataloader,
+    DatasetInterface,
+    BaseDataset,
+    BytePoolingDataset,
 )
 from trainers.samplers import (
     BaseSampler,
@@ -121,11 +120,9 @@ def build_dropout_scheduler(trainer_cfg):
     )
 
 
-DATASET_DICT: dict[str, BaseDataloader] = {
-    "standard": BaseDataloader,
-    "byte_pooling": BytePoolingDataloader,
-    "next_token_mlm": NextTokenMLMDataloader,
-    "conversational": ConversationalDataloader,
+DATASET_DICT: dict[str, DatasetInterface] = {
+    "standard": BaseDataset,
+    "byte_pooling": BytePoolingDataset,
 }
 
 

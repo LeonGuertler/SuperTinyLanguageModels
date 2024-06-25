@@ -13,9 +13,7 @@ from models.embedding_models import GenericEmbedder
 from trainers.utils import load_data
 
 
-<<<<<<< HEAD:trainers/dataloader.py
-class BaseDataloader(torch.utils.data.Dataset):
-=======
+
 class DatasetInterface(torch.utils.data.Dataset):
     """
     A basic interface to be used by the remaining datasets
@@ -32,7 +30,7 @@ class DatasetInterface(torch.utils.data.Dataset):
         self.data_path = os.path.join(
             self.cfg["general"]["paths"]["data_dir"],
             self.dataset_name,
-            f'{self.cfg["model"]["embedder"]["tokenizer_type"]}-{self.cfg["model"]["vocab_size"]}',
+            f'{self.cfg["model"]["embedder"]["tokenizer_type"]}-{self.cfg["model"]["vocab_size"]}-{self.cfg["trainer"]["dataloader"]["name"]}',
             f"{split}.bin"
         )
 
@@ -66,7 +64,7 @@ class DatasetInterface(torch.utils.data.Dataset):
         
 
 
-class BaseDataloader(DatasetInterface):
+class BaseDataset(DatasetInterface):
     """
     Simple base dataloader for standard gpt-2'esk architectures and training.
     """
@@ -88,6 +86,68 @@ class BaseDataloader(DatasetInterface):
         return x, y
 
 
+class BytePoolingDataset(DatasetInterface):
+    """
+    Simple byte-level dataset
+    """
+    def __init__(self, split, cfg):
+        super().__init__(split, cfg)
+        self.loading_shapes = {"train": None, "val": None}
+
+    def __len__(self):
+        """
+        Return dataset length
+        """
+
+
+    def _write_tokenized_data(self, tokenized):
+        for split, dset in tokenized.items():
+            arr_len = np.sum(dset["len"], dtype=np.uint64)
+            filename = os.path.join(self.tokenized_data_path, f"{split}.bin")
+            dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
+            arr = np.memmap(
+                filename,
+                dtype=dtype,
+                mode="w+",
+                shape=(arr_len, self.model_cfg.embedder.byte_context_window),
+            )
+            total_batches = 1024
+
+            idx = 0
+            for batch_idx in tqdm(range(total_batches), desc=f"writing {filename}"):
+                # Batch together samples for faster write
+                batch = dset.shard(
+                    num_shards=total_batches, index=batch_idx, contiguous=True
+                ).with_format("numpy")
+                arr_batch = np.concatenate(batch["ids"])
+                # Write into mmap
+                arr[idx : idx + len(arr_batch)] = arr_batch
+                idx += len(arr_batch)
+            arr.flush()
+
+    def get_data(self, split = 'train'):
+        ## load the data
+        if self.loading_shapes[split] is None:
+            data = np.memmap(
+                os.path.join(self.tokenized_data_path, f"{split}.bin"),
+                dtype=np.uint16,
+                mode="r",
+            )
+            self.loading_shapes[split] = (len(data)// self.model_cfg.embedder.byte_context_window, self.model_cfg.embedder.byte_context_window)
+
+            ## reset the data
+            data = None
+
+        ## re-load the data with loading shapes
+        data = np.memmap(
+            os.path.join(self.tokenized_data_path, f"{split}.bin"),
+            dtype=np.uint16,
+            mode="r",
+            shape=self.loading_shapes[split],
+        )
+        return data
+    
+
 
 
 
@@ -95,7 +155,6 @@ class BaseDataloader(DatasetInterface):
 
 
 class BaseDataloaderOLD:
->>>>>>> debugging:trainers/datasets.py
     """Abstract class for dataloaders"""
 
     def __init__(

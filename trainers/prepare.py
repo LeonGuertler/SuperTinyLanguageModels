@@ -27,7 +27,12 @@ class StandardProcessor:
             arr_len = np.sum(dset["len"], dtype=np.uint64)
             filename = os.path.join(tokenized_data_folder, f"{split}.bin")
             dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
-            arr = np.memmap(filename, dtype=dtype, mode="w+", shape=(arr_len,))
+            arr = np.memmap(
+                filename, 
+                dtype=dtype, 
+                mode="w+", 
+                shape=(arr_len,)
+            )
             total_batches = 1024
 
             idx = 0
@@ -42,10 +47,44 @@ class StandardProcessor:
                 idx += len(arr_batch)
             arr.flush()
     
+class ByteLevelProcessor(StandardProcessor):
+    """
+    A byte-level processor that tokenizes the text
+    """
+    def __init__(self, embedder):
+        super().__init__(embedder)
+
+    def _write_tokenized_data(self, tokenized, tokenized_data_folder):
+        for split, dset in tokenized.items():
+            arr_len = np.sum(dset["len"], dtype=np.uint64)
+            filename = os.path.join(tokenized_data_folder, f"{split}.bin")
+            dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
+            arr = np.memmap(
+                filename,
+                dtype=dtype,
+                mode="w+",
+                shape=(arr_len, 12), #TODO remove hardcoding
+            )
+            total_batches = 1024
+
+            idx = 0
+            for batch_idx in tqdm(range(total_batches), desc=f"writing {filename}"):
+                # Batch together samples for faster write
+                batch = dset.shard(
+                    num_shards=total_batches, index=batch_idx, contiguous=True
+                ).with_format("numpy")
+                arr_batch = np.concatenate(batch["ids"])
+                # Write into mmap
+                arr[idx : idx + len(arr_batch)] = arr_batch
+                idx += len(arr_batch)
+            arr.flush()
+
+
 
 
 DATALOADER_PROCESSORS = {
-    "standard": StandardProcessor
+    "standard": StandardProcessor,
+    "byte_level": ByteLevelProcessor
 }
 
 
@@ -63,7 +102,7 @@ def prepare_data(cfg):
     tokenized_data_folder = os.path.join(
         cfg["general"]["paths"]["data_dir"],
         dataset_name,
-        f'{cfg["model"]["embedder"]["tokenizer_type"]}-{cfg["model"]["vocab_size"]}',
+        f'{cfg["model"]["embedder"]["tokenizer_type"]}-{cfg["model"]["vocab_size"]}-{cfg["trainer"]["dataloader"]["name"]}',
     )
 
     # check if train.bin already exists
@@ -106,7 +145,7 @@ def prepare_data(cfg):
             processor_object.process,
             remove_columns=["text"],
             desc="Tokenizing dataset",
-            num_proc=1
+            num_proc=8
         )
 
         # concatenate all the ids in each dataset
@@ -117,7 +156,7 @@ def prepare_data(cfg):
 
     except Exception as exc:
         for split in tokenized.keys():
-            os.remove(os.path.join(self.tokenized_data_path, f"{split}.bin"))
+            os.remove(os.path.join(processor_object.tokenized_data_folder, f"{split}.bin"))
         raise RuntimeError("Failed to process and write data") from exc
 
 
