@@ -19,20 +19,21 @@ def main(cfg):
         cfg["model_ckpt"] = hydra.utils.to_absolute_path(cfg["model_ckpt"])
 
         model = build_model(checkpoint=torch.load(cfg["model_ckpt"]))
-    # otherwise build the model from scratch (for external pretrained models)
+    # otherwise build the model from scratch (e.g. for external pretrained models)
     else:
         model = build_model(model_cfg=cfg["model"])
     model.eval()
 
     # load the evaluator
+    benchmark_names = cfg["testing"]["benchmarks"]
+    benchmark_names = [str(benchmark_name) for benchmark_name in benchmark_names]
     evaluator = load_evaluator(
-        evaluator_name=cfg["testing"]["evaluator_name"], model=model
+        evaluator_name=cfg["testing"]["evaluator_name"], model=model, benchmarks=benchmark_names
     )
 
     # run the evaluator
-    benchmark_names = cfg["testing"]["benchmarks"]
-    benchmark_names = [str(benchmark_name) for benchmark_name in benchmark_names]
-    results = evaluator.evaluate(benchmark_names=benchmark_names)
+
+    results = evaluator.evaluate()
     with open(cfg["output_path"], "w") as f:
         f.write(str(results))
 
