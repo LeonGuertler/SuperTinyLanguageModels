@@ -126,7 +126,7 @@ class HFTransformerCore(torch.nn.Module):
             torch_dtype=torch.float16,
             )
 
-        ## Determine the attribute of the model that corresponds to the final linear layer
+        ## Store the model's lm_head separately and set it to None
         if hasattr(self.model, 'lm_head'):
             self.lm_head = self.model.lm_head
             self.model.lm_head = None
@@ -134,7 +134,7 @@ class HFTransformerCore(torch.nn.Module):
     def forward(self, x):
         """Calls the huggingface model in question"""
 
-        ## Determine the attribute of the model that corresponds to the final linear layer
+        ## Determine the correct attribute for the main model body
         if hasattr(self.model, 'transformer'):
             model_body = self.model.transformer
         elif hasattr(self.model, 'model'):
@@ -147,19 +147,35 @@ class HFTransformerCore(torch.nn.Module):
 
         ## extract the hidden states
         hidden_states = outputs.last_hidden_state if hasattr(outputs, 'last_hidden_state') else outputs[0]
-        print('HIDDEN STATES', hidden_states.shape)
         return hidden_states
 
 class HFLMHead(torch.nn.Module):
     """Poses as the language model head but is just an identity function"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, model_cfg):
         super().__init__()
-        self.model = torch.nn.Identity()
+        model_name = model_cfg["model_string"]
+
+        ## set the model name (has to be from huggingface)
+        temp_model = AutoModelForCausalLM.from_pretrained(model_name)
+
+        # Get the lm_head from the original model
+        if hasattr(temp_model, 'lm_head'):
+            self.lm_head = temp_model.lm_head
+        elif hasattr(temp_model, 'model') and hasattr(temp_model.model, 'lm_head'):
+            self.lm_head = temp_model.model.lm_head
+        else:
+            raise AttributeError("Unable to find the lm_head. Please check the model architecture.")
+        
+        # We don't need the rest of the model, so we can delete it to save memory
+        del temp_model
+        
 
     def forward(self, x):
         """Should return the logits and optionally a loss"""
-        return self.model(x), None
+        # Apply the language model head to get logits
+        logits = self.lm_head(x)
+        return logits
 
 
 class MockTrainer(BaseTrainer):
