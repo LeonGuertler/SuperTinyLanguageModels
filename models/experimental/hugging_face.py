@@ -17,6 +17,9 @@ class HFTokenizerWrapper(Tokenizer):
         self.eot_token = self.hf_tokenizer.eos_token_id
         self.pad_token = self.hf_tokenizer.pad_token_id
         self.vocab_size = self.hf_tokenizer.vocab_size
+        if self.pad_token is None:
+            self.pad_token = self.eot_token
+
 
     def encode(self, text):
         """Encode a text into tokens."""
@@ -54,6 +57,7 @@ class HFEmbedder(EmbedderInterface):
         model_string = model_cfg["model_string"]
         self.tokenizer = ...
         self.model = ...
+        self.flash_attn = model_cfg.get("flash_attention", False)
         # load the model from the model hub
         self.load_model(model_string)
 
@@ -61,11 +65,15 @@ class HFEmbedder(EmbedderInterface):
         """
         Load the model from the Hugging Face model hub
         """
+        if self.flash_attn:
+            attn_impl = "flash_attention_2"
+        else:
+            attn_impl = "eager"
         self.tokenizer = HFTokenizerWrapper(model_string)
         self.embeddings = AutoModelForCausalLM.from_pretrained(
             model_string,
             trust_remote_code=True,
-            attn_implementation="flash_attention_2",
+            attn_implementation=attn_impl,
             torch_dtype=torch.float16,
         ).get_input_embeddings()
 
@@ -114,10 +122,15 @@ class HFTransformerCore(torch.nn.Module):
 
     def __init__(self, model_cfg):
         super().__init__()
+        flash_attn = model_cfg.get("flash_attention", False)
+        if flash_attn:
+            attn_impl = "flash_attention_2"
+        else:
+            attn_impl = "eager"
         self.model = AutoModelForCausalLM.from_pretrained(
             model_cfg["model_string"],
             trust_remote_code=True,
-            attn_implementation="flash_attention_2",
+            attn_implementation=attn_impl,
             torch_dtype=torch.float16,
         )
 
