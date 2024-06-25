@@ -79,6 +79,8 @@ trainer:
     name: cosine
   dataloader:
     name: standard
+  datasampling:
+    name: standard
   loss_fn:
     name: cross_entropy
 general:

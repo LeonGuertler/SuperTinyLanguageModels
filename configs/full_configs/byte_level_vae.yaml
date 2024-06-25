@@ -1,19 +1,6 @@
 model:
   core_model:
-    core_model_type: generic
-    num_layers: 10
-    ffn:
-      ffn_type: swiglu
-      ffn_dim: 1536
-      normalization: rms_norm
-      bias: false
-    attn:
-      attn_type: generic
-      num_heads: 16
-      normalization: rms_norm
-      group_size: 4
-      bias: false
-      is_causal: true
+    core_model_type: passthrough
   embedder:
     tokenizer_type: "gpt2"
     byte_tokenizer_type: "bpe"

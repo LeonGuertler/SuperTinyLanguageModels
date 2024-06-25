@@ -8,7 +8,7 @@ from models.components.tokenizers.base_class import Tokenizer
 from models.embedding_models import EmbedderInterface
 from models.model_shell import ModelShell
 from trainers.base_trainer import BaseTrainer
-from trainers.dataloader import BaseDataloader
+#from trainers.datasets import BaseDataloader
 
 
 class HFTokenizerWrapper(Tokenizer):
@@ -159,7 +159,7 @@ class MockTrainer(BaseTrainer):
         cfg,
         model: ModelShell,
         optimizer,
-        dataloader: BaseDataloader,
+        dataloader,
         loss_fn,
         lr_scheduler=None,
         dropout_scheduler=None,

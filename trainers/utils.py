@@ -208,6 +208,7 @@ def profilize(model, classes=None):
 
         model.forward = forward_wrapper
 
+<<<<<<< HEAD
 def is_dist_avail_and_initialized():
     """
     Check if distributed training is available and initialized.
@@ -217,17 +218,29 @@ def is_dist_avail_and_initialized():
     if not dist.is_initialized():
         return False
     return True
+=======
+def is_dist():
+    """
+    Check if the current process is distributed.
+    """
+    return dist.is_initialized()
+>>>>>>> debugging
 
 def aggregate_value(value, device = torch.device("cuda")): 
     """
     Since using DDP, calculation of metrics happen across all GPUs. 
     This function aggregate the loss across all GPUs. 
     """
+<<<<<<< HEAD
     if not is_dist_avail_and_initialized():
+=======
+    if not is_dist():
+>>>>>>> debugging
         return value
     all_loss = torch.tensor([value], device=device)
     dist.all_reduce(all_loss, op=dist.ReduceOp.SUM)
     return all_loss.item() / dist.get_world_size()
+    # return value
 
 def init_print_override():
     '''
@@ -251,4 +264,8 @@ def restore_print_override(original_print):
     Restore the original print function.
     '''
     import builtins as __builtin__
+<<<<<<< HEAD
     __builtin__.print = original_print
+=======
+    __builtin__.print = original_print
+>>>>>>> debugging

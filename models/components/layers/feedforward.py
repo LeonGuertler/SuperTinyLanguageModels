@@ -12,7 +12,6 @@ class GenericFFN(torch.nn.Module):
     """
     A simple feedforward network
     """
-
     def __init__(
         self,
         hidden_dim,
@@ -24,7 +23,10 @@ class GenericFFN(torch.nn.Module):
         # build the ffn block
         self.linear_1 = torch.nn.Linear(hidden_dim, ffn_dim, bias=bias)
 
-        self.activation = build_activation(activation_name=ffn_activation)
+        self.activation = build_activation(
+            activation_name=ffn_activation,
+            input_size=hidden_dim
+        )
 
         self.linear_2 = torch.nn.Linear(ffn_dim, hidden_dim, bias=bias)
 

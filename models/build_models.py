@@ -3,7 +3,7 @@ Contains the build functions for the embedder,
 core model, lm head and the model shell.
 """
 
-from models.core_models import GenericFFNSharedTransfomer, GenericTransformer
+from models.core_models import GenericFFNSharedTransfomer, GenericTransformer, PassThrough
 from models.embedding_models import GenericEmbedder
 from models.experimental.byte_level.embedding_model import ByteLevelEmbedder
 from models.experimental.byte_level.model_heads import ByteLevelDecoder
@@ -70,7 +70,8 @@ CORE_MODEL_DICT = {
     "generic_ffn_sharing": GenericFFNSharedTransfomer,
     "hf_core": HFTransformerCore,
     "next_thought_baseline": BaselineCoreModel,
-    "conv": Conv1dCoreModel
+    "conv": Conv1dCoreModel,
+    "passthrough": PassThrough
 }
 
 

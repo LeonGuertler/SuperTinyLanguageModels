@@ -76,3 +76,22 @@ class GenericFFNSharedTransfomer(GenericTransformer):
                     ]
                     target_module.weight = module.weight
                     target_module.bias = module.bias
+
+
+class PassThrough(torch.nn.Module):
+    """
+    Pass through the input without any modifications.
+    """
+
+    def __init__(self, model_cfg=None):
+        super().__init__()
+
+    def forward(self, x):
+        """
+        Pass the input through the model.
+        Args:
+            x: torch.tensor(B, S, H)
+        Returns:
+            x: torch.tensor(B, S, H)
+        """
+        return x

@@ -10,7 +10,7 @@ from copy import deepcopy
 from contextlib import nullcontext
 
 from models import model_shell
-from trainers import dataloader as train_dataloader
+from trainers import datasets as train_dataloader
 from trainers import utils
 
 from trainers.loss_fn import (
@@ -38,19 +38,30 @@ class BaseTrainer:
         cfg,
         model: model_shell.ModelShell,
         optimizer,
-        dataloader: train_dataloader.BaseDataloader,
+        train_dataloader,
+        val_dataloader,
         loss_fn,
-        gpu_id, 
+        gpu_id=None, 
         lr_scheduler=None,
         dropout_scheduler=None,
     ) -> None:
         self.model = model
+<<<<<<< HEAD
         self.DDP_model = DDP(self.model, device_ids=[gpu_id])
+=======
+        if gpu_id is not None: # using ddp
+            self.dist = True
+            self.DDP_model = DDP(self.model, device_ids=[gpu_id])
+        else:
+            self.dist = False
+            self.DDP_model = model
+>>>>>>> debugging
         self.gpu_id = gpu_id 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.dropout_scheduler = dropout_scheduler
-        self.dataloader = dataloader
+        self.train_dataloader = train_dataloader
+        self.val_dataloader = val_dataloader
         self.train_val_dataloaders = {}
         self.loss_fn = loss_fn
         self.cfg = cfg
@@ -67,9 +78,9 @@ class BaseTrainer:
         # For training, always force the device to be cuda
         assert torch.cuda.is_available(), "CUDA must be available for training"
         self.ctx = self._setup_ctx()
-        if self.use_wandb and self.gpu_id == 0: ## ensures that only the first GPU logs to wandb
+        if self.use_wandb and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU logs to wandb
             self._setup_logging()
-        if cfg.trainer.training.run_profiler and self.gpu_id == 0: ## ensures that only the first GPU runs the profiler
+        if cfg.trainer.training.run_profiler and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU runs the profiler
             self.run_profile()
             raise SystemExit
 
@@ -106,6 +117,7 @@ class BaseTrainer:
         """Setup the scaler"""
         self.scaler = torch.cuda.amp.GradScaler(enabled=dtype == torch.float16)
 
+<<<<<<< HEAD
     def preprocess_data(self):
         """
         Preprocess the data
@@ -136,6 +148,8 @@ class BaseTrainer:
         self.train_val_dataloaders[split] = dataloader
 
         return dataloader
+=======
+>>>>>>> debugging
 
     @torch.no_grad()
     def estimate_performance(self, eval_iters=None):
@@ -145,8 +159,8 @@ class BaseTrainer:
         loss = {}
         perplexity = {}
         self.model.eval()
-        for split in ["train", "val"]:
 
+<<<<<<< HEAD
             ## initialize the loss, perplexity
             losses = torch.zeros(eval_iters)
             perplexities = torch.zeros(eval_iters)
@@ -180,17 +194,39 @@ class BaseTrainer:
                     output, _ = self.DDP_model(x)
                     losses[i] = self.loss_fn(output, y, mask=mask)
                     perplexities[i] = compute_perplexity(
+=======
+        # eval on val set 
+        losses = []
+        perplexities = []
+        for i, (X, y) in enumerate(self.val_dataloader):
+            with self.ctx:
+                output, _ = self.model(X)
+                loss = self.loss_fn(output, y)
+                losses.append(loss.item())
+                perplexities.append(
+                    compute_perplexity(
+>>>>>>> debugging
                         logits=output,
                         y=y,
-                        char_lengths=char_lengths,
-                        mask=mask,
                     )
+<<<<<<< HEAD
 
             ## aggregate the loss and perplexity across all GPUs
             avg_loss = aggregate_value(losses.mean().item(), self.cfg.general.device)
             loss[split] = avg_loss
             avg_perplexity = aggregate_value(perplexities.mean().item(), self.cfg.general.device)
             perplexity[split] = avg_perplexity
+=======
+                )
+            if i >= eval_iters:
+                break
+        
+        # aggregate the loss and perplexity across all GPUs
+        avg_loss = aggregate_value(np.mean(losses), self.cfg.general.device)
+        loss["val"] = avg_loss
+        avg_perplexity = aggregate_value(np.mean(perplexities), self.cfg.general.device)
+        perplexity["val"] = avg_perplexity
+>>>>>>> debugging
 
         evaluator_results = {}
         for evaluator in self.cfg.trainer["eval"]:
@@ -203,6 +239,7 @@ class BaseTrainer:
         self.model.train()
         return loss, perplexity, evaluator_results
 
+<<<<<<< HEAD
     def _run_step(self):
         """Run a single step of training"""
         ## init Pytorch's DataLoader
@@ -232,9 +269,49 @@ class BaseTrainer:
             )
         self.scaler.step(self.optimizer)
         self.scaler.update()
+=======
 
-        self.optimizer.zero_grad(set_to_none=True)
-        return loss
+
+
+    def _run_step(self, epoch=0):
+        """Run a single step of training with gradient accumulation."""
+        self.optimizer.zero_grad()  # Clear gradients at the start of accumulation
+
+        for i, (x, y) in enumerate(self.train_dataloader):
+            x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+            y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+
+            # Enable or disable gradient synchronization based on the need for accumulation
+            if self.dist and hasattr(self.DDP_model, 'no_sync'):
+                context_manager = self.DDP_model.no_sync() if i != self.gradient_accumulation_steps - 1 else nullcontext()
+            else:
+                context_manager = nullcontext()
+
+            with context_manager:
+                with self.ctx:  # Assuming self.ctx is something like torch.cuda.amp.autocast
+                    output, aux_loss = self.DDP_model(x)
+                    loss = self.loss_fn(output, y) #+ (aux_loss if aux_loss is not None else 0)
+                    if aux_loss is not None:
+                        loss += aux_loss
+                # Scale loss to simulate larger effective batch size
+                loss = loss / self.gradient_accumulation_steps
+                self.scaler.scale(loss).backward()
+>>>>>>> debugging
+
+            # Step and update only after accumulating enough gradients
+            if (i + 1) % self.gradient_accumulation_steps == 0 or (i + 1) == len(self.train_dataloader):
+                if self.cfg.trainer.optimizer.grad_clip > 0:
+                    # Unscale the gradients of the optimizer's assigned params in-place
+                    self.scaler.unscale_(self.optimizer)
+                    # Clip the gradients with normalization
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.trainer.optimizer.grad_clip)
+                
+                # Perform a single optimization step
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+                self.optimizer.zero_grad()  # Reset gradients after update
+
+        return loss.item()  # Assuming loss is the average over the accumulated steps
 
     def run_profile(self):
         """Run the profiler"""
@@ -331,6 +408,25 @@ class BaseTrainer:
                                 },
                             }
                         )
+<<<<<<< HEAD
+=======
+                if self.use_wandb:
+                    wandb.log(
+                        {
+                            "iter": iter_num,
+                            "train/loss": losses["train"],
+                            "val/loss": losses["val"],
+                            "lr": lr,
+                            "dropout": dropout,
+                            "train/perplexity": perplexities["train"],
+                            "val/perplexity": perplexities["val"],
+                            **{
+                                k: v
+                                for k, v in benchmark_results.items()
+                            },
+                        }
+                    )
+>>>>>>> debugging
             # save checkpoints
             if (
                 not iter_num % self.cfg.trainer.training.checkpoint_interval
@@ -342,7 +438,7 @@ class BaseTrainer:
             loss = self._run_step() ## set the 'epoch' to ensure shuffle
             end_time = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
-                lossf = loss.item() * self.gradient_accumulation_steps
+                lossf = loss * self.gradient_accumulation_steps
 
                 ## uncomment the following line to print the loss on all GPUs
                 # print(f"GPU {self.gpu_id}: step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
@@ -369,3 +465,7 @@ class BaseTrainer:
         """Train the model"""
         utils.set_seed(seed)
         self.run_training_loop()
+<<<<<<< HEAD
+=======
+
+>>>>>>> debugging
