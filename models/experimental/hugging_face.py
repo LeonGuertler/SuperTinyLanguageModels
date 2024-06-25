@@ -137,7 +137,6 @@ class HFTransformerCore(torch.nn.Module):
             model_name,
             trust_remote_code=True,
             attn_implementation=attn_impl,
-            attn_implementation=attn_impl,
             torch_dtype=torch.float16,
             )
 
