@@ -20,10 +20,15 @@ model:
     embedding_model_type: byte_level
     byte_context_window: 12
     dataset_name: simple_en_wiki
+
   lm_head:
     normalization: rms_norm
     bias: false
     lm_head_type: generic
+
+  byte_vocab_size: 258
+  byte_context_window: 12
+  byte_embedding_dim: 128
   hidden_dim: 512
   context_window: 512
   vocab_size: 50257
