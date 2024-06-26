@@ -114,7 +114,7 @@ class ByteLevelEmbedder(EmbedderInterface):
         if not return_high_level:
             return tokens
         else:
-            return pooling_ids, tokens
+            return tokens, pooling_ids
 
     def pad_batch(self, token_lists, direction="right"):
         """
