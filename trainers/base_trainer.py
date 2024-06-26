@@ -116,7 +116,7 @@ class BaseTrainer:
         """Estimate the loss"""
         if eval_iters is None:
             eval_iters = self.cfg.trainer.training.eval_iters
-        loss = {}
+        loss_tracker = {}
         self.model.eval()
 
         # eval on val set 
@@ -133,7 +133,7 @@ class BaseTrainer:
                 break
         
         avg_loss = aggregate_value(np.mean(losses), self.cfg.general.device)
-        loss["val"] = avg_loss
+        loss_tracker["val"] = avg_loss
 
         evaluator_results = {}
         for evaluator in self.cfg.trainer["eval"]:
@@ -144,7 +144,7 @@ class BaseTrainer:
                 relabeled_results[f"{evaluator['evaluator']}/{metric}"] = evaluator_results[evaluator["evaluator"]][metric]
             evaluator_results[evaluator["evaluator"]] = relabeled_results
         self.model.train()
-        return loss, evaluator_results
+        return loss_tracker, evaluator_results
 
 
 
