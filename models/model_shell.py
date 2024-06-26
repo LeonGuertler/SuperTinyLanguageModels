@@ -106,3 +106,28 @@ class ModelShell(torch.nn.Module):
         ll = ll * mask
         ll = ll.view(input_tensor.size(0), -1).sum(dim=1)
         return -ll
+    
+
+class VAEModelShell(ModelShell):
+    """
+    A simple VAE model shell to test the enc-dec
+    capabilities of different embedding and head models.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def forward(self, token_ids):
+        """
+        Forward pass with 10% noise
+        """
+        x = self.embedding_model(token_ids)
+
+        # add noise to 10% of the data
+        noise = torch.randn_like(x)+0.5
+        mask = torch.rand_like(x) < 0.1  # 10% mask
+        x = torch.where(mask, x * noise, x)
+
+        # pass through head
+        x = self.model_head(x)[0]
+
+        return x, None
