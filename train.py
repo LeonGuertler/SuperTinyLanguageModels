@@ -86,31 +86,21 @@ def main(cfg):
     ) # must be done before multiprocessing or else the path is wrong?
 
     create_folder_structure(path_config=cfg["general"]["paths"])
-    if world_size == 1:
-        single_gpu_main(cfg)
-        return
 
     # process data 
     prepare_data(cfg)
 
-    # otherwise we use ddp
-    if world_size > 1:
+    if world_size == 1:
+        single_gpu_main(cfg)
+        return
+    else:
+        # otherwise we use ddp
         mp.spawn(
             ddp_main,
             args=(world_size, cfg),
             nprocs=world_size,
             join=True,
         )
-    else:
-        model = build_model(model_cfg=cfg["model"])
-        model.to(cfg["general"]["device"])
-        model.train()
-        trainer = build_trainer(
-            cfg=cfg,
-            model=model,
-            gpu_id=None
-        )
-        trainer.train()        
 
     # Additional cleanup to prevent leaked semaphores
     for process in mp.active_children():
