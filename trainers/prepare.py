@@ -90,6 +90,8 @@ class DualByteLevelProcessor(StandardProcessor):
 
     def process(self, example):
         byte_ids, token_ids = self.embedder.tokenize_input(example["text"], return_high_level=True)
+        print(byte_ids.size(), token_ids.size())
+        input()
         return {"byte_ids": byte_ids, "token_ids": token_ids, "len": len(token_ids)}
     
     def write_tokenized_data(self, tokenized, tokenized_data_folder):
@@ -215,8 +217,8 @@ def prepare_data(cfg):
 
     except Exception as exc:
         print(f"Error: {exc}")
-        for split in tokenized.keys():
-            os.remove(os.path.join(tokenized_data_folder, f"{split}.bin"))
+        for file in os.listdir(tokenized_data_folder):
+            os.remove(os.path.join(tokenized_data_folder, file))
         raise RuntimeError("Failed to process and write data") from exc
 
 
