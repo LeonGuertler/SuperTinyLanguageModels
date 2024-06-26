@@ -121,11 +121,11 @@ class BaseTrainer:
 
         # eval on val set 
         losses = []
-        for i, (X, y) in enumerate(self.val_dataloader):
+        for i, (x, y) in enumerate(self.val_dataloader):
             x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
             y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
             with self.ctx:
-                output, _ = self.model(X)
+                output, _ = self.model(x)
                 loss = self.loss_fn(output, y)
                 losses.append(loss.item())
 
