@@ -112,7 +112,6 @@ class BytePoolingDataset(DatasetInterface):
             mode="r",
             shape=self.loading_shape,
         )
-
     
     def __getitem__(self, idx):
         """
@@ -121,6 +120,63 @@ class BytePoolingDataset(DatasetInterface):
         x = torch.from_numpy((self.data[idx: idx + self.context_window]).astype(np.int64))
         y = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
         return x, y
+    
+
+class DualBytePooling(DatasetInterface):
+    """
+    Dataset for both byte-level and higher token level tokens simultaneously
+    """
+    def __init__(self, split, cfg):
+        self.loading_shape = None
+        super().__init__(split, cfg)
+        # overwrite datapath
+        data_folder = os.path.join(
+            self.cfg["general"]["paths"]["data_dir"],
+            self.dataset_name,
+            f'{self.cfg["model"]["embedder"]["tokenizer_type"]}-{self.cfg["model"]["vocab_size"]}-{self.cfg["trainer"]["dataloader"]["name"]}',
+        )
+        self.data_path_byte = os.path.join(data_folder, f"{split}_byte.bin")
+        self.data_path_token = os.path.join(data_folder, f"{split}_token.bin")
+
+        # force parent init
+        self._load_data()
+
+    def _load_data(self):
+        """
+        Get both the byte-level and the token level data
+        """
+        if self.loading_shape is None:
+            data = np.memmap(
+                self.data_path_byte,
+                dtype=np.uint16,
+                mode="r",
+            )
+            self.loading_shape = (len(data)// self.cfg["model"]["embedder"]["byte_context_window"], self.cfg["model"]["embedder"]["byte_context_window"])
+            data = None
+        self.data_byte = np.memmap(
+            self.data_path_byte,
+            dtype=np.uint16,
+            mode="r",
+            shape=self.loading_shape,
+        )
+        self.data_token = np.memmap(
+            self.data_path_token,
+            dtype=np.uint16,
+            mode="r",
+        )
+    
+    def __getitem__(self, idx):
+        """
+        Get a batch of data from both the byte and higher token level
+        """
+        # get byte level batch
+        x_byte = torch.from_numpy((self.data_byte[idx: idx + self.context_window]).astype(np.int64))
+        #y_byte = torch.from_numpy((self.data_byte[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
+
+        # get token level batch
+        #x_token = torch.from_numpy((self.data_token[idx: idx + self.context_window]).astype(np.int64))
+        y_token = torch.from_numpy((self.data_token[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
+        return x_byte, y_token  
 
 
 class BytePoolingAutoencodingDataset(BytePoolingDataset):

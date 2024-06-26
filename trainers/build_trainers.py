@@ -10,6 +10,7 @@ from trainers.datasets import (
     BaseDataset,
     BytePoolingDataset,
     BytePoolingAutoencodingDataset,
+    DualBytePooling
 )
 from trainers.samplers import (
     BaseSampler,
@@ -125,6 +126,7 @@ DATASET_DICT: dict[str, DatasetInterface] = {
     "standard": BaseDataset,
     "byte_pooling": BytePoolingDataset,
     "byte_pooling_autoencoder": BytePoolingAutoencodingDataset,
+    "dual_byte_pooling": DualBytePooling
 }
 
 

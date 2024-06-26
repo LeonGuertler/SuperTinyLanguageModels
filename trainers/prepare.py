@@ -79,12 +79,67 @@ class ByteLevelProcessor(StandardProcessor):
                 idx += len(arr_batch)
             arr.flush()
 
+class DualByteLevelProcessor(StandardProcessor):
+    """
+    This preprocessor stores both the byte level structure and 
+    the standard structure to enable the training of architectures
+    with byte-level input, but standard token output.
+    """
+    def __init__(self, embedder):
+        super().__init__(embedder)
+
+    def process(self, example):
+        byte_ids, token_ids = self.embedder.tokenize_input(example["text"])
+        return {"byte_ids": byte_ids, "token_ids": token_ids, "len": len(token_ids)}
+    
+    def write_tokenized_data(self, tokenized, tokenized_data_folder):
+        for split, dset in tokenized.items():
+            arr_len = np.sum(dset["len"], dtype=np.uint64)
+
+            filename_byte = os.path.join(tokenized_data_folder, f"{split}_byte.bin")
+            filename_token = os.path.join(tokenized_data_folder, f"{split}_token.bin")
+
+            dtype = np.uint16  # (can do since enc.max_token_value == 50256 is < 2**16)
+
+            arr_byte = np.memmap(
+                filename_byte,
+                dtype=dtype,
+                mode="w+",
+                shape=(arr_len, 12), #TODO remove hardcoding
+            )
+
+            arr_token = np.memmap(
+                filename_token,
+                dtype=dtype,
+                mode="w+",
+                shape=(arr_len,),
+            )
+
+            total_batches = 1024
+
+            idx = 0
+            for batch_idx in tqdm(range(total_batches), desc=f"writing {filename_byte} and {filename_token}"):
+                # Batch together samples for faster write
+                batch = dset.shard(
+                    num_shards=total_batches, index=batch_idx, contiguous=True
+                ).with_format("numpy")
+                arr_batch_byte = np.concatenate(batch["byte_ids"])
+                arr_batch_token = np.concatenate(batch["token_ids"])
+
+                # write into mmap
+                arr_byte[idx : idx + len(arr_batch_byte)] = arr_batch_byte
+                arr_token[idx : idx + len(arr_batch_token)] = arr_batch_token
+                idx += len(arr_batch_byte)
+
+            arr_byte.flush()
+            arr_token.flush()
 
 
 
 DATALOADER_PROCESSORS = {
     "standard": StandardProcessor,
-    "byte_pooling": ByteLevelProcessor
+    "byte_pooling": ByteLevelProcessor,
+    "dual_byte_pooling": DualByteLevelProcessor
 }
 
 

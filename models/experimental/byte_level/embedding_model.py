@@ -85,7 +85,7 @@ class ByteLevelEmbedder(EmbedderInterface):
             ]
         )
 
-    def tokenize_input(self, input_string: str, truncate=False, add_eot=True):
+    def tokenize_input(self, input_string: str, truncate=False, add_eot=True, return_high_level=False):
         """Tokenize an input string.
 
         In this case we actually want to pre-tokenize using the pooling tokenizer,
@@ -111,7 +111,10 @@ class ByteLevelEmbedder(EmbedderInterface):
             * (self.model_cfg["byte_context_window"] - len(token_seq))
             for token_seq in tokens
         ]
-        return tokens
+        if not return_high_level:
+            return tokens
+        else:
+            return pooling_ids, tokens
 
     def pad_batch(self, token_lists, direction="right"):
         """
