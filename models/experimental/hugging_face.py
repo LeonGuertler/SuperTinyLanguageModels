@@ -12,7 +12,7 @@ from trainers.dataloader import BaseDataloader
 
 def build_model(model_cfg):
     '''
-    Helper function to build a model from the huggingface model hub
+    Helper function to build a model from the huggingface model hub.
     '''
     ## get the model string
     model_str = model_cfg["model_string"]
@@ -142,14 +142,18 @@ class HFEmbedder(EmbedderInterface):
 
 
 class HFTransformerCore(torch.nn.Module):
-    """Runs the huggingface transformer model"""
+    """
+    Hugging Face transformer class.
+    """
 
     def __init__(self, model_cfg):
         super().__init__()
         self.model = build_model(model_cfg = model_cfg)
 
     def forward(self, x):
-        """Calls the huggingface model in question"""
+        """
+        Calls the huggingface model in question, and returns the last hidden state.
+        """
         ## get the hidden states
         hidden_states = self.model(inputs_embeds = x, output_hidden_states = True).hidden_states
 
@@ -160,15 +164,22 @@ class HFTransformerCore(torch.nn.Module):
         
 
 class HFLMHead(torch.nn.Module):
-    """Poses as the language model head but is just an identity function"""
+    """
+    Takes the language model head of a Hugging Face transformer class.
+    """
 
     def __init__(self, model_cfg):
         super().__init__()
         self.lm_head = build_model(model_cfg = model_cfg).get_output_embeddings()
-        
-
+    
     def forward(self, x):
-        """Should return the logits and optionally a loss"""
+        """
+        Passes the input through the language model head to get logits.
+        Args:
+            x: torch.tensor(B, S, H)
+        Returns:
+            x: torch.tensor(B, S, V)
+        """
         # Apply the language model head to get logits
         return self.lm_head(x), None
 
