@@ -10,6 +10,30 @@ from models.model_shell import ModelShell
 from trainers.base_trainer import BaseTrainer
 from trainers.dataloader import BaseDataloader
 
+def build_model(model_cfg):
+    '''
+    Helper function to build a model from the huggingface model hub
+    '''
+    ## get the model string
+    model_str = model_cfg["model_string"]
+
+    ## check if we are using flash attention
+    flash_attn = model_cfg.get("flash_attention", False)
+    if flash_attn:
+        attn_impl = "flash_attention_2"
+    else:
+        attn_impl = "eager"
+
+    ## load the model from the model hub
+    model = AutoModelForCausalLM.from_pretrained(
+        model_str,
+        trust_remote_code=True,
+        attn_implementation=attn_impl,
+        torch_dtype=torch.float16,
+    )
+
+    return model
+
 
 class HFTokenizerWrapper(Tokenizer):
     def __init__(self, hf_tokenizer_name):
@@ -122,74 +146,31 @@ class HFTransformerCore(torch.nn.Module):
 
     def __init__(self, model_cfg):
         super().__init__()
-        
-        flash_attn = model_cfg.get("flash_attention", False)
-        if flash_attn:
-            attn_impl = "flash_attention_2"
-        else:
-            attn_impl = "eager"
-
-        ## set the model name (has to be from huggingface)
-        model_name = model_cfg["model_string"]
-
-        ## load the model from the model hub
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            trust_remote_code=True,
-            attn_implementation=attn_impl,
-            torch_dtype=torch.float16,
-            )
-
-        ## Store the model's lm_head separately and set it to None
-        if hasattr(self.model, 'lm_head'):
-            self.lm_head = self.model.lm_head
-            self.model.lm_head = None
+        self.model = build_model(model_cfg = model_cfg)
 
     def forward(self, x):
         """Calls the huggingface model in question"""
+        ## get the hidden states
+        hidden_states = self.model(inputs_embeds = x, output_hidden_states = True).hidden_states
 
-        ## Determine the correct attribute for the main model body
-        if hasattr(self.model, 'transformer'):
-            model_body = self.model.transformer
-        elif hasattr(self.model, 'model'):
-            model_body = self.model.model
-        else:
-            raise AttributeError("Unable to find the main model body. Please check the model architecture.")
+        ## return the last hidden state
+        if isinstance(hidden_states, tuple):
+            return hidden_states[-1]
+
         
-        ## Forward pass through the base model
-        outputs = model_body(inputs_embeds=x)
-
-        ## extract the hidden states
-        hidden_states = outputs.last_hidden_state if hasattr(outputs, 'last_hidden_state') else outputs[0]
-        return hidden_states
 
 class HFLMHead(torch.nn.Module):
     """Poses as the language model head but is just an identity function"""
 
     def __init__(self, model_cfg):
         super().__init__()
-        model_name = model_cfg["model_string"]
-
-        ## set the model name (has to be from huggingface)
-        temp_model = AutoModelForCausalLM.from_pretrained(model_name)
-
-        # Get the lm_head from the original model
-        if hasattr(temp_model, 'lm_head'):
-            self.lm_head = temp_model.lm_head
-        elif hasattr(temp_model, 'model') and hasattr(temp_model.model, 'lm_head'):
-            self.lm_head = temp_model.model.lm_head
-        else:
-            raise AttributeError("Unable to find the lm_head. Please check the model architecture.")
-        
-        # We don't need the rest of the model, so we can delete it to save memory
-        del temp_model
+        self.lm_head = build_model(model_cfg = model_cfg).get_output_embeddings()
         
 
     def forward(self, x):
         """Should return the logits and optionally a loss"""
         # Apply the language model head to get logits
-        logits = self.lm_head(x)
-        return logits
+        return self.lm_head(x), None
 
 
 class MockTrainer(BaseTrainer):
