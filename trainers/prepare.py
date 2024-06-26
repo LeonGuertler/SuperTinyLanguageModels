@@ -195,12 +195,16 @@ def prepare_data(cfg):
 
     # wrap in try such that half-complete files can be deleted on error
     try:
+        # Get the maximum number of processors
+        max_procs = os.cpu_count()
+        print(f"Using {max_procs} processors")
+
         # tokenize the dataset
         tokenized = split_dataset.map(
             processor_object.process,
             remove_columns=["text"],
             desc="Tokenizing dataset",
-            num_proc=8
+            num_proc=max_procs
         )
 
         # concatenate all the ids in each dataset
