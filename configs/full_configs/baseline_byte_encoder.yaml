@@ -85,7 +85,7 @@ trainer:
   lr_scheduler:
     name: cosine
   dataloader:
-    name: standard
+    name: dual_pooling
   datasampling:
     name: standard
   loss_fn:
