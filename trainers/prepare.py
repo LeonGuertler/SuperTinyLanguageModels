@@ -90,7 +90,7 @@ class DualByteLevelProcessor(StandardProcessor):
 
     def process(self, example):
         byte_ids, token_ids = self.embedder.tokenize_input(example["text"], return_high_level=True)
-        print(byte_ids.size(), token_ids.size())
+        print(byte_ids[0].size(), token_ids[0].size())
         input()
         return {"byte_ids": byte_ids, "token_ids": token_ids, "len": len(token_ids)}
     
