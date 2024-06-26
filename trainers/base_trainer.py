@@ -255,7 +255,7 @@ class BaseTrainer:
                 s0 = time.time()
                 losses, benchmark_results = self.estimate_performance()
                 print(
-                    f"step {iter_num}: train loss {losses['train']:.4f},"
+                    f"step {iter_num}:"
                     f" val loss {losses['val']:.4f}, dt {time.time()-s0:.1f}s"
                 )
                 print(
@@ -267,7 +267,7 @@ class BaseTrainer:
                         wandb.log(
                             {
                                 "iter": iter_num,
-                                "train/loss": losses["train"],
+                                #"train/loss": losses["train"],
                                 "val/loss": losses["val"],
                                 "lr": lr,
                                 "dropout": dropout,
@@ -281,7 +281,7 @@ class BaseTrainer:
                     wandb.log(
                         {
                             "iter": iter_num,
-                            "train/loss": losses["train"],
+                            #"train/loss": losses["train"],
                             "val/loss": losses["val"],
                             "lr": lr,
                             "dropout": dropout,
