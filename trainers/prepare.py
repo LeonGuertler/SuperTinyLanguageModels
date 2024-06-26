@@ -210,6 +210,7 @@ def prepare_data(cfg):
         )
 
     except Exception as exc:
+        print(f"Error: {exc}")
         for split in tokenized.keys():
             os.remove(os.path.join(tokenized_data_folder, f"{split}.bin"))
         raise RuntimeError("Failed to process and write data") from exc
