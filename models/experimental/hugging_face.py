@@ -78,28 +78,8 @@ class HFEmbedder(EmbedderInterface):
         super().__init__()
         self.model_cfg = model_cfg
         model_string = model_cfg["model_string"]
-        self.tokenizer = ...
-        self.model = ...
-        self.flash_attn = model_cfg.get("flash_attention", False)
-        # load the model from the model hub
-        self.load_model(model_string)
-
-    def load_model(self, model_string):
-        """
-        Load the model from the Hugging Face model hub
-        """
-        if self.flash_attn:
-            attn_impl = "flash_attention_2"
-        else:
-            attn_impl = "eager"
-
         self.tokenizer = HFTokenizerWrapper(model_string)
-        self.embeddings = AutoModelForCausalLM.from_pretrained(
-            model_string,
-            trust_remote_code=True,
-            attn_implementation=attn_impl,
-            torch_dtype=torch.float16,
-        ).get_input_embeddings()
+        self.embeddings = build_model(model_cfg).get_input_embeddings()
 
     def decode(self, token_ids):
         """
