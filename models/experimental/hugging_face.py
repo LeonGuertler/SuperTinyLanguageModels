@@ -150,6 +150,11 @@ class HFTransformerCore(torch.nn.Module):
         super().__init__()
         self.model = build_model(model_cfg = model_cfg)
 
+        ## freeze the parameters
+        print("Note: Freezing the parameters of the hf_core model.")
+        for param in self.model.parameters():
+            param.requires_grad = False
+
     def forward(self, x):
         """
         Calls the huggingface model in question, and returns the last hidden state.
