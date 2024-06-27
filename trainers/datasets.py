@@ -130,9 +130,9 @@ class DualBytePooling(DatasetInterface):
         self.loading_shape = None
         # overwrite datapath
         data_folder = os.path.join(
-            self.cfg["general"]["paths"]["data_dir"],
-            self.dataset_name,
-            f'{self.cfg["model"]["embedder"]["tokenizer_type"]}-{self.cfg["model"]["vocab_size"]}-{self.cfg["trainer"]["dataloader"]["name"]}',
+            cfg["general"]["paths"]["data_dir"],
+            cfg["trainer"]["dataset"],
+            f'{cfg["model"]["embedder"]["tokenizer_type"]}-{cfg["model"]["vocab_size"]}-{cfg["trainer"]["dataloader"]["name"]}',
         )
         self.data_path_byte = os.path.join(data_folder, f"{split}_byte.bin")
         self.data_path_token = os.path.join(data_folder, f"{split}_token.bin")
