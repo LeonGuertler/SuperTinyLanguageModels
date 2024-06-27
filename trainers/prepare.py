@@ -160,24 +160,13 @@ def prepare_data(cfg):
         f'{cfg["model"]["embedder"]["tokenizer_type"]}-{cfg["model"]["vocab_size"]}-{cfg["trainer"]["dataloader"]["name"]}',
     )
 
-    # check if train.bin already exists
-    if (
-        os.path.exists(os.path.join(tokenized_data_folder, "train.bin")) and 
-        os.path.exists(os.path.join(tokenized_data_folder, "val.bin"))
-    ):
+    # check if already exists (check len because some datasets use differen filenames
+    # (i.e. dual byte level)
+    if len(os.listdir(tokenized_data_folder))!=0:
         print("Tokenized data already exists")
         return
-    if (
-        os.path.exists(os.path.join(tokenized_data_folder, "train.bin")) or 
-        os.path.exists(os.path.join(tokenized_data_folder, "val.bin"))
-    ):
-        # for now just delete and tokenized both again
-        print("Deleting half-complete tokenized data")
-        for split in ["train", "val"]:
-            os.remove(os.path.join(tokenized_data_folder, f"{split}.bin"))
-    
-    # create the folder if it doesn't exist   
-    if not os.path.exists(tokenized_data_folder):
+    else:
+        # create the folder if it doesn't exist   
         os.makedirs(tokenized_data_folder)
 
 
