@@ -128,7 +128,6 @@ class DualBytePooling(DatasetInterface):
     """
     def __init__(self, split, cfg):
         self.loading_shape = None
-        super().__init__(split, cfg)
         # overwrite datapath
         data_folder = os.path.join(
             self.cfg["general"]["paths"]["data_dir"],
@@ -137,6 +136,7 @@ class DualBytePooling(DatasetInterface):
         )
         self.data_path_byte = os.path.join(data_folder, f"{split}_byte.bin")
         self.data_path_token = os.path.join(data_folder, f"{split}_token.bin")
+        super().__init__(split, cfg)
 
         # force parent init
         self._load_data()

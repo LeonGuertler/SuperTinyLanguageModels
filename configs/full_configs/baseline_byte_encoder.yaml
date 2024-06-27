@@ -33,7 +33,7 @@ model:
   context_window: 512
   vocab_size: 50257
   model_shell_type: standard
-  embedding_weight_tying: true
+  embedding_weight_tying: false
   positional_encoding_type: rope
 trainer:
   dropout_scheduler:

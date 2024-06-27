@@ -312,7 +312,7 @@ class BaseTrainer:
 
                 ## print and log the result only on the first GPU after aggregation
                 print(f"All GPU(s): step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
-                if self.gpu_id == 0 and self.use_wandb:
+                if (self.gpu_id == 0 or self.gpu_id == None) and self.use_wandb:
                     wandb.log(
                         {
                             "iter": iter_num,
