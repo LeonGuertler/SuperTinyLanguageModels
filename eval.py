@@ -32,7 +32,6 @@ def main(cfg):
     )
 
     # run the evaluator
-
     results = evaluator.evaluate()
     with open(cfg["output_path"], "w") as f:
         f.write(str(results))

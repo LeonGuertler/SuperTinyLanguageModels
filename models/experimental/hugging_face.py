@@ -10,6 +10,30 @@ from models.model_shell import ModelShell
 from trainers.base_trainer import BaseTrainer
 from trainers.dataloader import BaseDataloader
 
+def build_model(model_cfg):
+    '''
+    Helper function to build a model from the huggingface model hub.
+    '''
+    ## get the model string
+    model_str = model_cfg["model_string"]
+
+    ## check if we are using flash attention
+    flash_attn = model_cfg.get("flash_attention", False)
+    if flash_attn:
+        attn_impl = "flash_attention_2"
+    else:
+        attn_impl = "eager"
+
+    ## load the model from the model hub
+    model = AutoModelForCausalLM.from_pretrained(
+        model_str,
+        trust_remote_code=True,
+        attn_implementation=attn_impl,
+        torch_dtype=torch.float16,
+    )
+
+    return model
+
 
 class HFTokenizerWrapper(Tokenizer):
     def __init__(self, hf_tokenizer_name):
@@ -19,7 +43,6 @@ class HFTokenizerWrapper(Tokenizer):
         self.vocab_size = self.hf_tokenizer.vocab_size
         if self.pad_token is None:
             self.pad_token = self.eot_token
-
 
     def encode(self, text):
         """Encode a text into tokens."""
@@ -55,27 +78,8 @@ class HFEmbedder(EmbedderInterface):
         super().__init__()
         self.model_cfg = model_cfg
         model_string = model_cfg["model_string"]
-        self.tokenizer = ...
-        self.model = ...
-        self.flash_attn = model_cfg.get("flash_attention", False)
-        # load the model from the model hub
-        self.load_model(model_string)
-
-    def load_model(self, model_string):
-        """
-        Load the model from the Hugging Face model hub
-        """
-        if self.flash_attn:
-            attn_impl = "flash_attention_2"
-        else:
-            attn_impl = "eager"
         self.tokenizer = HFTokenizerWrapper(model_string)
-        self.embeddings = AutoModelForCausalLM.from_pretrained(
-            model_string,
-            trust_remote_code=True,
-            attn_implementation=attn_impl,
-            torch_dtype=torch.float16,
-        ).get_input_embeddings()
+        self.embeddings = build_model(model_cfg).get_input_embeddings()
 
     def decode(self, token_ids):
         """
@@ -118,37 +122,51 @@ class HFEmbedder(EmbedderInterface):
 
 
 class HFTransformerCore(torch.nn.Module):
-    """Runs the huggingface transformer model"""
+    """
+    Hugging Face transformer class.
+    """
 
     def __init__(self, model_cfg):
         super().__init__()
-        flash_attn = model_cfg.get("flash_attention", False)
-        if flash_attn:
-            attn_impl = "flash_attention_2"
-        else:
-            attn_impl = "eager"
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_cfg["model_string"],
-            trust_remote_code=True,
-            attn_implementation=attn_impl,
-            torch_dtype=torch.float16,
-        )
+        self.model = build_model(model_cfg = model_cfg)
+
+        ## freeze the parameters
+        print("Note: Freezing the parameters of the hf_core model.")
+        for param in self.model.parameters():
+            param.requires_grad = False
 
     def forward(self, x):
-        """Calls the huggingface model in question"""
-        return self.model(inputs_embeds=x).logits
+        """
+        Calls the huggingface model in question, and returns the last hidden state.
+        """
+        ## get the hidden states
+        hidden_states = self.model(inputs_embeds = x, output_hidden_states = True).hidden_states
 
+        ## return the last hidden state
+        if isinstance(hidden_states, tuple):
+            return hidden_states[-1]
+
+        
 
 class HFLMHead(torch.nn.Module):
-    """Poses as the language model head but is just an identity function"""
+    """
+    Takes the language model head of a Hugging Face transformer class.
+    """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, model_cfg):
         super().__init__()
-        self.model = torch.nn.Identity()
-
+        self.lm_head = build_model(model_cfg = model_cfg).get_output_embeddings()
+    
     def forward(self, x):
-        """Should return the logits and optionally a loss"""
-        return self.model(x), None
+        """
+        Passes the input through the language model head to get logits.
+        Args:
+            x: torch.tensor(B, S, H)
+        Returns:
+            x: torch.tensor(B, S, V)
+        """
+        # Apply the language model head to get logits
+        return self.lm_head(x), None
 
 
 class MockTrainer(BaseTrainer):
