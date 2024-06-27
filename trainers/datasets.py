@@ -159,7 +159,7 @@ class DualBytePooling(DatasetInterface):
             mode="r",
             shape=self.loading_shape,
         )
-        self.data_token = np.memmap(
+        self.data = np.memmap(
             self.data_path_token,
             dtype=np.uint16,
             mode="r",
@@ -175,7 +175,7 @@ class DualBytePooling(DatasetInterface):
 
         # get token level batch
         #x_token = torch.from_numpy((self.data_token[idx: idx + self.context_window]).astype(np.int64))
-        y_token = torch.from_numpy((self.data_token[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
+        y_token = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
         return x_byte, y_token  
 
 
