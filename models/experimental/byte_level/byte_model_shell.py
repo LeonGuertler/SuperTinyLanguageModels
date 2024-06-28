@@ -85,7 +85,7 @@ class ByteEncModelShell(ModelShell):
                 byte_tokens = byte_tokens[-512:]
                 pool_tokens = pool_tokens[-512:]
 
-            mask = [1]*len(byte_tokens)
+            mask = [1]*len(pool_tokens)
             
             # pad the byte tokens
             if len(byte_tokens) < 512:
