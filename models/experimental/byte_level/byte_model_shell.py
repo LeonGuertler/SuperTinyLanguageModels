@@ -97,7 +97,10 @@ class ByteEncModelShell(ModelShell):
 
             print(byte_tokens)
             input(len(byte_tokens))
+            for word in byte_tokens:
+                input(len(word))
 
+            input()
             input_tokens.append(byte_tokens)
             output_tokens.append(pool_tokens)
             masks.append(mask)

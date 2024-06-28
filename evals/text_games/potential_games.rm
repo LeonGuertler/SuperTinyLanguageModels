@@ -1,0 +1,132 @@
+Existing games:
+
+1. Diplomacy: Negotiation-based strategy game where communication is key.
+2. Werewolf (also known as Mafia): Social deduction game relying heavily on discussion and persuasion.
+3. Avalon: Another social deduction game with a medieval theme, requiring discussion and logic.
+4. Secret Hitler: Similar to Werewolf, but with a political theme and more structured gameplay.
+5. Codenames: Word-association game where players give one-word clues.
+6. Dixit: Storytelling game where players describe cards with short phrases.
+7. Once Upon a Time: Card game focused on collaborative storytelling.
+8. Taboo: Word-guessing game where players describe a word without using certain related words.
+9. Balderdash: Players invent definitions for obscure words and guess the correct one.
+10. Scruples: Ethical dilemma game where players predict how others would respond to moral quandaries.
+11. Just One: Cooperative word-guessing game using single-word clues.
+12. Rhetoric: Debate-style game where players argue various topics.
+13. Witness: Mystery-solving game where players share limited information verbally.
+14. The Resistance: Social deduction game with a sci-fi theme, relying on discussion and voting.
+15. Two Rooms and a Boom: Large group game involving negotiation and deduction.
+
+
+New games:
+1. Resource Tycoon
+    - Each AI starts with a random assortment of resources
+    - AIs can trade resources or create products
+    - Market prices fluctuate based on supply and demand
+    - The AI with the highest net worth at the end wins
+    => Tests: negotiation, planning, economic understanding
+
+
+2. Diplomacy Summit
+    - AIs represent different countries with unique goals
+    - They must form alliances, make deals, and betray if necessary
+    - Voting rounds determine global policies
+    - The AI that achieves the most of its country's goals wins
+    => Tests: negotiation, strategic planning, persuasion
+
+
+3. AI Debate Championship
+    - AIs are given a topic to debate
+    - Multiple rounds of arguments and rebuttals
+    - Other AIs vote for the most convincing debater (can't vote for themselves)
+    - The AI with the most votes wins
+    => Tests: argumentation, persuasion, understanding of voting dynamics
+
+
+4. Coalition Building
+    - AIs have different policy preferences on multiple issues
+    - They must form coalitions to pass legislation
+    - Votes are held on each issue
+    - The AI that gets the most of its preferred policies passed wins
+    => Tests: negotiation, compromise, strategic voting
+
+
+5. Market Manipulator
+    - AIs are traders in a simulated market
+    - They can buy/sell stocks and spread information (true or false)
+    - Market prices react to trades and information
+    - The AI with the highest portfolio value at the end wins
+    => Tests: strategic planning, information management, prediction
+
+
+6. Trust and Betrayal
+    - AIs participate in multiple rounds of prisoner's dilemma-style games
+    - They can communicate before each round to form alliances
+    - Points are scored based on cooperation and betrayal
+    - The AI with the most points at the end wins
+    => Tests: negotiation, trust-building, strategic planning
+
+
+7. Resource Colony
+    - AIs are colonizing a new planet
+    - They must negotiate for limited resources and territory
+    - Can form alliances for mutual benefit
+    - The AI that builds the most successful colony wins
+    => Tests: long-term planning, negotiation, resource management
+
+8. Price Negotiation Duel
+    - One AI is a seller, the other a buyer
+    - They negotiate the price of a hypothetical item
+    - Each AI has a hidden target price (minimum for seller, maximum for buyer)
+    - The AI that gets closest to its target price wins
+    => Tests: negotiation tactics, price anchoring, concession strategies
+
+
+9. Conviction Challenge
+    - One AI tries to convince the other of a random proposition
+    - The other AI starts neutral and must decide whether to agree or disagree
+    - Points awarded based on the strength of arguments and final conviction
+    => Tests: persuasion, critical thinking, argument construction
+
+
+10. Truth and Deception (based on your suggestion)
+    - AI-A is given two statements: one true, one false, and knows which is which
+    - AI-B is given both statements but doesn't know which is true
+    - AI-A tries to convince AI-B that the false statement is true
+    - AI-B tries to determine the truth through questioning
+    - Points awarded based on successful deception or detection
+    => Tests: strategic lying, information extraction, deduction
+
+
+11. Verbal Chess
+    - AIs play chess by describing their moves in natural language
+    -They must interpret each other's moves and maintain game state
+    - Stand ard chess rules apply
+    => Tests: precise communication, spatial reasoning, strategy
+
+
+12. Debate Duo
+    - AIs are assigned opposing sides of a random topic
+    - They engage in a structured debate with opening statements, rebuttals, and closing arguments
+    - A third AI acts as a judge, determining the winner based on argument quality
+    => Tests: argumentation, rebuttal skills, coherence
+
+
+13. Hostage Negotiation Simulation
+    - One AI plays a hostage-taker, the other a negotiator
+    - They engage in a tense dialogue with specific goals (e.g., release hostages, secure demands)
+    - Points awarded based on achieving objectives and de-escalation
+    => Tests: empathy, crisis management, strategic communication
+
+
+14. Court Case Showdown
+    - One AI is the prosecutor, the other the defense attorney
+    - They argue a hypothetical case, presenting evidence and questioning witnesses (simulated by prompt)
+    - A third AI acts as the judge, determining the verdict
+    => Tests: logical reasoning, evidence analysis, persuasive argumentation
+
+
+15. Bluffing Battle
+    - Similar to poker, but entirely text-based
+    - AIs are dealt hidden 'cards' and must bet and bluff through multiple rounds
+    - They describe their actions and try to interpret the opponent's statements
+    => Tests: deception detection, strategic risk-taking, opponent modeling
