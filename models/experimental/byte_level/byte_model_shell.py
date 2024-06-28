@@ -81,22 +81,24 @@ class ByteEncModelShell(ModelShell):
                 add_eot=False, 
                 return_high_level=True
             )
+            for word in byte_tokens:
+                input(len(word))
             if len(byte_tokens) > 512:
                 byte_tokens = byte_tokens[-512:]
                 pool_tokens = pool_tokens[-512:]
 
             mask = [1]*len(byte_tokens)
             
-            print(byte_tokens)
-            input(len(byte_tokens))
+            #print(byte_tokens)
+            #input(len(byte_tokens))
             # pad the byte tokens
             if len(byte_tokens) < 512:
                 byte_tokens += [byte_pad_token]*(512-len(byte_tokens))
                 pool_tokens += [self.embedding_model.pooling_tokenizer.pad_token]*(512-len(pool_tokens))
                 mask += [0]*(512-len(byte_tokens))
 
-            print(byte_tokens)
-            input(len(byte_tokens))
+            #print(byte_tokens)
+            #input(len(byte_tokens))
             for word in byte_tokens:
                 input(len(word))
 
