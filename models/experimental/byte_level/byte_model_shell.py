@@ -82,7 +82,7 @@ class ByteEncModelShell(ModelShell):
                 return_high_level=True
             )
             for word in byte_tokens:
-                input(len(word))
+                print(word, len(word))
             if len(byte_tokens) > 512:
                 byte_tokens = byte_tokens[-512:]
                 pool_tokens = pool_tokens[-512:]
@@ -99,8 +99,9 @@ class ByteEncModelShell(ModelShell):
 
             #print(byte_tokens)
             #input(len(byte_tokens))
+            print("Second one")
             for word in byte_tokens:
-                input(len(word))
+                print(word, len(word))
 
             input()
             input_tokens.append(byte_tokens)
