@@ -90,7 +90,7 @@ def main(cfg):
     # process data 
     prepare_data(cfg)
 
-    if world_size == 1:
+    if world_size <= 1:
         single_gpu_main(cfg)
         return
     else:

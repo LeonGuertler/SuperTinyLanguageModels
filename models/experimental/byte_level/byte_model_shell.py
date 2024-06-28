@@ -9,8 +9,58 @@ from models import core_models, embedding_models, model_heads
 from models.model_shell import ModelShell 
 
 
+class ByteEncModelShell(ModelShell):
+    """
+    A model shell for inference using the 
+    byte-level encoder.
+    """
+    def __init__(
+        self,
+        embedding_model: embedding_models.EmbedderInterface,
+        core_model: core_models.GenericTransformer,
+        model_head: model_heads.AutoregressiveLMHead,
+        weight_init_func=None,
+    ):
+        super().__init__(
+            embedding_model=embedding_model,
+            core_model=core_model,
+            model_head=model_head,
+            weight_init_func=weight_init_func,
+        )
+    @torch.no_grad()
+    def inference(self, model_input):
+        """
+        Takes a string as input, and returns 
+        the decoded model output. The actual decoing
+        should happen in the decoding generator.
+        Args:
+            model_input: str
+        Returns:
+            logits: torch.tensor(B, S, V)
+        """
+        byte_input = self.embedding_model.tokenize_input(
+            model_input, 
+            trunate=True, 
+            add_eot=False, 
+            return_high_level=False
+        )
 
-class ByteModelShell(ModelShell):
+        # convert to tensor
+        x = torch.tensor(byte_input, device=self.device, dtype=torch.long).unsqueeze(0)
+
+        # forward pass to logits
+        x = self.forward(x)
+
+        return x
+
+        # get the per gpt2 token logits by adding the word level ones
+        #logits = torch.sum(x, dim=-1)
+
+        #return logits
+
+
+
+class ByteModelShellAuxLoss(ModelShell):
     """
     Slight deviation from the standard Model Shell to
     allow for a re-constructive auxiliary loss to the input.

@@ -162,7 +162,7 @@ def prepare_data(cfg):
 
     # check if already exists (check len because some datasets use differen filenames
     # (i.e. dual byte level)
-    if len(os.listdir(tokenized_data_folder))!=0:
+    if os.path.exists(tokenized_data_folder) and len(os.listdir(tokenized_data_folder))!=0:
         print("Tokenized data already exists")
         return
     else:

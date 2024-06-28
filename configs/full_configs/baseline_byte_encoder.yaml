@@ -32,14 +32,14 @@ model:
   hidden_dim: 512
   context_window: 512
   vocab_size: 50257
-  model_shell_type: standard
+  model_shell_type: byte_enc_shell
   embedding_weight_tying: false
   positional_encoding_type: rope
 trainer:
   dropout_scheduler:
     dropout_type: constant
     dropout: 0.1
-  dataset: openwebtext
+  dataset: simple_en_wiki
   training:
     trainer_type: base_trainer
     batch_size: 24

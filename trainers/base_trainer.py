@@ -251,7 +251,7 @@ class BaseTrainer:
             # estimate the loss on the train/val sets
             if (
                 not iter_num % self.cfg.trainer.training.eval_interval
-            ) and iter_num > 0:
+            ): # run on first iter to prevent bugs causing it to crash
                 s0 = time.time()
                 losses, benchmark_results = self.estimate_performance()
                 print(

@@ -7,7 +7,7 @@ from models.core_models import GenericFFNSharedTransfomer, GenericTransformer, P
 from models.embedding_models import GenericEmbedder
 from models.experimental.byte_level.embedding_model import ByteLevelEmbedder
 from models.experimental.byte_level.model_heads import ByteLevelDecoder
-from models.experimental.byte_level.byte_model_shell import ByteModelShell
+from models.experimental.byte_level.byte_model_shell import ByteEncModelShell
 from models.experimental.hugging_face import HFEmbedder, HFLMHead, HFTransformerCore
 from models.experimental.next_thought.embedding_models import HierarchicalEncoder
 from models.experimental.next_thought.model_heads import VariableLengthLatentDecoder
@@ -115,7 +115,7 @@ def build_model_head(model_cfg, embedding_model=None):
 
 MODEL_SHELL_DICT = {
     "standard": ModelShell,
-    "byte_shell": ByteModelShell
+    "byte_enc_shell": ByteEncModelShell
 }
 
 

@@ -13,7 +13,7 @@ def load_hellaswag(split="test"):
         "validation": "train",
     }
     split = split_map[split]
-    base_dataset = load_dataset("Rowan/hellaswag")[split]
+    base_dataset = load_dataset("hellaswag")[split]
     index = list(range(len(base_dataset)))
     if split == "train":
         index = index[len(index)//2:]
