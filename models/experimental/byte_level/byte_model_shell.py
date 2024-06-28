@@ -58,6 +58,63 @@ class ByteEncModelShell(ModelShell):
 
         #return logits
 
+    @torch.no_grad()
+    def loglikelihood(self, prefixes, continuations):
+        """
+        Compute the loglikelihood of continuation
+        tokens given a prefix.
+        Args:
+            prefixes: list[str]
+            continuations: list[str]
+        Returns:
+            ll: torch.tensor(B)
+        """
+
+        byte_pad_token = torch.tensor([[self.embedding_model.byte_tokenizer.pad_token_id]*12], device=self.device) # remove hardcoding
+        total_strings = [f"{prefix} {cont}" for prefix, cont in zip(prefixes, continuations)]
+        input_tokens, output_tokens = [], []
+        masks = []
+        for string in total_strings:
+            byte_tokens, pool_tokens = self.embedding_model.tokenize_input(
+                string, 
+                truncate=True, 
+                add_eot=False, 
+                return_high_level=True
+            )
+            if len(byte_tokens) > 512:
+                byte_tokens = byte_tokens[-512:]
+                pool_tokens = pool_tokens[-512:]
+
+            mask = [1]*len(byte_tokens)
+            
+            
+            # pad the byte tokens
+            if len(byte_tokens) < 512:
+                byte_tokens += [byte_pad_token]*(512-len(byte_tokens))
+                pool_tokens += [self.embedding_model.pooling_tokenizer.pad_token_id]*(512-len(pool_tokens))
+                mask += [0]*(512-len(byte_tokens))
+
+            input_tokens.append(byte_tokens)
+            output_tokens.append(pool_tokens)
+            masks.append(mask)
+
+        input_tensor = torch.tensor(input_tokens, device=self.device, dtype=torch.long)
+        output_tensor = torch.tensor(output_tokens, device=self.device, dtype=torch.long)
+        mask_tensor = torch.tensor(masks, device=self.device, dtype=torch.long)
+
+        # get logits 
+        logits, _ = self.forward(input_tensor)
+        logits = logits[:, :-1].reshape(-1, logits.size(-1))
+        target_tensor = output_tensor[:, 1:].reshape(-1)
+
+        ll = torch.nn.functional.cross_entropy(logits, target_tensor, reduction="none")
+        mask = mask_tensor[:, 1:].reshape(-1).to(ll.device)
+        ll = ll * mask
+        ll = ll.view(input_tensor.size(0), -1).sum(dim=1)
+        return -ll
+        
+
+
 
 
 class ByteModelShellAuxLoss(ModelShell):
