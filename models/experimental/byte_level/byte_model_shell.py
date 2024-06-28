@@ -89,15 +89,14 @@ class ByteEncModelShell(ModelShell):
             
             # pad the byte tokens
             if len(byte_tokens) < 512:
+                init_length = len(pooling_tokens)
                 byte_tokens += [byte_pad_token]*(512-len(byte_tokens))
                 pool_tokens += [self.embedding_model.pooling_tokenizer.pad_token]*(512-len(pool_tokens))
-                mask += [0]*(512-len(byte_tokens))
+                mask += [0]*(512-init_length)
 
             input_tokens.append(byte_tokens)
             output_tokens.append(pool_tokens)
             masks.append(mask)
-            print(len(mask))
-            input()
 
 
         input_tensor = torch.tensor(input_tokens, device=self.device, dtype=torch.long)
@@ -114,7 +113,7 @@ class ByteEncModelShell(ModelShell):
         ll = torch.nn.functional.cross_entropy(logits, target_tensor, reduction="none")
         mask = mask_tensor[:, 1:].reshape(-1).to(ll.device)
         print(ll.size())
-        input(mask.size())
+        print(mask.size())
         ll = ll * mask
         ll = ll.view(input_tensor.size(0), -1).sum(dim=1)
         return -ll
