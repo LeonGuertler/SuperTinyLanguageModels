@@ -70,7 +70,7 @@ class ByteEncModelShell(ModelShell):
             ll: torch.tensor(B)
         """
 
-        byte_pad_token = torch.tensor([[self.embedding_model.byte_tokenizer.pad_token_id]*12], device=self.device) # remove hardcoding
+        byte_pad_token = torch.tensor([[self.embedding_model.byte_tokenizer.pad_token]*12], device=self.device) # remove hardcoding
         total_strings = [f"{prefix} {cont}" for prefix, cont in zip(prefixes, continuations)]
         input_tokens, output_tokens = [], []
         masks = []
