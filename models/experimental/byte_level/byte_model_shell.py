@@ -89,7 +89,7 @@ class ByteEncModelShell(ModelShell):
             
             # pad the byte tokens
             if len(byte_tokens) < 512:
-                init_length = len(pooling_tokens)
+                init_length = len(pool_tokens)
                 byte_tokens += [byte_pad_token]*(512-len(byte_tokens))
                 pool_tokens += [self.embedding_model.pooling_tokenizer.pad_token]*(512-len(pool_tokens))
                 mask += [0]*(512-init_length)
