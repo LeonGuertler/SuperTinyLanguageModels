@@ -81,31 +81,18 @@ class ByteEncModelShell(ModelShell):
                 add_eot=False, 
                 return_high_level=True
             )
-            for word in byte_tokens:
-                print(word, len(word))
-                input()
             if len(byte_tokens) > 512:
                 byte_tokens = byte_tokens[-512:]
                 pool_tokens = pool_tokens[-512:]
 
             mask = [1]*len(byte_tokens)
             
-            #print(byte_tokens)
-            #input(len(byte_tokens))
             # pad the byte tokens
             if len(byte_tokens) < 512:
                 byte_tokens += [byte_pad_token]*(512-len(byte_tokens))
                 pool_tokens += [self.embedding_model.pooling_tokenizer.pad_token]*(512-len(pool_tokens))
                 mask += [0]*(512-len(byte_tokens))
 
-            #print(byte_tokens)
-            #input(len(byte_tokens))
-            print("Second one")
-            for word in byte_tokens:
-                print(word, len(word))
-                input()
-
-            input()
             input_tokens.append(byte_tokens)
             output_tokens.append(pool_tokens)
             masks.append(mask)
@@ -115,6 +102,8 @@ class ByteEncModelShell(ModelShell):
         output_tensor = torch.tensor(output_tokens, device=self.device, dtype=torch.long)
         mask_tensor = torch.tensor(masks, device=self.device, dtype=torch.long)
 
+        print(input_tensor.size(), output_tensor.size(), mask_tensor.size())
+
         # get logits 
         logits, _ = self.forward(input_tensor)
         logits = logits[:, :-1].reshape(-1, logits.size(-1))
@@ -122,6 +111,8 @@ class ByteEncModelShell(ModelShell):
 
         ll = torch.nn.functional.cross_entropy(logits, target_tensor, reduction="none")
         mask = mask_tensor[:, 1:].reshape(-1).to(ll.device)
+        print(ll.size())
+        input(mask.size())
         ll = ll * mask
         ll = ll.view(input_tensor.size(0), -1).sum(dim=1)
         return -ll
