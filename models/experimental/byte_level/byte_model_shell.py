@@ -96,6 +96,8 @@ class ByteEncModelShell(ModelShell):
             input_tokens.append(byte_tokens)
             output_tokens.append(pool_tokens)
             masks.append(mask)
+            print(len(mask))
+            input()
 
 
         input_tensor = torch.tensor(input_tokens, device=self.device, dtype=torch.long)
