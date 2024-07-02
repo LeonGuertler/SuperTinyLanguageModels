@@ -8,7 +8,7 @@ model:
     dataset_name: simple_en_wiki
     pooling_layers: 5
     pooling_dims: [768, 1920, 1920, 1920, 4800]
-    pooling_pct_per_layer: [0.3, 0.5, 0.6, 0.6]
+    pct_pool_per_layer: [0.3, 0.5, 0.6, 0.6]
     num_heads: 12
     context_window: 512
 
