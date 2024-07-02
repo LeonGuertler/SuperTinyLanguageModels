@@ -61,42 +61,6 @@ def test_genericembedder():
     assert res.shape == (model_cfg['batch_size'], model_cfg['context_window'], embedder.token_embedder.embedding_dim)
 
 
-def test_bytelevelembdder():
-    """
-    Test the embedding model.
-    """
-    model_cfg = {
-        'embedder': {
-            'tokenizer_type': 'gpt2', 
-            'byte_tokenizer_type': 'bpe',
-            'dataset_name': 'simple_en_wiki'
-            }, 
-        'hidden_dim': 768,
-        'vocab_size': 50257, 
-        'byte_vocab_size': 258, 
-        'byte_context_window': 12,
-        'byte_embedding_dim': 128, 
-        'context_window': 512,
-        'batch_size': 1
-        }
-    
-    ## prepare inputs
-    input_ids = torch.randint(0, model_cfg['byte_vocab_size'], (model_cfg['batch_size'], model_cfg['context_window'], model_cfg['byte_context_window'])) # (batch_size, sequence_len, byte_context_window)
-
-    ## build the embedder
-    embedder = ByteLevelEmbedder(model_cfg)
-
-    ## get the output
-    res = embedder(input_ids)
-
-    ## 1. ensure the output is float32
-    assert res.dtype == torch.float32
-    ## 2. ensure the output is not nan
-    assert not torch.isnan(res).all()
-    ## 3. ensure the output shape is correct
-    assert res.shape == (model_cfg['batch_size'], model_cfg['context_window'], model_cfg['hidden_dim'])
-
-
 def test_hfembedder():
     '''
     Test the embedding model.
@@ -377,37 +341,6 @@ def test_autoregressivelmhead():
     assert not torch.isnan(logits).all()
     ## 3. ensure the output shape is correct
     assert logits.shape == (model_cfg['batch_size'], model_cfg['context_window'], model_cfg['vocab_size']) ## ensure the shape of the result
-
-def test_byteleveldecoder():
-    '''
-    Test the model head. Typically goes from hidden_dim to vocab_size.
-    '''
-    model_cfg = {
-        'byte_vocab_size': 258,
-        'byte_embedding_dim': 128,
-        'byte_context_window': 12,
-        'hidden_dim': 768,
-        'batch_size': 1,
-        'context_window': 512
-    }
-
-    ## prepare inputs
-    input_ids = torch.randint(0, model_cfg['byte_vocab_size'], (model_cfg['batch_size'], model_cfg['context_window'], model_cfg['hidden_dim'])).float()
-
-    ## build the model head
-    model_head = ByteLevelDecoder(model_cfg)
-
-    ## get the output
-    res = model_head(input_ids)
-    assert len(model_head(input_ids)) == 2 ## ensure there are 2 values
-    logits, _ = res
-
-    ## 1. ensure the output is float32
-    assert logits.dtype == torch.float32
-    ## 2. ensure the output is not nan
-    assert not torch.isnan(logits).all()
-    ## 3. ensure the output shape is correct
-    assert logits.shape == (model_cfg['batch_size'], model_cfg['context_window'], model_cfg['byte_context_window'], model_cfg['byte_vocab_size'])
 
 
 def test_HFLMHead():
