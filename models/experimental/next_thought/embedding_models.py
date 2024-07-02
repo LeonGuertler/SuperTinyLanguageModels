@@ -69,19 +69,19 @@ class HierarchicalEncoder(GenericEmbedder):
 
     def forward(self, token_ids):
         # embed the input 
-        x = self.embedding(token_ids)
+        x = self.token_embedder(token_ids) 
 
         # apply positional encoding 
-        x = x + self.positional_encoding(x)
+        x = x + self.positional_encodings(x)
 
 
         # first pass through normal attention blocks
-        for layer in self.standard:
+        for layer in self.standard_transformer:
             x = layer(x)
 
         # then pass through pooling attention blocks
-        for layer in self.pooling_attention:
+        for layer in self.pooling_transformer:
             x = layer(x)
         # mean pool final representation
-        x = x.mean(dim=-2)
-        return x
+        x = x.mean(dim=-2) 
+        return x # 

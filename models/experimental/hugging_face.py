@@ -29,7 +29,7 @@ def build_model(model_cfg):
         model_str,
         trust_remote_code=True,
         attn_implementation=attn_impl,
-        torch_dtype=torch.float16,
+        torch_dtype=torch.float32,
     )
 
     return model
