@@ -39,7 +39,7 @@ trainer:
   dropout_scheduler:
     dropout_type: constant
     dropout: 0.1
-  dataset: stlm
+  dataset: openwebtext
   training:
     trainer_type: base_trainer
     batch_size: 24
@@ -62,7 +62,6 @@ trainer:
         - "blimp"
       max_train_samples: 1000
       max_eval_samples: 1000
-    - evaluator: "glue"
     - benchmarks:
         - "winograd"
         - "hellaswag"
