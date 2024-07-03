@@ -26,12 +26,16 @@ For basic usage, you can just install the requirements using:
 pip install -r requirements.txt
 ```
 
-### Execution
-Subsequently, you may run them using:
+### Execution & Scripts
+The general way to execute a script is to add the config name as an argument. For example:
 ```bash
 python train.py --config-name full_configs/...
 ```
 *(Note: You can omit the .yaml ending.)*
+We expose the following scripts:
+- [train.py](train.py) - This script trains a model using the given configuration. It supports multi-gpu setups.
+- [eval.py](eval.py) - Given a model_ckpt arg, this script evaluates the model on the test set. See the [confgs](configs/test.yaml) for the arguments used. Typically you just need to call it like `python eval.py model-ckpt=...`. The easiest way to run with huggingface models is to just comment the `model_ckpt` argument, and uncomment the ones with key `model`, changing the model_string as needed. (TODO: change this...)
+- [generate.py](generate.py) - This script just builds a generator and allows you to interact with a model from the commandline putting in prompts and generating continuations. The interface for changing the model is the same as eval.py.
 
 ## Contribution
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
