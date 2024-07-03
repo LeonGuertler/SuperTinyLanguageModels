@@ -293,21 +293,28 @@ def print_evaluation_results(iter_num, eval_results, benchmark_results):
     print(f"Iteration {iter_num}")
     print(table)
 
-    # Print benchmark results
+    # Print ft-qa benchmark results
+    # TODO this shouldn't be hard-coded
+    benchmark_table = PrettyTable(['Benchmark', 'Score'])
+    for benchmark, value in benchmark_results["ft_qa"].items():
+        benchmark_table.add_row([benchmark, value])
+
+    print("Benchmark Results (FT-QA)")
+    print(benchmark_table)
+
+    
     benchmark_table = PrettyTable(['Benchmark', 'Accuracy', "Path Conf.", "Ground Conf."])
-    print(benchmark_results)
     for eval_method in benchmark_results.keys():
-        for benchmark, value in benchmark_results.items():
+        if eval_method == "ft_qa":
+            continue
+        for benchmark, value in benchmark_results[eval_method].items():
             benchmark_table.add_row([
-                f"{eval_method}/{benchmark}", 
+                f"{benchmark}", 
                 value['accuracy'].item(),
                 value['path_confidence'].item(),
                 value['ground_confidence'].item()
             ])
-            print(f"{eval_method}/{benchmark}: {value['accuracy'].item()}")
-            print(value['path_confidence'].item())
-            print(value['ground_confidence'].item())
-        
+
     print("Benchmark Results")
     print(benchmark_table)
 
