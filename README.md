@@ -1,6 +1,6 @@
 # Super Tiny Language Models
 
-[Model Interfaces](models/README.md) | [Full Configs](configs/full_configs/) | [Intro Paper](https://arxiv.org/abs/2405.14159) | [Discord (coming soon!)]()
+[Model Interfaces](models/README.md) | [Full Configs](configs/full_configs/) | [Intro Paper](https://arxiv.org/abs/2405.14159) | [Discord](https://discord.gg/wwTruDPH)
 
 This GitHub repository presents our research on Super Tiny Language Models (STLMs), aimed at delivering high performance with significantly reduced parameter counts (90-95% smaller) compared to traditional large language models. We explore innovative techniques such as byte-level tokenization with pooling, weight tying, and efficient training strategies. The codebase covers various subproblems, including tokenizer-free models, self-play based training, and alternative training objectives, targeting models with 10M, 50M, and 100M parameters while maintaining competitive performance.
 
