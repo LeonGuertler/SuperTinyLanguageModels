@@ -295,7 +295,7 @@ def print_evaluation_results(iter_num, eval_results, benchmark_results):
 
     # Print benchmark results
     benchmark_table = PrettyTable(['Benchmark', 'Accuracy', "Path Conf.", "Ground Conf."])
-
+    print(benchmark_results)
     for eval_method in benchmark_results.keys():
         for benchmark, value in benchmark_results.items():
             benchmark_table.add_row([
@@ -304,6 +304,11 @@ def print_evaluation_results(iter_num, eval_results, benchmark_results):
                 value['path_confidence'].item(),
                 value['ground_confidence'].item()
             ])
+            print(f"{eval_method}/{benchmark}: {value['accuracy'].item()}")
+            print(value['path_confidence'].item())
+            print(value['ground_confidence'].item())
         
     print("Benchmark Results")
     print(benchmark_table)
+
+
