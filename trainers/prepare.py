@@ -167,7 +167,8 @@ def prepare_data(cfg):
         return
     else:
         # create the folder if it doesn't exist   
-        os.makedirs(tokenized_data_folder)
+        if not os.path.exists(tokenized_data_folder):
+            os.makedirs(tokenized_data_folder)
 
 
     # load embedder

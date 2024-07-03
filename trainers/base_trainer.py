@@ -20,7 +20,7 @@ from itertools import islice
 from torch.nn.parallel import DistributedDataParallel as DDP 
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import SequentialSampler
-from trainers.utils import aggregate_value
+from trainers.utils import aggregate_value, print_evaluation_results
 
 
 # pylint: disable invalid-name
@@ -116,24 +116,37 @@ class BaseTrainer:
         """Estimate the loss"""
         if eval_iters is None:
             eval_iters = self.cfg.trainer.training.eval_iters
-        loss_tracker = {}
+        eval_results = {}
         self.model.eval()
 
         # eval on val set 
         losses = []
+        perplexities = []
         for i, (x, y) in enumerate(self.val_dataloader):
             x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
             y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
             with self.ctx:
                 output, _ = self.model(x)
+
+                # compute loss
                 loss = self.loss_fn(output, y)
                 losses.append(loss.item())
+
+                # compute perplexity
+                perplexity = torch.exp(loss) # since seq len is always the same during training anyway
+                perplexities.append(perplexity.item())
+
+
 
             if i >= eval_iters:
                 break
         
         avg_loss = aggregate_value(np.mean(losses), self.cfg.general.device)
-        loss_tracker["val"] = avg_loss
+        eval_results["Loss"] = avg_loss
+
+        avg_perplexity = aggregate_value(np.mean(perplexities), self.cfg.general.device)
+        eval_results["Perplexity"] = avg_perplexity
+
 
         evaluator_results = {}
         for evaluator in self.cfg.trainer["eval"]:
@@ -144,7 +157,7 @@ class BaseTrainer:
                 relabeled_results[f"{evaluator['evaluator']}/{metric}"] = evaluator_results[evaluator["evaluator"]][metric]
             evaluator_results[evaluator["evaluator"]] = relabeled_results
         self.model.train()
-        return loss_tracker, evaluator_results
+        return eval_results, evaluator_results
 
 
 
@@ -252,52 +265,35 @@ class BaseTrainer:
             if (
                 not iter_num % self.cfg.trainer.training.eval_interval
             ): # run on first iter to prevent bugs causing it to crash
-                s0 = time.time()
-                losses, benchmark_results = self.estimate_performance()
-                print(
-                    f"step {iter_num}:"
-                    f" val loss {losses['val']:.4f}, dt {time.time()-s0:.1f}s"
-                )
-                print(
-                    f"step {iter_num}: benchmark results {benchmark_results}"
+                eval_results, benchmark_results = self.estimate_performance()
+
+                # print the evals as table
+                # evals format is d1: type d2: train/val
+                print_evaluation_results(
+                    iter_num=iter_num, 
+                    eval_results=eval_results, 
+                    benchmark_results=benchmark_results
                 )
 
-                if self.gpu_id == 0: ## ensure only the first GPU logs
-                    if self.use_wandb:
-                        wandb.log(
-                            {
-                                "iter": iter_num,
-                                #"train/loss": losses["train"],
-                                "val/loss": losses["val"],
-                                "lr": lr,
-                                "dropout": dropout,
-                                **{
-                                    k: v
-                                    for k, v in benchmark_results.items()
-                                },
-                            }
-                        )
-                if self.use_wandb:
-                    wandb.log(
-                        {
-                            "iter": iter_num,
-                            #"train/loss": losses["train"],
-                            "val/loss": losses["val"],
-                            "lr": lr,
-                            "dropout": dropout,
-                            **{
-                                k: v
-                                for k, v in benchmark_results.items()
-                            },
-                        }
-                    )
+                # Log to wandb
+                if (self.gpu_id == 0 or self.gpu_id is None) and self.use_wandb:  # ensure only the first GPU logs
+                    log_dict = {"iter": iter_num, "lr": lr, "dropout": dropout}
+                    log_dict.update(eval_results)  # Directly add evals to the log dictionary
+                    log_dict.update(benchmark_results)  # Add benchmark results to the log dictionary
+
+                    wandb.log(log_dict)
+
             # save checkpoints
             if (
                 not iter_num % self.cfg.trainer.training.checkpoint_interval
                 and iter_num > 0
-                and self.gpu_id == 0 ## ensure only the first GPU prints
+                and (
+                    self.gpu_id == 0
+                    or self.gpu_id == None
+                 ) ## ensure only the first GPU prints
             ):
                 self._save_model(iter_num)
+
 
             loss = self._run_step() ## set the 'epoch' to ensure shuffle
             end_time = time.time()
@@ -312,7 +308,7 @@ class BaseTrainer:
 
                 ## print and log the result only on the first GPU after aggregation
                 print(f"All GPU(s): step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
-                if (self.gpu_id == 0 or self.gpu_id == None) and self.use_wandb:
+                if (self.gpu_id == 0 or self.gpu_id is None) and self.use_wandb:
                     wandb.log(
                         {
                             "iter": iter_num,
@@ -322,7 +318,7 @@ class BaseTrainer:
                         }
                     )
         # save the final model
-        if self.gpu_id == 0: ## ensure only the first GPU saves the model
+        if self.gpu_id == 0 or self.gpu_id is None: ## ensure only the first GPU saves the model
             self._save_model(iter_num)
 
     def train(self, seed=42):

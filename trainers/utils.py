@@ -1,6 +1,7 @@
 """Utilities for the trainer"""
 
 import importlib
+from prettytable import PrettyTable
 import inspect
 import os
 import pkgutil
@@ -82,6 +83,31 @@ def create_stlm_data_mix():
     return combined_dataset
 
 
+def load_github_code_dataset():
+    """
+    load and re-format the github code dataset
+    https://huggingface.co/datasets/codeparrot/github-code
+    """
+    dataset = load_dataset("codeparrot/github-code") 
+
+    # rename "code" column to "text" column
+    dataset = dataset.map(lambda x: {"text": x["code"]})
+
+    return dataset
+
+def load_competition_math_dataset():
+    """
+    load and re-format the competition math dataset
+    https://huggingface.co/datasets/hendrycks/competition_math
+    """
+    dataset = load_dataset("hendrycks/competition_math") 
+
+    # format the problem and solution into a single "text" column
+    dataset = dataset.map(lambda x: {"text": f"Problem: {x['problem']}\nSolution: {x['solution']}"})
+
+    return dataset
+
+
 
 DATASET_DICT = {
     "debug": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
@@ -91,7 +117,9 @@ DATASET_DICT = {
     "tinystories": lambda: load_dataset("roneneldan/TinyStories"), # https://huggingface.co/datasets/roneneldan/TinyStories
     "stlm": create_stlm_data_mix,
     "openhermes-2.5": lambda: load_dataset("teknium/OpenHermes-2.5"),
-    "openwebtext": lambda: load_dataset("Skylion007/openwebtext")
+    "openwebtext": lambda: load_dataset("Skylion007/openwebtext"),
+    "github-code": lambda: load_github_code_dataset,
+    "competition_math": lambda: load_competition_math_dataset,
 }
 
 
@@ -248,3 +276,27 @@ def restore_print_override(original_print):
     '''
     import builtins as __builtin__
     __builtin__.print = original_print
+
+
+
+
+# Function to print evaluation results and benchmark results
+def print_evaluation_results(iter_num, eval_results, benchmark_results):
+    headers = ['Metric', 'Value']
+    table = PrettyTable(headers)
+
+    # Adding eval_results rows
+    for metric, value in eval_results.items():
+        row = [metric, value]
+        table.add_row(row)
+
+    print(f"Iteration {iter_num}")
+    print(table)
+
+    # Print benchmark results
+    benchmark_table = PrettyTable(['Benchmark', 'Value'])
+    for benchmark, value in benchmark_results.items():
+        benchmark_table.add_row([benchmark, value])
+
+    print("Benchmark Results")
+    print(benchmark_table)
