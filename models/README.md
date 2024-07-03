@@ -26,7 +26,7 @@ In [feed_forward.py](components/layers/feedforward.py) we implement both the sta
 https://arxiv.org/abs/2002.05202).)
 
 ## Experimental Components
-Our experimental folder includes a number of models that we are currently working on. These are obviously highly subject to change, and in general we expect most components to be implemented here first before being added to the main folders if at all.
+Our [experimental folder](experimental/README.md) includes a number of models that we are currently working on. These are obviously highly subject to change, and in general we expect most components to be implemented here first before being added to the main folders if at all.
 1. **Byte Level** This includes components for building models that operate on the byte level
 2. **Next Thought** This includes components that are intended to function on a latent - latent basis, rather than a token - token basis.
 3. **Huggingface Interface** This just wraps the huggingface models in our interface so that we can test those models with our code, and compare them to our models fairly.
