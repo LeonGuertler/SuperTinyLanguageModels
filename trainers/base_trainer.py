@@ -279,7 +279,7 @@ class BaseTrainer:
                 if (self.gpu_id == 0 or self.gpu_id is None) and self.use_wandb:  # ensure only the first GPU logs
                     log_dict = {"iter": iter_num, "lr": lr, "dropout": dropout}
                     log_dict.update(eval_results)  # Directly add evals to the log dictionary
-                    log_dict.update(benchmark_results)  # Add benchmark results to the log dictionary
+                    log_dict.update({k:v for k,v in benchmark_results.items()}) # Add benchmark results to the log dictionary
 
                     wandb.log(log_dict)
 
