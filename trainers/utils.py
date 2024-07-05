@@ -11,6 +11,9 @@ from datasets import load_dataset, DatasetDict, concatenate_datasets
 
 import torch.distributed as dist
 
+from models import build_models
+import hydra
+
 def set_seed(seed):
     """Setup the trainer"""
     torch.manual_seed(seed)
@@ -252,3 +255,20 @@ def restore_print_override(original_print):
     '''
     import builtins as __builtin__
     __builtin__.print = original_print
+
+def init_teachermodel(cfg):
+    """
+    Initialize the teacher model.
+    """
+    
+    temperature = cfg.teachermodel.temperature
+    soft_targets_loss_weight = cfg.teachermodel.soft_targets_loss_weight
+    cross_entropy_loss_weight = 1 - soft_targets_loss_weight
+
+    cfg.teachermodel["model_ckpt"] = hydra.utils.to_absolute_path(cfg.teachermodel["model_ckpt"])
+    model = build_models.build_model(checkpoint=torch.load(cfg.teachermodel["model_ckpt"]))
+    
+    model = model.to(cfg.general.device)
+    model.eval()
+
+    return model, temperature, soft_targets_loss_weight, cross_entropy_loss_weight

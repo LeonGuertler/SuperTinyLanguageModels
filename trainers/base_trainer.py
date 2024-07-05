@@ -72,6 +72,15 @@ class BaseTrainer:
         if cfg.trainer.training.run_profiler and self.gpu_id == 0: ## ensures that only the first GPU runs the profiler
             self.run_profile()
             raise SystemExit
+        
+        if cfg.teachermodel:
+            self.knowledge_distillation = True
+            self.teachermodel, self.temperature, self.soft_targets_loss_weight, self.cross_entropy_loss_weight = utils.init_teachermodel(cfg)
+            
+            from trainers.loss_fn import distillation_loss_fn
+            self.distillation_loss_fn = distillation_loss_fn
+        else:
+            self.knowledge_distillation = False
 
     def _setup_logging(self):
         # set run name
@@ -214,11 +223,31 @@ class BaseTrainer:
                 ddp_no_sync_ctx = nullcontext()
             with ddp_no_sync_ctx:
                 with self.ctx:
-                    output, aux_loss = self.DDP_model(x)
-                    loss = self.loss_fn(output, y)
+                    if self.knowledge_distillation:
+                        ## get the teacher model output, without gradient calculation
+                        with torch.no_grad():
+                            teacher_output, _ = self.teachermodel(x)
+                        
+                        ## get the student model output, with gradient calculation
+                        student_output, aux_loss = self.DDP_model(x)
+
+                        ## calculate the soft_targets loss
+                        soft_targets_loss = self.distillation_loss_fn(student_output, teacher_output, self.temperature)
+
+                        ## calculate the cross entropy label loss
+                        label_loss = self.loss_fn(student_output, y)
+
+                        ## combine the two losses
+                        loss = self.soft_targets_loss_weight * soft_targets_loss + self.cross_entropy_loss_weight * label_loss
+                    
+                    else:
+                        output, aux_loss = self.DDP_model(x)
+                        loss = self.loss_fn(output, y)
+                    
                     if aux_loss is not None:
                         loss += aux_loss
                     loss = loss / self.gradient_accumulation_steps
+
                 self.scaler.scale(loss).backward()
             if iter == self.gradient_accumulation_steps - 1:
                 break

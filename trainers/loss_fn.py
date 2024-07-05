@@ -17,6 +17,7 @@ def masked_cross_entropy_loss_fn(logits, y, mask=None):
     #return torch.nn.functional.cross_entropy(logits, y, weight=mask, ignore_index=-1)
     return torch.nn.functional.cross_entropy(logits, y, ignore_index=pad_token_id)
 
+
 def cross_entropy_loss_fn(logits, y, mask=None):
     """Cross Entropy Loss Function"""
     logits = logits.view(-1, logits.size(-1))
@@ -84,3 +85,31 @@ def build_loss_fn(loss_fn_type: str):
     if loss_fn_type == "cross_entropy":
         return cross_entropy_loss_fn
     raise ValueError(f"Loss function {loss_fn_type} not supported.")
+
+
+def distillation_loss_fn(student_logits, teacher_logits, temperature=1.0):
+    """
+    Compute the distillation loss between student and teacher logits.
+    Args:
+        student_logits: torch.tensor(B, S, V)
+        teacher_logits: torch.tensor(B, S, V)
+        temperature: float
+    Returns:
+        distillation_loss: torch.tensor(1)
+    """
+
+    # flatten both
+    student_logits = student_logits.view(-1, student_logits.size(-1))
+    teacher_logits = teacher_logits.view(-1, teacher_logits.size(-1))
+
+    # calculate distillation loss
+    distillation_loss = torch.nn.functional.kl_div(
+        torch.nn.functional.log_softmax(student_logits / temperature, dim=-1),
+        torch.nn.functional.softmax(teacher_logits / temperature, dim=-1),
+        reduction="batchmean",
+    )
+
+    ## return the distillation loss multiplied by the temperature squared as per the paper - https://arxiv.org/abs/1503.02531
+    ## "Since the magnitudes of the gradients produced by the soft targets scale as 1/T^2
+    ## it is important to multiply them by T 2 when using both hard and soft targets.""
+    return distillation_loss * temperature ** 2
