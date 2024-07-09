@@ -6,7 +6,7 @@ This GitHub repository presents our research on Super Tiny Language Models (STLM
 
 Our mission is to enhance the accessibility and practicality of high-performing language models across a wide range of applications by drastically reducing their computational and energy demands. We believe that our approach has the potential to contribute to more sustainable and inclusive AI development.
 
-For a comprehensive understanding of our research methodology and initial findings, we strongly encourage you to read our paper: [Super Tiny Language Models](https://arxiv.org/abs/2405.14159)
+For a comprehensive understanding of our research methodology and initial findings, we strongly encourage you to read our paper: [Super Tiny Language Models](https://arxiv.org/abs/2405.14159). If you are new to language models we provide some reasources to read up on them in the [STARTER.md](STARTER.md) file.
 
 Please note that this repository is an evolving work in progress, reflecting the ongoing nature of our research. It is subject to frequent updates and improvements as we continue to explore and refine our work on STLMs. We welcome the community's engagement with our work, value your feedback, and appreciate any contributions to this challenging but promising endeavor.
 
