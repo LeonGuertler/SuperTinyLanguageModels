@@ -10,10 +10,11 @@ from models.model_shell import ModelShell
 from trainers.base_trainer import BaseTrainer
 from trainers.dataloader import BaseDataloader
 
-def build_model(model_cfg):
-    '''
+
+def build_hf_model(model_cfg):
+    """
     Helper function to build a model from the huggingface model hub.
-    '''
+    """
     ## get the model string
     model_str = model_cfg["model_string"]
 
@@ -79,7 +80,7 @@ class HFEmbedder(EmbedderInterface):
         self.model_cfg = model_cfg
         model_string = model_cfg["model_string"]
         self.tokenizer = HFTokenizerWrapper(model_string)
-        self.embeddings = build_model(model_cfg).get_input_embeddings()
+        self.embeddings = build_hf_model(model_cfg).get_input_embeddings()
 
     def decode(self, token_ids):
         """
@@ -128,7 +129,7 @@ class HFTransformerCore(torch.nn.Module):
 
     def __init__(self, model_cfg):
         super().__init__()
-        self.model = build_model(model_cfg = model_cfg)
+        self.model = build_hf_model(model_cfg=model_cfg)
 
         ## freeze the parameters
         print("Note: Freezing the parameters of the hf_core model.")
@@ -140,13 +141,14 @@ class HFTransformerCore(torch.nn.Module):
         Calls the huggingface model in question, and returns the last hidden state.
         """
         ## get the hidden states
-        hidden_states = self.model(inputs_embeds = x, output_hidden_states = True).hidden_states
+        hidden_states = self.model(
+            inputs_embeds=x, output_hidden_states=True
+        ).hidden_states
 
         ## return the last hidden state
         if isinstance(hidden_states, tuple):
             return hidden_states[-1]
 
-        
 
 class HFLMHead(torch.nn.Module):
     """
@@ -155,8 +157,8 @@ class HFLMHead(torch.nn.Module):
 
     def __init__(self, model_cfg):
         super().__init__()
-        self.lm_head = build_model(model_cfg = model_cfg).get_output_embeddings()
-    
+        self.lm_head = build_hf_model(model_cfg=model_cfg).get_output_embeddings()
+
     def forward(self, x):
         """
         Passes the input through the language model head to get logits.
