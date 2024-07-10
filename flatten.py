@@ -33,12 +33,14 @@ def extract_imported_modules(content):
     imports = re.findall(r"(?:from\s+(\S+)\s+import\s+|\bimport\s+)(\S+)", content)
     modules = set()
     for imp in imports:
-        imported_module = imp[0] if imp[0] else imp[1]
-        # Split by '.' to handle submodules and handle direct imports
-        imported_modules = imported_module.split(".")
-        for i in range(len(imported_modules)):
-            module = ".".join(imported_modules[: i + 1])
-            modules.add(module)
+        right_imports = imp[1].split(",")
+        for right_import in right_imports:
+            imported_module = f"{imp[0]}.{right_import}" if imp[0] else right_import
+            # Split by '.' to handle submodules and handle direct imports
+            imported_modules = imported_module.split(".")
+            for i in range(len(imported_modules)):
+                module = ".".join(imported_modules[: i + 1])
+                modules.add(module)
     return modules
 
 
@@ -70,7 +72,6 @@ def build_dependency_graph(file_paths, base_directory):
                 )
                 # Add edge from imported file to current file
                 graph.add_edge(imported_file_path, file_path)
-
     return graph
 
 
@@ -106,6 +107,9 @@ def process_imports(file_content, imported_model_modules, all_imports):
                 continue
             all_imports.add(line)
             continue
+        if "core_models" not in imported_model_modules:
+            print(imported_model_modules)
+            pass
         line = simplify_reference(line, imported_model_modules)
         processed_lines.append(line)
 
@@ -124,6 +128,7 @@ def flatten_models_code(
         python_files.update(include_files)
     dep_graph = build_dependency_graph(python_files, "")
     python_files = list(topological_sort(dep_graph))
+    print(python_files)
 
     all_imports = set()
     # collect references to models in the imported modules
@@ -161,18 +166,35 @@ def collect_models_imported_modules(file_path):
     imported_models_modules = []
     for line in lines:
         if line.startswith("from models") or line.startswith("import models"):
-            imported_models_modules.append(
-                re.search(r"from models(.*) import (.+)", line).group(2)
-            )
+            match = re.search(r"from models(.*) import (.+)", line)
+            if match:
+                imported_models_modules.append(match.group(2))
+            match = re.search(r"import models(.*)", line)
+            if match:
+                imported_models_modules.append(match.group(1))
+            for module in imported_models_modules:
+                if "," in module:
+                    imported_models_modules.extend(module.split(", "))
     return imported_models_modules
 
 
 def simplify_reference(line, imported_models_modules):
     """If the line references something imported from models, simplify it."""
-    for module in imported_models_modules:
-        if module in line:
-            line = line.replace(module + ".", "")
-    return line
+    # Create a regex pattern to match fully qualified names of imported modules
+    pattern = (
+        r"\b("
+        + "|".join(re.escape(module) for module in imported_models_modules)
+        + r")\.(\w+)\b"
+    )
+
+    def replacement(match):
+        # The match group 2 is the class or function name
+        return match.group(2)
+
+    # Replace fully qualified names in the line with just the class/function names
+    simplified_line = re.sub(pattern, replacement, line)
+
+    return simplified_line
 
 
 # Specify the models directory and the output file
