@@ -73,10 +73,12 @@ class BaseTrainer:
             self.run_profile()
             raise SystemExit
         
-        if cfg.teachermodel:
+        teachermodel = cfg.get('teachermodel', None)
+
+        if teachermodel is not None:
             self.knowledge_distillation = True
             self.teachermodel, self.temperature, self.soft_targets_loss_weight, self.cross_entropy_loss_weight = utils.init_teachermodel(cfg)
-            
+            # self.teachermodel = DDP(self.teachermodel, device_ids=[gpu_id])
             from trainers.loss_fn import distillation_loss_fn
             self.distillation_loss_fn = distillation_loss_fn
         else:
@@ -236,6 +238,10 @@ class BaseTrainer:
 
                         ## calculate the cross entropy label loss
                         label_loss = self.loss_fn(student_output, y)
+                        
+                        ## uncomment to check label and soft targets loss
+                        # print(f"Soft Targets Loss: {soft_targets_loss.item()}")
+                        # print(f"Cross Entropy Loss: {label_loss.item()}")
 
                         ## combine the two losses
                         loss = self.soft_targets_loss_weight * soft_targets_loss + self.cross_entropy_loss_weight * label_loss
