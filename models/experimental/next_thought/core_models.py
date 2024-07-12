@@ -1,15 +1,16 @@
 """
 The core next-thought model.
 """
-import torch 
 
+import torch
 
 
 class BaselineCoreModel(torch.nn.Module):
     """
-    An extremely simplistic core model for 
+    An extremely simplistic core model for
     next thought prediction.
     """
+
     def __init__(self, model_cfg):
         super().__init__()
 
@@ -34,12 +35,13 @@ class BaselineCoreModel(torch.nn.Module):
             x: torch.tensor(B, S, H)
         """
         return self.model(x)
-    
+
 
 class Conv1dCoreModel(torch.nn.Module):
     """
     A core model for next thought prediction using Conv1d layers.
     """
+
     def __init__(self, model_cfg):
         super().__init__()
 
@@ -47,9 +49,6 @@ class Conv1dCoreModel(torch.nn.Module):
         self.conv1 = torch.nn.Linear(30, 30)
         self.conv2 = torch.nn.Linear(300, 300)
         self.conv3 = torch.nn.Linear(3, 3)
-
-
-
 
     def forward(self, x):
         """
