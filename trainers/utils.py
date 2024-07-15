@@ -11,7 +11,6 @@ from datasets import load_dataset, DatasetDict, concatenate_datasets
 
 import torch.distributed as dist
 
-from models import build_models
 import hydra
 
 def set_seed(seed):
@@ -260,6 +259,7 @@ def init_teachermodel(cfg):
     """
     Initialize the teacher model.
     """
+    from models import build_models
     
     temperature = cfg.teachermodel.temperature
     soft_targets_loss_weight = cfg.teachermodel.soft_targets_loss_weight

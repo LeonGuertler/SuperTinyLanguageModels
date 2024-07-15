@@ -2,7 +2,7 @@
 
 import torch
 
-from models import embedding_models, generator, model_shell
+from models import generator, model_shell
 
 
 def batch(data, batch_size):
@@ -24,7 +24,7 @@ class EvalWrapper:
         self.model_shell = self.model_shell.to(device)
         results = []
         with torch.no_grad():
-            with torch.autocast(device_type=device_str):
+            with torch.autocast(device_type=device_str, dtype=torch.bfloat16):
                 for prefix_batch, cont_batch in zip(
                     batch(prefixes, 32), batch(continuations, 32)
                 ):
