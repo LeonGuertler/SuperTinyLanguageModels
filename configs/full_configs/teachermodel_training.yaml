@@ -1,5 +1,5 @@
 model:
-  model_string: "Qwen/Qwen2-0.5B"
+  model_string: "Qwen/Qwen2-1.5B"
   core_model:
     core_model_type: hf_core
   embedder:
@@ -10,7 +10,7 @@ model:
     normalization: rms_norm
     bias: false
     lm_head_type: generic
-  hidden_dim: 896
+  hidden_dim: 1536
   context_window: 512
   vocab_size: 50257
   model_shell_type: standard
@@ -23,8 +23,8 @@ trainer:
   dataset: openwebtext
   training:
     trainer_type: base_trainer
-    batch_size: 6
-    gradient_accumulation_steps: 20
+    batch_size: 2
+    gradient_accumulation_steps: 240
     max_iters: 50000
     lr_decay_iters: 50000
     warmup_iters: 5000
@@ -71,7 +71,7 @@ trainer:
     name: cross_entropy
 general:
   logging:
-    wandb_log: False
+    wandb_log: true
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs
