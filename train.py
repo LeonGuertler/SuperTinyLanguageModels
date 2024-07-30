@@ -13,6 +13,7 @@ from models.utils import print_model_stats
 import torch
 from torch.distributed import destroy_process_group
 import torch.multiprocessing as mp
+from trainers.prepare import prepare_data
 
 def ddp_main(rank, world_size, cfg):
     """
@@ -51,6 +52,27 @@ def ddp_main(rank, world_size, cfg):
         # restore the print function
         restore_print_override(original_print)
 
+def single_gpu_main(cfg):
+    """
+    Main function for single GPU training
+    """
+    model = build_model(model_cfg=cfg["model"])
+    model.to(cfg["general"]["device"])
+    model.train()
+    print("Model built")
+    # load the relevant trainer
+    trainer = build_trainer(
+        cfg=cfg,
+        model=model,
+        gpu_id=None # disables DDP
+    )
+    print("Trainer built")
+    # preprocess the training data
+    #trainer.preprocess_data()
+    print("Data preprocessed")
+    # train the model
+    trainer.train()
+
 
 @hydra.main(config_path="configs", config_name="train")
 def main(cfg):
@@ -63,12 +85,21 @@ def main(cfg):
     ) # must be done before multiprocessing or else the path is wrong?
 
     create_folder_structure(path_config=cfg["general"]["paths"])
-    mp.spawn(
-        ddp_main,
-        args=(world_size, cfg),
-        nprocs=world_size,
-        join=True,
-    )
+
+    # process data 
+    prepare_data(cfg)
+
+    if world_size <= 1:
+        single_gpu_main(cfg)
+        return
+    else:
+        # otherwise we use ddp
+        mp.spawn(
+            ddp_main,
+            args=(world_size, cfg),
+            nprocs=world_size,
+            join=True,
+        )
 
     # Additional cleanup to prevent leaked semaphores
     for process in mp.active_children():
