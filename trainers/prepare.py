@@ -16,9 +16,9 @@ class StandardProcessor:
     """
     def __init__(self, embedder):
         self.embedder = embedder
+
     def process(self, example):
         ids = self.embedder.tokenize_input(example["text"])
-        input(ids)
         return {"ids": ids, "len": len(ids)}
     
     def write_tokenized_data(self, tokenized, tokenized_data_folder):
@@ -190,7 +190,7 @@ def prepare_data(cfg):
         # Get the maximum number of processors
         max_procs = os.cpu_count()
         # cap at 12 to reduce memory usage
-        max_procs = min(max_procs, 12)
+        max_procs = 1 #min(max_procs, 12) # TODO properly fix this
         print(f"Using {max_procs} processors")
 
         # tokenize the dataset
