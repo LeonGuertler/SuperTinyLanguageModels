@@ -66,10 +66,7 @@ def single_gpu_main(cfg):
         model=model,
         gpu_id=None # disables DDP
     )
-    print("Trainer built")
-    # preprocess the training data
-    #trainer.preprocess_data()
-    print("Data preprocessed")
+
     # train the model
     trainer.train()
 
