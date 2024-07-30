@@ -302,15 +302,6 @@ def print_evaluation_results(iter_num, eval_results, benchmark_results):
     print(f"Iteration {iter_num}")
     print(table)
 
-    # Print ft-qa benchmark results
-    # TODO this shouldn't be hard-coded
-    benchmark_table = PrettyTable(['Benchmark', 'Score'])
-    for benchmark, value in benchmark_results["ft_qa"].items():
-        benchmark_table.add_row([benchmark, value])
-
-    print("Benchmark Results (FT-QA)")
-    print(benchmark_table)
-
     
     benchmark_table = PrettyTable(['Benchmark', 'Accuracy', "Path Conf.", "Ground Conf."])
     for eval_method in benchmark_results.keys():
