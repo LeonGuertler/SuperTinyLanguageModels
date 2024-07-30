@@ -18,7 +18,9 @@ class StandardProcessor:
         self.embedder = embedder
     def process(self, example):
         ids = self.embedder.tokenize_input(example["text"])
+        input(ids)
         return {"ids": ids, "len": len(ids)}
+    
     def write_tokenized_data(self, tokenized, tokenized_data_folder):
         """
         Write the tokenized data to a file
