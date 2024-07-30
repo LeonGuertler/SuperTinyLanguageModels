@@ -32,7 +32,7 @@ trainer:
   dropout_scheduler:
     dropout_type: constant
     dropout: 0.1
-  dataset: openwebtext
+  dataset: github-code
   training:
     trainer_type: base_trainer
     batch_size: 24
@@ -79,11 +79,13 @@ trainer:
     name: cosine
   dataloader:
     name: standard
+  datasampling:
+    name: standard
   loss_fn:
     name: cross_entropy
 general:
   logging:
-    wandb_log: true
+    wandb_log: false
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs
