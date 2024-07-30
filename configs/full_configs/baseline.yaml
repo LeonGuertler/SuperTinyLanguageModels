@@ -37,8 +37,8 @@ trainer:
     trainer_type: base_trainer
     batch_size: 24
     gradient_accumulation_steps: 20
-    max_iters: 50000
-    lr_decay_iters: 50000
+    max_iters: 30000
+    lr_decay_iters: 30000
     warmup_iters: 5000
     eval_interval: 2000
     log_interval: 10
@@ -46,16 +46,6 @@ trainer:
     checkpoint_interval: 1000000000.0
     run_profiler: false
   eval:
-    - evaluator: "ft_qa"
-      benchmarks:
-        - "winograd"
-        - "hellaswag"
-        - "arc"
-        - "mmlu"
-        - "blimp"
-      max_train_samples: 1000
-      max_eval_samples: 1000
-    - evaluator: "glue"
     - benchmarks:
         - "winograd"
         - "hellaswag"
@@ -79,11 +69,13 @@ trainer:
     name: cosine
   dataloader:
     name: standard
+  datasampling:
+    name: standard
   loss_fn:
     name: cross_entropy
 general:
   logging:
-    wandb_log: true
+    wandb_log: false
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs

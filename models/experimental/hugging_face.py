@@ -8,7 +8,6 @@ from models.components.tokenizers.base_class import Tokenizer
 from models.embedding_models import EmbedderInterface
 from models.model_shell import ModelShell
 from trainers.base_trainer import BaseTrainer
-from trainers.dataloader import BaseDataloader
 
 def build_model(model_cfg):
     '''
@@ -177,7 +176,7 @@ class MockTrainer(BaseTrainer):
         cfg,
         model: ModelShell,
         optimizer,
-        dataloader: BaseDataloader,
+        dataloader,
         loss_fn,
         lr_scheduler=None,
         dropout_scheduler=None,

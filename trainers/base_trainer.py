@@ -10,12 +10,9 @@ from copy import deepcopy
 from contextlib import nullcontext
 
 from models import model_shell
-from trainers import dataloader as train_dataloader
+from trainers import datasets as train_dataloader
 from trainers import utils
 
-from trainers.loss_fn import (
-    compute_perplexity
-)
 from trainers.evaluator import train_eval
 
 import numpy as np
@@ -23,7 +20,7 @@ from itertools import islice
 from torch.nn.parallel import DistributedDataParallel as DDP 
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import SequentialSampler
-from trainers.utils import aggregate_value
+from trainers.utils import aggregate_value, print_evaluation_results
 
 
 # pylint: disable invalid-name
@@ -38,26 +35,32 @@ class BaseTrainer:
         cfg,
         model: model_shell.ModelShell,
         optimizer,
-        dataloader: train_dataloader.BaseDataloader,
+        train_dataloader,
+        val_dataloader,
         loss_fn,
-        gpu_id, 
+        gpu_id=None, 
         lr_scheduler=None,
         dropout_scheduler=None,
     ) -> None:
         self.model = model
-        self.DDP_model = DDP(self.model, device_ids=[gpu_id])
+        if gpu_id is not None: # using ddp
+            self.dist = True
+            self.DDP_model = DDP(self.model, device_ids=[gpu_id])
+        else:
+            self.dist = False
+            self.DDP_model = model
         self.gpu_id = gpu_id 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.dropout_scheduler = dropout_scheduler
-        self.dataloader = dataloader
-        self.train_val_dataloaders = {}
+        self.train_dataloader = train_dataloader
+        self.val_dataloader = val_dataloader
         self.loss_fn = loss_fn
         self.cfg = cfg
-        assert self.cfg["trainer"]["training"]["gradient_accumulation_steps"] % torch.cuda.device_count() == 0, "Gradient Accumulation Steps must be divisible by the number of GPUs"
+        #assert self.cfg["trainer"]["training"]["gradient_accumulation_steps"] % torch.cuda.device_count() == 0, "Gradient Accumulation Steps must be divisible by the number of GPUs"
         self.gradient_accumulation_steps = cfg["trainer"]["training"][
             "gradient_accumulation_steps"
-        ] // torch.cuda.device_count() ## divide by number of GPUs to maximise throughput
+        ] #// torch.cuda.device_count() ## divide by number of GPUs to maximise throughput
         self.scaler = None
         self.use_wandb = cfg["general"]["logging"]["wandb_log"]
         self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
@@ -65,11 +68,11 @@ class BaseTrainer:
         self.batch_size = cfg["trainer"]["training"]["batch_size"] ## new
 
         # For training, always force the device to be cuda
-        assert torch.cuda.is_available(), "CUDA must be available for training"
+        #assert torch.cuda.is_available(), "CUDA must be available for training"
         self.ctx = self._setup_ctx()
-        if self.use_wandb and self.gpu_id == 0: ## ensures that only the first GPU logs to wandb
+        if self.use_wandb and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU logs to wandb
             self._setup_logging()
-        if cfg.trainer.training.run_profiler and self.gpu_id == 0: ## ensures that only the first GPU runs the profiler
+        if cfg.trainer.training.run_profiler and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU runs the profiler
             self.run_profile()
             raise SystemExit
 
@@ -106,91 +109,43 @@ class BaseTrainer:
         """Setup the scaler"""
         self.scaler = torch.cuda.amp.GradScaler(enabled=dtype == torch.float16)
 
-    def preprocess_data(self):
-        """
-        Preprocess the data
-        """
-        print("Preprocessing the training data")
-        self.dataloader.prepare_data()
-
-    def _get_dataloader(self, split):
-        """
-        Feeds dataloader into PyTorch's DataLoader.
-        """
-        ## return the dataloader if it has already been cached
-        if split in self.train_val_dataloaders:
-            return self.train_val_dataloaders[split]
-        
-        ## if the dataloader has not been created, create it
-        # set the split data
-        dataset = self.dataloader.split_dataloader(split)
-        # create the dataset
-        dataloader = torch.utils.data.DataLoader(
-            dataset,
-            batch_size = self.batch_size,
-            shuffle = False,
-            num_workers = 0,
-        )
-
-        ## cache the dataloader
-        self.train_val_dataloaders[split] = dataloader
-
-        return dataloader
 
     @torch.no_grad()
     def estimate_performance(self, eval_iters=None):
         """Estimate the loss"""
         if eval_iters is None:
             eval_iters = self.cfg.trainer.training.eval_iters
-        loss = {}
-        perplexity = {}
+        eval_results = {}
         self.model.eval()
-        for split in ["train", "val"]:
 
-            ## initialize the loss, perplexity
-            losses = torch.zeros(eval_iters)
-            perplexities = torch.zeros(eval_iters)
-            
-            ## initialize Pytorch's DataLoader
-            dataloader = self._get_dataloader(split)
+        # eval on val set 
+        losses = []
+        perplexities = []
+        for i, (x, y) in enumerate(self.val_dataloader):
+            x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+            y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+            with self.ctx:
+                output, _ = self.model(x)
 
-            for i, (x, y) in enumerate(dataloader):
-                if i > eval_iters - 1:
-                    break
-                # use cached eval if available
-                if i in self.cached_sets[split]:
-                    print("use cached test set")
-                    x = self.cached_sets[split][i]["x"]
-                    y = self.cached_sets[split][i]["y"]
-                    char_lengths = self.cached_sets[split][i]["char_lengths"]
-                    mask = self.cached_sets[split][i]["mask"]
-                else:
-                    print("process test set")
-                    (
-                        char_lengths,
-                        mask,
-                    ) = self.model.embedding_model.get_sequence_info(x)
-                    self.cached_sets[split][i] = {
-                        "x": x,
-                        "y": y,
-                        "char_lengths": char_lengths,
-                        "mask": mask,
-                    }
-                with self.ctx:
-                    output, _ = self.DDP_model(x)
-                    losses[i] = self.loss_fn(output, y, mask=mask)
-                    perplexities[i] = compute_perplexity(
-                        logits=output,
-                        y=y,
-                        char_lengths=char_lengths,
-                        mask=mask,
-                    )
+                # compute loss
+                loss = self.loss_fn(output, y)
+                losses.append(loss.item())
 
-            ## aggregate the loss and perplexity across all GPUs
-            avg_loss = aggregate_value(losses.mean().item(), self.cfg.general.device)
-            loss[split] = avg_loss
-            avg_perplexity = aggregate_value(perplexities.mean().item(), self.cfg.general.device)
-            perplexity[split] = avg_perplexity
+                # compute perplexity
+                perplexity = torch.exp(loss) # since seq len is always the same during training anyway
+                perplexities.append(perplexity.item())
+
+
+
+            if i >= eval_iters:
+                break
+        
+        avg_loss = aggregate_value(np.mean(losses), self.cfg.general.device)
+        eval_results["Loss"] = avg_loss
+
+        avg_perplexity = aggregate_value(np.mean(perplexities), self.cfg.general.device)
+        eval_results["Perplexity"] = avg_perplexity
+
 
         evaluator_results = {}
         for evaluator in self.cfg.trainer["eval"]:
@@ -201,40 +156,49 @@ class BaseTrainer:
                 relabeled_results[f"{evaluator['evaluator']}/{metric}"] = evaluator_results[evaluator["evaluator"]][metric]
             evaluator_results[evaluator["evaluator"]] = relabeled_results
         self.model.train()
-        return loss, perplexity, evaluator_results
+        return eval_results, evaluator_results
 
-    def _run_step(self):
-        """Run a single step of training"""
-        ## init Pytorch's DataLoader
-        dataloader = self._get_dataloader("train")
-        for iter, (x, y) in enumerate(dataloader):
-            if iter != self.gradient_accumulation_steps - 1:
-                ddp_no_sync_ctx = self.DDP_model.no_sync()
+
+
+
+    def _run_step(self, epoch=0):
+        """Run a single step of training with gradient accumulation."""
+        self.optimizer.zero_grad()  # Clear gradients at the start of accumulation
+
+        for i, (x, y) in enumerate(self.train_dataloader):
+            x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+            y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+
+            # Enable or disable gradient synchronization based on the need for accumulation
+            if self.dist and hasattr(self.DDP_model, 'no_sync'):
+                context_manager = self.DDP_model.no_sync() if i != self.gradient_accumulation_steps - 1 else nullcontext()
             else:
-                ddp_no_sync_ctx = nullcontext()
-            with ddp_no_sync_ctx:
-                with self.ctx:
+                context_manager = nullcontext()
+
+            with context_manager:
+                with self.ctx:  # Assuming self.ctx is something like torch.cuda.amp.autocast
                     output, aux_loss = self.DDP_model(x)
-                    loss = self.loss_fn(output, y)
+                    loss = self.loss_fn(output, y) #+ (aux_loss if aux_loss is not None else 0)
                     if aux_loss is not None:
                         loss += aux_loss
-                    loss = loss / self.gradient_accumulation_steps
+                # Scale loss to simulate larger effective batch size
+                loss = loss / self.gradient_accumulation_steps
                 self.scaler.scale(loss).backward()
-            if iter == self.gradient_accumulation_steps - 1:
-                break
 
-        grad_clip = self.cfg.trainer.optimizer.grad_clip
-        if grad_clip != 0.0:
-            self.scaler.unscale_(self.optimizer)
-            torch.nn.utils.clip_grad_norm_(
-                self.model.parameters(),
-                grad_clip,
-            )
-        self.scaler.step(self.optimizer)
-        self.scaler.update()
+            # Step and update only after accumulating enough gradients
+            if (i + 1) % self.gradient_accumulation_steps == 0 or (i + 1) == len(self.train_dataloader):
+                if self.cfg.trainer.optimizer.grad_clip > 0:
+                    # Unscale the gradients of the optimizer's assigned params in-place
+                    self.scaler.unscale_(self.optimizer)
+                    # Clip the gradients with normalization
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.trainer.optimizer.grad_clip)
+                
+                # Perform a single optimization step
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+                self.optimizer.zero_grad()  # Reset gradients after update
 
-        self.optimizer.zero_grad(set_to_none=True)
-        return loss
+        return loss.item()  # Assuming loss is the average over the accumulated steps
 
     def run_profile(self):
         """Run the profiler"""
@@ -299,50 +263,41 @@ class BaseTrainer:
             # estimate the loss on the train/val sets
             if (
                 not iter_num % self.cfg.trainer.training.eval_interval
-            ) and iter_num > 0:
-                s0 = time.time()
-                losses, perplexities, benchmark_results = self.estimate_performance()
-                print(
-                    f"step {iter_num}: train loss {losses['train']:.4f},"
-                    f" val loss {losses['val']:.4f}, dt {time.time()-s0:.1f}s"
-                )
-                print(
-                    f"step {iter_num}: train perplexity {perplexities['train']:.4f},"
-                    f" val perplexity {perplexities['val']:.4f}"
-                )
-                print(
-                    f"step {iter_num}: benchmark results {benchmark_results}"
+            ): # run on first iter to prevent bugs causing it to crash
+                eval_results, benchmark_results = self.estimate_performance()
+
+                # print the evals as table
+                # evals format is d1: type d2: train/val
+                print_evaluation_results(
+                    iter_num=iter_num, 
+                    eval_results=eval_results, 
+                    benchmark_results=benchmark_results
                 )
 
-                if self.gpu_id == 0: ## ensure only the first GPU logs
-                    if self.use_wandb:
-                        wandb.log(
-                            {
-                                "iter": iter_num,
-                                "train/loss": losses["train"],
-                                "val/loss": losses["val"],
-                                "lr": lr,
-                                "dropout": dropout,
-                                "train/perplexity": perplexities["train"],
-                                "val/perplexity": perplexities["val"],
-                                **{
-                                    k: v
-                                    for k, v in benchmark_results.items()
-                                },
-                            }
-                        )
+                # Log to wandb
+                if (self.gpu_id == 0 or self.gpu_id is None) and self.use_wandb:  # ensure only the first GPU logs
+                    log_dict = {"iter": iter_num, "lr": lr, "dropout": dropout}
+                    log_dict.update(eval_results)  # Directly add evals to the log dictionary
+                    log_dict.update({k:v for k,v in benchmark_results.items()}) # Add benchmark results to the log dictionary
+
+                    wandb.log(log_dict)
+
             # save checkpoints
             if (
                 not iter_num % self.cfg.trainer.training.checkpoint_interval
                 and iter_num > 0
-                and self.gpu_id == 0 ## ensure only the first GPU prints
+                and (
+                    self.gpu_id == 0
+                    or self.gpu_id == None
+                 ) ## ensure only the first GPU prints
             ):
                 self._save_model(iter_num)
+
 
             loss = self._run_step() ## set the 'epoch' to ensure shuffle
             end_time = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
-                lossf = loss.item() * self.gradient_accumulation_steps
+                lossf = loss * self.gradient_accumulation_steps
 
                 ## uncomment the following line to print the loss on all GPUs
                 # print(f"GPU {self.gpu_id}: step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
@@ -352,7 +307,7 @@ class BaseTrainer:
 
                 ## print and log the result only on the first GPU after aggregation
                 print(f"All GPU(s): step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
-                if self.gpu_id == 0 and self.use_wandb:
+                if (self.gpu_id == 0 or self.gpu_id is None) and self.use_wandb:
                     wandb.log(
                         {
                             "iter": iter_num,
@@ -362,7 +317,7 @@ class BaseTrainer:
                         }
                     )
         # save the final model
-        if self.gpu_id == 0: ## ensure only the first GPU saves the model
+        if self.gpu_id == 0 or self.gpu_id is None: ## ensure only the first GPU saves the model
             self._save_model(iter_num)
 
     def train(self, seed=42):
