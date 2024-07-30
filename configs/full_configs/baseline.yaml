@@ -32,7 +32,7 @@ trainer:
   dropout_scheduler:
     dropout_type: constant
     dropout: 0.1
-  dataset: github-code
+  dataset: simple_en_wiki
   training:
     trainer_type: base_trainer
     batch_size: 24
