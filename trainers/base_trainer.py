@@ -10,7 +10,6 @@ from copy import deepcopy
 from contextlib import nullcontext
 
 from models import model_shell
-from trainers import dataloader as train_dataloader
 from trainers import utils
 
 from trainers.loss_fn import (
@@ -38,7 +37,7 @@ class BaseTrainer:
         cfg,
         model: model_shell.ModelShell,
         optimizer,
-        dataloader: train_dataloader.BaseDataloader,
+        dataloader,
         loss_fn,
         gpu_id, 
         lr_scheduler=None,
