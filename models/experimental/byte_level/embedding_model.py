@@ -23,7 +23,7 @@ class BytePatchEmbedder(EmbedderInterface):
         self.model_cfg = model_cfg
 
         # build the tokenizer
-        self.token_embedder = build_tokenizer(
+        self.tokenize = build_tokenizer(
             tokenizer_type=model_cfg["embedder"]["tokenizer_type"],
             vocab_size=model_cfg["vocab_size"],
             dataset_name=model_cfg["embedder"]["dataset_name"],
@@ -35,12 +35,17 @@ class BytePatchEmbedder(EmbedderInterface):
             context_window=model_cfg["context_window"],
         )
 
+        self.token_embedder = torch.nn.Embedding(
+            num_embeddings=model_cfg["vocab_size"],
+            embedding_dim=model_cfg["hidden_dim"],
+        )
+
     def forward(self, token_ids):
         """
         Forward pass.
         """
         # get the token embeddings
-        x = self.token_embedder.encode(token_ids)
+        x = self.token_embedder(token_ids)
 
         # apply the positional encoding, if any
         x = self.pos_encoder(x)
