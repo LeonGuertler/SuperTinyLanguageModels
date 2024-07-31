@@ -106,10 +106,10 @@ class ModelShell(torch.nn.Module):
         target_tensor = input_tensor[:, 1:].reshape(-1)
 
         # subsample target to every 4th token
-        target_tensor = target_tensor[::4]
+        target_tensor = target_tensor[::4] # TODO - this is a hot-fix
 
         ll = torch.nn.functional.cross_entropy(logits, target_tensor, reduction="none")
-        mask = mask[:, 1:].reshape(-1).to(ll.device)
+        mask = mask[:, 1:].reshape(-1).to(ll.device)[::4]
         ll = ll * mask
         ll = ll.view(input_tensor.size(0), -1).sum(dim=1)
         return -ll
