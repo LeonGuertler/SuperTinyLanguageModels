@@ -102,6 +102,7 @@ class ModelShell(torch.nn.Module):
         input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
         
         logits, _ = self.forward(input_tensor)
+        print('new eval')
         print(logits.size(), input_tensor.size())
         
         
