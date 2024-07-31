@@ -17,7 +17,7 @@ model:
   embedder:
     tokenizer_type: bpe
     embedding_model_type: byte_patch
-    dataset_name: openwebtext
+    dataset_name: simple_en_wiki
   lm_head:
     normalization: rms_norm
     bias: false
