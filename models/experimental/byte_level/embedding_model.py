@@ -23,7 +23,7 @@ class BytePatchEmbedder(EmbedderInterface):
         self.model_cfg = model_cfg
 
         # build the tokenizer
-        self.tokenize = build_tokenizer(
+        self.tokenizer = build_tokenizer(
             tokenizer_type=model_cfg["embedder"]["tokenizer_type"],
             vocab_size=model_cfg["vocab_size"],
             dataset_name=model_cfg["embedder"]["dataset_name"],
