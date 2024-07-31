@@ -97,7 +97,9 @@ class BytePatchDataset(DatasetInterface):
         (since they will be pooled anyway)
         """
         x = torch.from_numpy((self.data[idx: idx + 4*self.context_window]).astype(np.int64))
-        y = torch.from_numpy((self.data[idx + 4: idx + 4 + 4*self.context_window:4]).astype(np.int64))
+        y = torch.from_numpy((self.data[idx + 4: idx + 4 + 4*self.context_window]).astype(np.int64))
+        #x = torch.from_numpy((self.data[idx: idx + 4*self.context_window]).astype(np.int64))
+        #y = torch.from_numpy((self.data[idx + 4: idx + 4 + 4*self.context_window:4]).astype(np.int64))
         return x, y
 
 
