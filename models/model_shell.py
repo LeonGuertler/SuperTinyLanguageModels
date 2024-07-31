@@ -102,8 +102,6 @@ class ModelShell(torch.nn.Module):
         input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
         
         logits, _ = self.forward(input_tensor)
-        print('new eval')
-        print(logits.size(), input_tensor.size())
 
         # first flatten logits by 2nd and 3rd dim
         logits = logits.reshape(logits.size(0), -1, logits.size(-1))
@@ -111,7 +109,6 @@ class ModelShell(torch.nn.Module):
         
         logits = logits[:, :-1].reshape(-1, logits.size(-1))
         target_tensor = input_tensor[:, 1:].reshape(-1)
-        print(logits.size(), target_tensor.size())
         ll = torch.nn.functional.cross_entropy(logits, target_tensor, reduction="none")
         mask = mask[:, 1:].reshape(-1).to(ll.device)
         ll = ll * mask
