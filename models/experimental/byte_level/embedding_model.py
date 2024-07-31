@@ -40,7 +40,7 @@ class BytePatchEmbedder(EmbedderInterface):
         Forward pass.
         """
         # get the token embeddings
-        x = self.token_embedder(token_ids)
+        x = self.token_embedder.encode(token_ids)
 
         # apply the positional encoding, if any
         x = self.pos_encoder(x)
