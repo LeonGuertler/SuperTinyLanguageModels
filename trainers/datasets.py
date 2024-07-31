@@ -98,7 +98,7 @@ class BytePatchDataset(DatasetInterface):
         """
         x = torch.from_numpy((self.data[idx: idx + 4*self.context_window:4]).astype(np.int64))
         y = torch.from_numpy((self.data[idx + 4: idx + 4 + 4*self.context_window:4]).astype(np.int64))
-
+        print(x.size(), y.size())
         return x, y
 
 
