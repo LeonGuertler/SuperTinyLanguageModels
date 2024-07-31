@@ -69,7 +69,7 @@ trainer:
   lr_scheduler:
     name: cosine
   dataloader:
-    name: standard
+    name: byte_patch
   datasampling:
     name: standard
   loss_fn:
