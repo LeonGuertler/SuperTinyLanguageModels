@@ -16,6 +16,7 @@ from models.model_heads import AutoregressiveLMHead
 from models.model_shell import ModelShell
 
 from models.experimental.byte_level.embedding_model import BytePatchEmbedder
+from models.experimental.byte_level.model_heads import BytePatchDecoder
 
 
 def build_model(model_cfg=None, checkpoint=None):
@@ -98,6 +99,7 @@ MODEL_HEAD_DICT = {
         model_cfg=model_cfg,
         embedding_model=embedding_model
     ), 
+    "byte_patch": lambda model_cfg, embedding_model: BytePatchDecoder(model_cfg=model_cfg)
     }
 
 

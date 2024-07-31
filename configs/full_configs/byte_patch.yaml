@@ -21,7 +21,7 @@ model:
   lm_head:
     normalization: rms_norm
     bias: false
-    lm_head_type: generic
+    lm_head_type: byte_patch
 
   hidden_dim: 512
   context_window: 512

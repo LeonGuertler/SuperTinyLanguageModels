@@ -7,7 +7,32 @@ import torch
 from models.components.positional_encoding import LearnedPosEncoding
 from models.experimental.byte_level.layers import ByteLevelTransformerBlock
 
+class BytePatchDecoder(torch.nn.Module):
+    """
+    Simple multi-lm-head model
+    """
+    def __init__(self, model_cfg):
+        super().__init__()
+        self.hidden_dim = model_cfg["hidden_dim"]
+        self.embedding_dim = model_cfg["byte_embedding_dim"]
+        self.vocab_size = model_cfg["vocab_size"]
 
+
+        self.lm_head = torch.nn.Linear(
+            in_features=self.hidden_dim,
+            out_features=self.vocab_size*4,
+            bias=False,
+        )
+
+    def forward(self, x):
+        """
+        Predict the next 4 bytes
+        """
+        x = self.lm_head(x)
+        x = x.view(x.size(0), x.size(1), 4, self.vocab_size)
+        return x, None
+    
+    
 class ByteLevelDecoder(torch.nn.Module):
     """
     Use multiple learned heads to decode into by hidden size,

@@ -98,19 +98,15 @@ class ModelShell(torch.nn.Module):
         input_tokens = [self.embedding_model.tokenize_input(string, truncate=True) for string in total_strings]
         padded_batch, mask = self.embedding_model.pad_batch(input_tokens, direction="right")
         input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
+        
         logits, _ = self.forward(input_tensor)
-        # subsample 
-        #print(logits.size())
-        #print(input_tensor.size())
+        
+        
         logits = logits[:, :-1].reshape(-1, logits.size(-1))
         target_tensor = input_tensor[:, 1:].reshape(-1)
 
-        # subsample target to every 4th token
-        print(logits.size(), target_tensor.size())
-        target_tensor = target_tensor[::4] # TODO - this is a hot-fix
-
         ll = torch.nn.functional.cross_entropy(logits, target_tensor, reduction="none")
-        mask = mask[:, 1:].reshape(-1).to(ll.device)[::4]
+        mask = mask[:, 1:].reshape(-1).to(ll.device)
         ll = ll * mask
         ll = ll.view(input_tensor.size(0), -1).sum(dim=1)
         return -ll
