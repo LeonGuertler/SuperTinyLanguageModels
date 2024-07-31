@@ -191,7 +191,7 @@ def prepare_data(cfg):
         # Get the maximum number of processors
         max_procs = os.cpu_count()
         # cap at 12 to reduce memory usage
-        max_procs = 1 #min(max_procs, 12) # TODO properly fix this
+        max_procs = min(max_procs, 12) # TODO properly fix this
         print(f"Using {max_procs} processors")
 
         # tokenize the dataset
