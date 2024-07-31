@@ -141,7 +141,8 @@ class DualByteLevelProcessor(StandardProcessor):
 DATALOADER_PROCESSORS = {
     "standard": StandardProcessor,
     "byte_pooling": ByteLevelProcessor,
-    "dual_byte_pooling": DualByteLevelProcessor
+    "dual_byte_pooling": DualByteLevelProcessor,
+    "byte_patch": StandardProcessor,
 }
 
 
