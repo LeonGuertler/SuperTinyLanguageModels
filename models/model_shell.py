@@ -100,7 +100,7 @@ class ModelShell(torch.nn.Module):
         input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
         
         logits, _ = self.forward(input_tensor)
-        print(logits.size(), target_tensor.size())
+        print(logits.size(), input_tensor.size())
         
         
         logits = logits[:, :-1].reshape(-1, logits.size(-1))
