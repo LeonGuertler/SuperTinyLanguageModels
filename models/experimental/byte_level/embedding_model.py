@@ -32,7 +32,7 @@ class BytePatchEmbedder(EmbedderInterface):
         # positional encodings
         self.pos_encoder = LearnedPosEncoding(
             hidden_dim=model_cfg["hidden_dim"],
-            context_window=model_cfg["context_window"],
+            context_window=model_cfg["context_window"]*4,
         )
 
         self.token_embedder = torch.nn.Embedding(
