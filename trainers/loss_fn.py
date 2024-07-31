@@ -87,7 +87,7 @@ def build_loss_fn(loss_fn_type: str):
     raise ValueError(f"Loss function {loss_fn_type} not supported.")
 
 
-def distillation_loss_fn(student_logits, teacher_logits, temperature=1.0):
+def distillation_loss_fn(student_logits, teacher_logits, temperature=1.0, type='forward'):
     """
     Compute the distillation loss between student and teacher logits.
     Args:
@@ -102,11 +102,21 @@ def distillation_loss_fn(student_logits, teacher_logits, temperature=1.0):
     student_logits = student_logits.view(-1, student_logits.size(-1))
     teacher_logits = teacher_logits.view(-1, teacher_logits.size(-1))
 
-    # calculate distillation loss
+    if type == 'forward':
+        input_logits = torch.nn.functional.log_softmax(student_logits / temperature, dim=-1)
+        target_logits = torch.nn.functional.softmax(teacher_logits / temperature, dim=-1)
+    elif type == 'reverse':
+        input_logits = torch.nn.functional.log_softmax(teacher_logits / temperature, dim=-1)
+        target_logits = torch.nn.functional.softmax(student_logits / temperature, dim=-1)
+    else:
+        raise ValueError(f"Type {type} not supported.")
+    
+    # calculate KL Divergence
     distillation_loss = torch.nn.functional.kl_div(
-        torch.nn.functional.log_softmax(student_logits / temperature, dim=-1),
-        torch.nn.functional.softmax(teacher_logits / temperature, dim=-1),
+        input_logits,
+        target_logits,
         reduction="batchmean",
+        log_target=False
     )
 
     ## return the distillation loss multiplied by the temperature squared as per the paper - https://arxiv.org/abs/1503.02531
