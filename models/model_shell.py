@@ -96,6 +96,8 @@ class ModelShell(torch.nn.Module):
         """
         total_strings = [f"{prefix} {cont}" for prefix, cont in zip(prefixes, continuations)]
         input_tokens = [self.embedding_model.tokenize_input(string, truncate=True) for string in total_strings]
+        # shorten to multiple of 4
+        input_tokens = [tokens[: len(tokens) - len(tokens) % 4] for tokens in input_tokens]
         padded_batch, mask = self.embedding_model.pad_batch(input_tokens, direction="right")
         input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
         
