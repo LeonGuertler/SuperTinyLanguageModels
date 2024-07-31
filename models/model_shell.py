@@ -104,6 +104,9 @@ class ModelShell(torch.nn.Module):
         logits, _ = self.forward(input_tensor)
         print('new eval')
         print(logits.size(), input_tensor.size())
+
+        # first flatten logits by 2nd and 3rd dim
+        logits = logits.reshape(logits.size(0), -1, logits.size(-1))
         
         
         logits = logits[:, :-1].reshape(-1, logits.size(-1))
