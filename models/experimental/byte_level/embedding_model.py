@@ -40,7 +40,7 @@ class BytePatchEmbedder(EmbedderInterface):
             embedding_dim=model_cfg["hidden_dim"],
         )
 
-    def forward(self, token_ids):
+    def forward_old(self, token_ids):
         """
         Forward pass.
         """
@@ -54,6 +54,32 @@ class BytePatchEmbedder(EmbedderInterface):
         x = x.view(x.size(0), -1, 4, x.size(-1)).mean(dim=-2)
 
         return x
+    
+    def forward(self, token_ids):
+        """
+        Forward pass.
+        """
+        # get the token embeddings
+        x = self.token_embedder(token_ids)
+
+        # apply the positional encoding, if any
+        x = self.pos_encoder(x)
+
+        # calculate the number of complete groups of 4 and the remainder
+        num_complete_groups = x.size(1) // 4
+        remainder = x.size(1) % 4
+
+        # mean pool the tokens with stride = 4 for complete groups
+        x_grouped = x[:, :num_complete_groups*4, :]
+        x_pooled = x_grouped.view(x.size(0), -1, 4, x.size(-1)).mean(dim=-2)
+
+        # handle the remaining tokens
+        if remainder > 0:
+            x_remainder = x[:, num_complete_groups*4:, :]
+            x_remainder_pooled = x_remainder.mean(dim=1, keepdim=True)
+            x_pooled = torch.cat([x_pooled, x_remainder_pooled], dim=1)
+
+        return x_pooled
     
     def pad_batch(self, token_lists, direction="right"):
         """Pad a list of token lists to the same length,
