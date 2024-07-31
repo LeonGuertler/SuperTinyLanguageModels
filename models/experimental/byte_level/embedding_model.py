@@ -54,6 +54,15 @@ class BytePatchEmbedder(EmbedderInterface):
         x = x.view(x.size(0), -1, 4, x.size(-1)).mean(dim=-2)
 
         return x
+    
+    def pad_batch(self, token_lists, direction="right"):
+        """Pad a list of token lists to the same length,
+        and return the padded tensor, and mask tensor.
+        Args:
+            token_lists: list of lists of tokens
+            direction: str
+        """
+        return self.tokenizer.pad_batch(token_lists, direction=direction)
 
     def tokenize_input(self, input_string: str, truncate=False, add_eot=True):
         """
