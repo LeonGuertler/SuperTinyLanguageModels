@@ -15,6 +15,8 @@ from models.experimental.next_thought.core_models import BaselineCoreModel, Conv
 from models.model_heads import AutoregressiveLMHead
 from models.model_shell import ModelShell
 
+from models.experimental.byte_level.embedding_model import BytePatchEmbedder
+
 
 def build_model(model_cfg=None, checkpoint=None):
     """
@@ -49,6 +51,7 @@ EMBEDDING_MODEL_DICT = {
     "byte_level": ByteLevelEmbedder,
     "hf_embedder": HFEmbedder,
     "hierarchical": HierarchicalEncoder,
+    "byte_patch": BytePatchEmbedder,
     }
 
 

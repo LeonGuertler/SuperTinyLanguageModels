@@ -1,4 +1,4 @@
-"""
+""" 
 Shared components of the byte level models.
 """
 

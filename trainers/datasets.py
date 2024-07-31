@@ -83,6 +83,24 @@ class BaseDataset(DatasetInterface):
         y = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
         return x, y
 
+class BytePatchDataset(DatasetInterface):
+    """
+    A simple byte-level dataset that uses a patching mechanism
+    """
+    def __init__(self, split, cfg):
+        super().__init__(split, cfg)
+
+    def __getitem__(self, idx):
+        """
+        Get a 4*context_window batch of data 
+        and return every fourth token as a label
+        (since they will be pooled anyway)
+        """
+        x = torch.from_numpy((self.data[idx: idx + 4*self.context_window:4]).astype(np.int64))
+        y = torch.from_numpy((self.data[idx + 4: idx + 4 + 4*self.context_window:4]).astype(np.int64))
+        return x, y
+
+
 
 class BytePoolingDataset(DatasetInterface):
     """

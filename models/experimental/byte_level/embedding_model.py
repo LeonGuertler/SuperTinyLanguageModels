@@ -12,6 +12,73 @@ from models.embedding_models import EmbedderInterface
 from models.experimental.byte_level.layers import ByteLevelTransformerBlock
 
 
+class BytePatchEmbedder(EmbedderInterface):
+    """
+    Takes 4x context window as input, embeds each token,
+    applies pos encoding, average pools embeddings,
+    and returns the resultant tensor.
+    """
+    def __init__(self, model_cfg):
+        super().__init__()
+        self.model_cfg = model_cfg
+
+        # build the tokenizer
+        self.tokenizer = build_tokenizer(
+            tokenizer_type=model_cfg["embedder"]["tokenizer_type"],
+            vocab_size=model_cfg["vocab_size"],
+            dataset_name=model_cfg["embedder"]["dataset_name"],
+        )
+
+        # positional encodings
+        self.pos_encoder = LearnedPosEncoding(
+            hidden_dim=model_cfg["hidden_dim"],
+            context_window=model_cfg["context_window"],
+        )
+
+    def forward(self, token_ids):
+        """
+        Forward pass.
+        """
+        # get the token embeddings
+        x = self.token_embedder(token_ids)
+
+        # apply the positional encoding, if any
+        x = self.pos_encoder(x)
+
+        # mean pool the tokens with stride = 4
+        x = x.view(x.size(0), -1, 4, x.size(-1)).mean(dim=-2)
+
+        return x
+
+    def tokenize_input(self, input_string: str, truncate=False, add_eot=True):
+        """
+        Tokenize the input string
+        """
+        token_ids = self.tokenizer.encode(input_string)
+
+        if add_eot:
+            token_ids.append(self.tokenizer.eot_token)
+        if truncate:
+            token_ids = self.truncate([token_ids])[0]
+        return token_ids
+    
+
+    def truncate(self, token_lists):
+        # get model max length
+        max_length = self.model_cfg["context_window"]*4
+        return [token_seq[-max_length:] for token_seq in token_lists]
+    
+    def decode(self, tokens):
+        """
+        Decode a tensor of tokens into a string
+        """
+        return self.tokenizer.decode_batch(tokens)
+    
+
+
+
+
+
 class ByteLevelEmbedder(EmbedderInterface):
     """
     Takes byte level encodings, processes them via
