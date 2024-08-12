@@ -68,17 +68,13 @@ def main(cfg):
     # process data 
     prepare_data(cfg)
 
-    if world_size <= 1:
-        single_gpu_main(cfg)
-        return
-    else:
-        # otherwise we use ddp
-        mp.spawn(
-            ddp_main,
-            args=(world_size, cfg),
-            nprocs=world_size,
-            join=True,
-        )
+
+    mp.spawn(
+        ddp_main,
+        args=(world_size, cfg),
+        nprocs=world_size,
+        join=True,
+    )
 
     # Additional cleanup to prevent leaked semaphores
     for process in mp.active_children():
