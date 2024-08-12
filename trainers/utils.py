@@ -310,9 +310,9 @@ def print_evaluation_results(iter_num, eval_results, benchmark_results):
         for benchmark, value in benchmark_results[eval_method].items():
             benchmark_table.add_row([
                 f"{benchmark}", 
-                value['accuracy'].item(),
-                value['path_confidence'].item(),
-                value['ground_confidence'].item()
+                value['accuracy']#.item(),
+                value['path_confidence']#.item(),
+                value['ground_confidence']#.item()
             ])
 
     print("Benchmark Results")
