@@ -74,7 +74,7 @@ class Shampoo(torch.optim.Optimizer):
         )
         super(Shampoo, self).__init__(params, defaults)
 
-    def step(self, closure):
+    def step(self, closure=None):
         """Performs a single optimization step.
 
         Arguments:
