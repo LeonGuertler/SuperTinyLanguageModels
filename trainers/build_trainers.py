@@ -82,7 +82,6 @@ OPTIMIZER_DICT = {
         lr=trainer_cfg["lr"],
         betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
         weight_decay=trainer_cfg["weight_decay"],
-        model_shape=True,
         dim=trainer_cfg["hidden_dim"],
         n_heads=trainer_cfg["n_heads"],
         n_kv_heads=trainer_cfg["n_kv_heads"],
