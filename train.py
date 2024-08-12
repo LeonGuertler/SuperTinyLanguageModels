@@ -52,24 +52,6 @@ def ddp_main(rank, world_size, cfg):
         # restore the print function
         restore_print_override(original_print)
 
-def single_gpu_main(cfg):
-    """
-    Main function for single GPU training
-    """
-    model = build_model(model_cfg=cfg["model"])
-    model.to(cfg["general"]["device"])
-    model.train()
-    print("Model built")
-    # load the relevant trainer
-    trainer = build_trainer(
-        cfg=cfg,
-        model=model,
-        gpu_id=None # disables DDP
-    )
-
-    # train the model
-    trainer.train()
-
 
 @hydra.main(config_path="configs", config_name="train")
 def main(cfg):
