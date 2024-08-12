@@ -32,7 +32,7 @@ trainer:
   dropout_scheduler:
     dropout_type: constant
     dropout: 0.1
-  dataset: openwebtext
+  dataset: simple_en_wiki
   training:
     trainer_type: base_trainer
     batch_size: 24
@@ -52,11 +52,12 @@ trainer:
         - "arc"
         - "mmlu"
         - "blimp"
-      num_samples: 1000
+      num_samples: 10
       evaluator: "mcq"
     - evaluator: "prog"
   optimizer:
     name: adam_mini
+    gradient_filter: None
     lr: 0.0006
     min_lr: 6.0e-05
     weight_decay: 0.1
