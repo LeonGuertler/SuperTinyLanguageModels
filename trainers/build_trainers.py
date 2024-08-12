@@ -81,7 +81,6 @@ OPTIMIZER_DICT = {
         named_parameters=model.named_parameters(),
         lr=trainer_cfg["lr"],
         betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
-        eps=trainer_cfg["eps"],
         weight_decay=trainer_cfg["weight_decay"],
         model_shape=True,
         dim=trainer_cfg["hidden_dim"],
