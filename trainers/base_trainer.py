@@ -22,6 +22,12 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import SequentialSampler
 from trainers.utils import aggregate_value, print_evaluation_results
 
+# import grokfast functions
+from trainers.optimizers import (
+    gradfilter_ma, 
+    gradfilter_ema
+)
+
 
 # pylint: disable invalid-name
 class BaseTrainer:
@@ -75,6 +81,10 @@ class BaseTrainer:
         if cfg.trainer.training.run_profiler and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU runs the profiler
             self.run_profile()
             raise SystemExit
+        
+
+        # initialize self.grads as None for Grokfast
+        self.grads = None 
 
     def _setup_logging(self):
         # set run name
@@ -161,7 +171,7 @@ class BaseTrainer:
 
 
 
-    def _run_step(self, epoch=0):
+    def _run_step(self):
         """Run a single step of training with gradient accumulation."""
         self.optimizer.zero_grad()  # Clear gradients at the start of accumulation
 
@@ -192,6 +202,21 @@ class BaseTrainer:
                     self.scaler.unscale_(self.optimizer)
                     # Clip the gradients with normalization
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.trainer.optimizer.grad_clip)
+
+
+                # apply gradient filtering 
+                if self.cfg["trainer"]["training"]["gradient_filter"] == "grokfast_ma":
+                    self.grads = gradfilter_ma(
+                        model=self.DDP_model, 
+                        grads=self.grads
+                    )
+                elif self.cfg["trainer"]["training"]["gradient_filter"] == "grokfast_ema":
+                    self.grads = gradfilter_ema(
+                        model=self.DDP_model, 
+                        grads=self.grads
+                    )
+                else:
+                    pass
                 
                 # Perform a single optimization step
                 self.scaler.step(self.optimizer)
@@ -294,7 +319,7 @@ class BaseTrainer:
                 self._save_model(iter_num)
 
 
-            loss = self._run_step() ## set the 'epoch' to ensure shuffle
+            loss = self._run_step()
             end_time = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
                 lossf = loss * self.gradient_accumulation_steps
