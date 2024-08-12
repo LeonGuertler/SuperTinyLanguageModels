@@ -11,8 +11,6 @@ from trainers.optimizers.adam_mini import AdamMini
 # import the ada-belief optimizer
 from trainers.optimizers.ada_belief import AdaBelief
 
-# import the Shampoo optimizer
-from trainers.optimizers.shampoo import Shampoo
 
 # import the grokfast filters
 from trainers.optimizers.grokfast import (
