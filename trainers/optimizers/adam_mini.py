@@ -11,7 +11,7 @@ import torch.distributed as dist
 from torch.distributed._tensor import Replicate
 
 
-class Adam_mini(torch.optim.Optimizer):
+class AdamMini(torch.optim.Optimizer):
     def __init__(
             self,
             named_parameters: Iterable[Tuple[str, torch.nn.Parameter]],
