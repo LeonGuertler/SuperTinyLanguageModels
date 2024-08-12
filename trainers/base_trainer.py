@@ -24,8 +24,8 @@ from trainers.utils import aggregate_value, print_evaluation_results
 
 # import grokfast functions
 from trainers.optimizers import (
-    gradfilter_ma, 
-    gradfilter_ema
+    grokfast_gradfilter_ma, 
+    grokfast_gradfilter_ema
 )
 
 
