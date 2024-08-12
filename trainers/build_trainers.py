@@ -38,7 +38,8 @@ import os
 from trainers.optimizers import (
     Lion,
     AdamMini,
-    AdaBelief
+    AdaBelief,
+    Shampoo
 )
 
 def ddp_setup(rank, world_size):
@@ -94,6 +95,12 @@ OPTIMIZER_DICT = {
         betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
         weight_decay=trainer_cfg["weight_decay"],
     ),
+    "shampoo": lambda model, trainer_cfg: Shampoo(
+        params=model.parameters(),
+        lr=trainer_cfg["lr"],
+        momentum=trainer_cfg["momentum"],
+        weight_decay=trainer_cfg["weight_decay"],
+    )
 }
 
 
