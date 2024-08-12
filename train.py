@@ -40,8 +40,7 @@ def ddp_main(rank, world_size, cfg):
         )
         print(f"Rank{rank} Trainer built")
         # preprocess the training data
-        trainer.preprocess_data()
-        print(f"Rank{rank} Data preprocessed")
+
         # train the model
         trainer.train()
     

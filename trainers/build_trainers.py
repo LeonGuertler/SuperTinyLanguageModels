@@ -33,6 +33,12 @@ import torch
 from torch.distributed import init_process_group
 import os
 
+
+# import optimizers
+from trainers.optimizers import (
+    Lion
+)
+
 def ddp_setup(rank, world_size):
     """
     Args:
@@ -63,6 +69,14 @@ OPTIMIZER_DICT = {
         betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
         weight_decay=trainer_cfg["weight_decay"],
     ),
+    "lion": lambda model, trainer_cfg: Lion(
+        params=model.parameters(),
+        lr=trainer_cfg["lr"],
+        betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
+        weight_decay=trainer_cfg["weight_decay"],
+        decoupled_weight_decay=trainer_cfg["decoupled_weight_decay"],
+
+    )
 }
 
 
