@@ -206,12 +206,12 @@ class BaseTrainer:
 
                 # apply gradient filtering 
                 if self.cfg["trainer"]["training"]["gradient_filter"] == "grokfast_ma":
-                    self.grads = gradfilter_ma(
+                    self.grads = grokfast_gradfilter_ma(
                         model=self.DDP_model, 
                         grads=self.grads
                     )
                 elif self.cfg["trainer"]["training"]["gradient_filter"] == "grokfast_ema":
-                    self.grads = gradfilter_ema(
+                    self.grads = grokfast_gradfilter_ema(
                         model=self.DDP_model, 
                         grads=self.grads
                     )
