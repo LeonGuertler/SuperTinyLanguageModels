@@ -93,22 +93,37 @@ class LinearDropoutScheduler(DropoutScheduler):
 
 
 class TriangleDropoutScheduler(DropoutScheduler):
-    '''Triangle Dropout Scheduler. Ref: https://arxiv.org/pdf/1506.01186'''
-    def __init__(self, dropout_trough, dropout_peak, max_iterations, gradient_accumulated_steps, cycle_factor = 4):
+    """Triangle Dropout Scheduler. Ref: https://arxiv.org/pdf/1506.01186"""
+
+    def __init__(
+        self,
+        dropout_trough,
+        dropout_peak,
+        num_iterations,
+        num_cycles=4,
+    ):
+        """Initialize the dropout schedule
+        Args:
+            dropout_trough: The minimum dropout probability
+            dropout_peak: The maximum dropout probability
+            num_iterations: The total number of iterations
+            num_cycles: The number of cycles"""
         super().__init__(dropout_trough)
         self.dropout_trough = dropout_trough
         self.dropout_peak = dropout_peak
-        self.total_iterations = max_iterations * gradient_accumulated_steps
-        self.cycle_length = self.total_iterations // cycle_factor
-        self.num_cycles = cycle_factor 
+        self.total_iterations = num_iterations
+        self.cycle_length = self.total_iterations // num_cycles
 
     def get_dropout(self, iter_num):
         cycle_position = iter_num % self.cycle_length
         half_cycle = self.cycle_length / 2
         if cycle_position < half_cycle:
-            return self.dropout_trough + (self.dropout_peak - self.dropout_trough) * (cycle_position / half_cycle)
-        else:
-            return self.dropout_peak - (self.dropout_peak - self.dropout_trough) * ((cycle_position - half_cycle) / half_cycle)
+            return self.dropout_trough + (self.dropout_peak - self.dropout_trough) * (
+                cycle_position / half_cycle
+            )
+        return self.dropout_peak - (self.dropout_peak - self.dropout_trough) * (
+            (cycle_position - half_cycle) / half_cycle
+        )
 
     def step(self, model, iter_num):
         dropout_p = self.get_dropout(iter_num)
