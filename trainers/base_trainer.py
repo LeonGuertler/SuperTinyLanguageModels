@@ -205,6 +205,10 @@ class BaseTrainer:
 
 
                 # apply gradient filtering 
+                input(self.cfg)
+                input(self.cfg["trainer"])
+                input(self.cfg["trainer"]["training"])
+                input(self.cfg["trainer"]["training"]["gradient_filter"])
                 if self.cfg["trainer"]["training"]["gradient_filter"] == "grokfast_ma":
                     self.grads = grokfast_gradfilter_ma(
                         model=self.DDP_model, 

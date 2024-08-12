@@ -36,7 +36,8 @@ import os
 
 # import optimizers
 from trainers.optimizers import (
-    Lion
+    Lion,
+    AdamMini
 )
 
 def ddp_setup(rank, world_size):
@@ -75,7 +76,17 @@ OPTIMIZER_DICT = {
         betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
         weight_decay=trainer_cfg["weight_decay"],
         decoupled_weight_decay=trainer_cfg["decoupled_weight_decay"],
-
+    ),
+    "adam_mini": lambda model, trainer_cfg: AdamMini(
+        named_parameters=model.named_parameters(),
+        lr=trainer_cfg["lr"],
+        betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
+        eps=trainer_cfg["eps"],
+        weight_decay=trainer_cfg["weight_decay"],
+        model_shape=True,
+        dim=trainer_cfg["hidden_dim"],
+        n_heads=trainer_cfg["n_heads"],
+        n_kv_heads=trainer_cfg["n_kv_heads"],
     )
 }
 
