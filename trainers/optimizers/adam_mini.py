@@ -24,6 +24,7 @@ class AdamMini(torch.optim.Optimizer):
             dim: int = 2048,
             n_heads: int = 32,
             n_kv_heads: Optional[int] = None,
+            device=None
     ):
         '''
         named_parameters: model.named_parameters()
@@ -130,6 +131,7 @@ class AdamMini(torch.optim.Optimizer):
         self.wqk_names = {"k_proj.weight", "q_proj.weight", "wq.weight", "wk.weight"}
 
         defaults = dict(lr=lr, beta1=betas[0], beta2=betas[1], eps=eps)
+        self.device = device
         super().__init__(optim_groups, defaults)
 
     @torch.no_grad()
@@ -202,7 +204,7 @@ class AdamMini(torch.optim.Optimizer):
                     p.add_(-update)
                 else:  # other blocks
                     if len(state) == 0:
-                        block_numel = torch.tensor(p.numel()).to(torch.float32).to(device)
+                        block_numel = torch.tensor(p.numel()).to(torch.float32).to(self.device)
                         reduced = False
                         if (self.world_size > 1) and (self.model_sharding is True):
                             tensor_list = [torch.zeros_like(block_numel) for _ in range(self.world_size)]

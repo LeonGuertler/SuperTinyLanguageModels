@@ -85,6 +85,7 @@ OPTIMIZER_DICT = {
         dim=trainer_cfg["hidden_dim"],
         n_heads=trainer_cfg["n_heads"],
         n_kv_heads=trainer_cfg["n_kv_heads"],
+        device=model.device,
     )
 }
 
