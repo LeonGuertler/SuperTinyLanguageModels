@@ -32,7 +32,7 @@ trainer:
   dropout_scheduler:
     dropout_type: constant
     dropout: 0.1
-  dataset: openwebtext
+  dataset: simple_en_wiki
   training:
     trainer_type: base_trainer
     batch_size: 24
@@ -57,6 +57,7 @@ trainer:
     - evaluator: "prog"
   optimizer:
     name: lion
+    gradient_filter: None
     decoupled_weight_decay: true
     lr: 0.0006
     min_lr: 6.0e-05
