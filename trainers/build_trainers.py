@@ -37,7 +37,8 @@ import os
 # import optimizers
 from trainers.optimizers import (
     Lion,
-    AdamMini
+    AdamMini,
+    AdaBelief
 )
 
 def ddp_setup(rank, world_size):
@@ -86,7 +87,13 @@ OPTIMIZER_DICT = {
         n_heads=trainer_cfg["n_heads"],
         n_kv_heads=trainer_cfg["n_kv_heads"],
         device=model.device,
-    )
+    ),
+    "ada_belief": lambda model, trainer_cfg: AdaBelief(
+        params=model.parameters(),
+        lr=trainer_cfg["lr"],
+        betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
+        weight_decay=trainer_cfg["weight_decay"],
+    ),
 }
 
 
