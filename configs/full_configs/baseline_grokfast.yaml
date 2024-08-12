@@ -76,7 +76,7 @@ trainer:
     name: cross_entropy
 general:
   logging:
-    wandb_log: false
+    wandb_log: true
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs
