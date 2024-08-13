@@ -92,6 +92,10 @@ class Attention(torch.nn.Module):
         # output projection
         y = self.attn_dropout(self.c_proj(y))  # is this really necessary?
 
+        ## save the query and key for extraction
+        self.q = q
+        self.k = k
+
         return y
 
 

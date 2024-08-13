@@ -140,11 +140,11 @@ class HFTransformerCore(torch.nn.Module):
         Calls the huggingface model in question, and returns the last hidden state.
         """
         ## get the hidden states
-        hidden_states = self.model(inputs_embeds = x, output_hidden_states = True).hidden_states
+        self.hidden_states = self.model(inputs_embeds = x, output_hidden_states = True).hidden_states
 
         ## return the last hidden state
-        if isinstance(hidden_states, tuple):
-            return hidden_states[-1]
+        if isinstance(self.hidden_states, tuple):
+            return self.hidden_states[-1]
 
         
 

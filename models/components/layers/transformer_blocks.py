@@ -59,4 +59,9 @@ class GenericTransformerBlock(torch.nn.Module):
         """
         x = x + self.attn(self.attn_norm(x), attention_mask)
         x = x + self.ffn(self.ffn_norm(x))
+
+        ## store the hidden state and qk matrices
+        self.hidden_state = x # hidden state is the output of the block
+        self.qk_list = [self.attn.q, self.attn.k] # store the qk matrices
+        
         return x

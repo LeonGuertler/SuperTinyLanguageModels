@@ -13,7 +13,7 @@ class GenericTransformer(torch.nn.Module):
     broad a range of transformer models as possible.
     """
 
-    def __init__(self, model_cfg):
+    def __init__(self, model_cfg, teacher_model_cfg=None):
         super().__init__()
 
         # build the transformer
@@ -47,9 +47,21 @@ class GenericTransformer(torch.nn.Module):
         # apply dropout
         x = self.transformer.drop(x)
 
+        # create the lists for attention and hidden state
+        hidden_states = []
+        qk_lists = []
+
         # pass through the transformer blocks
         for block in self.transformer.h:
             x = block(x)
+            hidden_states.append(block.hidden_state)
+            qk_lists.append(block.qk_list)
+
+        # assign to class object it's own attention matrices and hidden states
+        # this will avoid the need to return them from the forward pass 
+        # which may conflict elsewhere.
+        self.hidden_states = hidden_states
+        self.qk_lists = [item for sublist in qk_lists for item in sublist]
 
         return x
 
