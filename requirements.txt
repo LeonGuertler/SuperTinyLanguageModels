@@ -4,3 +4,4 @@ datasets
 wandb
 mteb
 pre-commit
+prettytable

@@ -13,6 +13,7 @@ from models.utils import print_model_stats
 import torch
 from torch.distributed import destroy_process_group
 import torch.multiprocessing as mp
+from trainers.prepare import prepare_data
 
 def ddp_main(rank, world_size, cfg):
     """
@@ -63,6 +64,11 @@ def main(cfg):
     ) # must be done before multiprocessing or else the path is wrong?
 
     create_folder_structure(path_config=cfg["general"]["paths"])
+
+    # process data 
+    prepare_data(cfg)
+
+
     mp.spawn(
         ddp_main,
         args=(world_size, cfg),

@@ -10,11 +10,11 @@ from torch.distributed import init_process_group
 
 from models.experimental.hugging_face import MockTrainer
 from trainers.base_trainer import BaseTrainer
-from trainers.dataloader import (
-    BaseDataloader,
-    BytePoolingDataloader,
-    ConversationalDataloader,
-    NextTokenMLMDataloader,
+from trainers.datasets import (
+    BaseDataset,
+    BytePoolingDataset,
+    DatasetInterface,
+    DualBytePooling,
 )
 from trainers.loss_fn import (
     cross_entropy_loss_fn,
@@ -22,6 +22,7 @@ from trainers.loss_fn import (
     next_token_mlm_loss_fn,
 )
 from trainers.optimizer import configure_nanoGPT_optimizer
+from trainers.samplers import BaseSampler
 from trainers.scheduler import (
     CosineLRScheduler,
     DropoutScheduler,
@@ -54,7 +55,13 @@ OPTIMIZER_DICT = {
         weight_decay=trainer_cfg["weight_decay"],
         learning_rate=trainer_cfg["lr"],
         betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
-    )
+    ),
+    "adamW": lambda model, trainer_cfg: torch.optim.AdamW(
+        model.parameters(),
+        lr=trainer_cfg["lr"],
+        betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
+        weight_decay=trainer_cfg["weight_decay"],
+    ),
 }
 
 
@@ -112,21 +119,30 @@ def build_dropout_scheduler(trainer_cfg):
     )
 
 
-DATALOADER_DICT: dict[str, BaseDataloader] = {
-    "standard": BaseDataloader,
-    "byte_pooling": BytePoolingDataloader,
-    "next_token_mlm": NextTokenMLMDataloader,
-    "conversational": ConversationalDataloader,
+DATASET_DICT: dict[str, DatasetInterface] = {
+    "standard": BaseDataset,
+    "byte_pooling": BytePoolingDataset,
+    "dual_byte_pooling": DualBytePooling,
 }
 
 
-def build_dataloader(cfg, embedder):
+def build_dataset(cfg, split):
     """
     Given the config, build the dataloader
     """
-    return DATALOADER_DICT[cfg.trainer["dataloader"]["name"]](
-        cfg=cfg,
-        embedder=embedder,
+    return DATASET_DICT[cfg.trainer["dataloader"]["name"]](cfg=cfg, split=split)
+
+
+DATASAMPLER_DICT = {"standard": BaseSampler}
+
+
+def build_datasampler(dataset, sampling, batch_size):
+    """
+    Given the dataset and the sampling method, build the dataloader
+    """
+    return DATASAMPLER_DICT[sampling](
+        data_source=dataset,
+        batch_size=batch_size,
     )
 
 
@@ -166,8 +182,36 @@ def build_trainer(cfg, model, gpu_id):
     dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg.trainer)
 
     # build dataloder
-    dataloader = build_dataloader(cfg=cfg, embedder=model.embedding_model)
-    dataloader.prepare_data()
+    train_dataset = build_dataset(cfg=cfg, split="train")
+    val_dataset = build_dataset(cfg=cfg, split="val")
+
+    # initialize datasamplers
+    train_data_sampler = build_datasampler(
+        dataset=train_dataset,
+        sampling=cfg["trainer"]["datasampling"]["name"],
+        batch_size=cfg["trainer"]["training"]["batch_size"]
+        * cfg["trainer"]["training"]["gradient_accumulation_steps"],
+    )
+    val_data_sampler = build_datasampler(
+        dataset=val_dataset,
+        sampling=cfg["trainer"]["datasampling"]["name"],
+        batch_size=cfg["trainer"]["training"]["batch_size"]
+        * cfg["trainer"]["training"]["gradient_accumulation_steps"],
+    )
+
+    # wrap in dataloaders
+    train_dataloader = torch.utils.data.DataLoader(
+        dataset=train_dataset,
+        batch_size=cfg["trainer"]["training"]["batch_size"],
+        sampler=train_data_sampler,
+        num_workers=1,
+    )
+    val_dataloader = torch.utils.data.DataLoader(
+        dataset=val_dataset,
+        batch_size=cfg["trainer"]["training"]["batch_size"],
+        sampler=val_data_sampler,
+        num_workers=1,
+    )
 
     # build loss function
     loss_fn = build_loss_fn(loss_fn_name=cfg.trainer["loss_fn"]["name"])
@@ -180,7 +224,8 @@ def build_trainer(cfg, model, gpu_id):
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
         dropout_scheduler=dropout_scheduler,
-        dataloader=dataloader,
+        train_dataloader=train_dataloader,
+        val_dataloader=val_dataloader,
         loss_fn=loss_fn,
         gpu_id=gpu_id,
     )
