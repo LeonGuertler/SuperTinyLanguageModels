@@ -65,7 +65,12 @@ Note that our precommit hooks do not actually enforce the linting, although you 
 
 ### Experimental Contribution
 
-If you want to add your own experiments
+If you want to add your own experiments please follow the following steps:
+1. Open a PR and add a pre-report to the pre_reports folder. This should be a short document outlining the experiment you want to run, the expected results, and the motivation behind it. It should also include a pre-report disclosure statement stating the degree to which particular results are anticipated (e.g. by earlier experimentation).
+2. Then add code to the same branch necessary to run your experiments. Usually this would be added to the [experimental folder under models](models/experimental/) although this will have to be integrated in e.g. the build functions to work properly
+3. Finally run the experiments and write your final report. Please cite us the original pre-report in the final report!
+
+For any questions around this please ask on the discord or open an issue, we are still establishing these guidelines
 
 ## Known Issues
 The initial tokenization step setting up the dataset takes a long time. Do a run with a single gpu first to make sure these are initialized properly (or even use a debug run) when you are using a new dataset or tokenizer.
