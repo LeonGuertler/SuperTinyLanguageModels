@@ -7,6 +7,7 @@ import hydra
 
 from models.build_models import build_model
 from trainers.build_trainers import build_trainer, ddp_setup
+from trainers import base_trainer
 from trainers.utils import create_folder_structure, init_print_override, restore_print_override
 from models.utils import print_model_stats
 
@@ -33,15 +34,12 @@ def ddp_main(rank, world_size, cfg):
         print(f"Rank{rank} Model built")
         print_model_stats(model)
         # load the relevant trainer
-        trainer = build_trainer(
+        trainer: base_trainer.BaseTrainer = build_trainer(
             cfg=cfg,
             model=model,
             gpu_id=rank
         )
         print(f"Rank{rank} Trainer built")
-        # preprocess the training data
-        trainer.preprocess_data()
-        print(f"Rank{rank} Data preprocessed")
         # train the model
         trainer.train()
     

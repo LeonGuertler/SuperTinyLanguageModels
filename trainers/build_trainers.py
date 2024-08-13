@@ -3,35 +3,34 @@ Builds the individual components of the trainer,
 and the trainer itself.
 """
 
+import os
+
+import torch
+from torch.distributed import init_process_group
+
 from models.experimental.hugging_face import MockTrainer
 from trainers.base_trainer import BaseTrainer
 from trainers.datasets import (
-    DatasetInterface,
     BaseDataset,
     BytePoolingDataset,
-    DualBytePooling
-)
-from trainers.samplers import (
-    BaseSampler,
+    DatasetInterface,
+    DualBytePooling,
 )
 from trainers.loss_fn import (
     cross_entropy_loss_fn,
+    masked_cross_entropy_loss_fn,
     next_token_mlm_loss_fn,
-    masked_cross_entropy_loss_fn
 )
 from trainers.optimizer import configure_nanoGPT_optimizer
+from trainers.samplers import BaseSampler
 from trainers.scheduler import (
     CosineLRScheduler,
     DropoutScheduler,
     LinearDropoutScheduler,
     LRScheduler,
-    TriangleDropoutScheduler
+    TriangleDropoutScheduler,
 )
 
-
-import torch
-from torch.distributed import init_process_group
-import os
 
 def ddp_setup(rank, world_size):
     """
@@ -40,12 +39,12 @@ def ddp_setup(rank, world_size):
         world_size: Total number of processes
     """
     # Get the master address and port from SLURM environment variables
-    master_addr = os.environ.get('MASTER_ADDR', 'localhost')
-    master_port = os.environ.get('MASTER_PORT', '12355')
+    master_addr = os.environ.get("MASTER_ADDR", "localhost")
+    master_port = os.environ.get("MASTER_PORT", "12355")
 
     # Set the environment variables for PyTorch distributed
-    os.environ['MASTER_ADDR'] = master_addr
-    os.environ['MASTER_PORT'] = master_port
+    os.environ["MASTER_ADDR"] = master_addr
+    os.environ["MASTER_PORT"] = master_port
     init_process_group(backend="nccl", rank=rank, world_size=world_size)
     torch.cuda.set_device(rank)
 
@@ -112,9 +111,8 @@ def build_dropout_scheduler(trainer_cfg):
         return TriangleDropoutScheduler(
             dropout_trough=trainer_cfg["dropout_scheduler"]["dropout_trough"],
             dropout_peak=trainer_cfg["dropout_scheduler"]["dropout_peak"],
-            max_iterations=trainer_cfg["training"]["max_iters"],
-            gradient_accumulated_steps=trainer_cfg["training"]["gradient_accumulation_steps"],
-            cycle_factor=trainer_cfg["dropout_scheduler"]["cycle_factor"],
+            num_iterations=trainer_cfg["dropout_scheduler"]["num_iterations"],
+            num_cycles=trainer_cfg["dropout_scheduler"]["num_cycles"],
         )
     raise NotImplementedError(
         f"dropout scheduler {trainer_cfg['dropout_scheduler']['dropout_type']} not implemented."
@@ -124,7 +122,7 @@ def build_dropout_scheduler(trainer_cfg):
 DATASET_DICT: dict[str, DatasetInterface] = {
     "standard": BaseDataset,
     "byte_pooling": BytePoolingDataset,
-    "dual_byte_pooling": DualBytePooling
+    "dual_byte_pooling": DualBytePooling,
 }
 
 
@@ -132,15 +130,11 @@ def build_dataset(cfg, split):
     """
     Given the config, build the dataloader
     """
-    return DATASET_DICT[cfg.trainer["dataloader"]["name"]](
-        cfg=cfg,
-        split=split
-    )
+    return DATASET_DICT[cfg.trainer["dataloader"]["name"]](cfg=cfg, split=split)
 
 
-DATASAMPLER_DICT = {
-    "standard": BaseSampler
-}
+DATASAMPLER_DICT = {"standard": BaseSampler}
+
 
 def build_datasampler(dataset, sampling, batch_size):
     """
@@ -150,7 +144,6 @@ def build_datasampler(dataset, sampling, batch_size):
         data_source=dataset,
         batch_size=batch_size,
     )
-
 
 
 LOSS_FN_DICT = {
@@ -196,12 +189,14 @@ def build_trainer(cfg, model, gpu_id):
     train_data_sampler = build_datasampler(
         dataset=train_dataset,
         sampling=cfg["trainer"]["datasampling"]["name"],
-        batch_size=cfg["trainer"]["training"]["batch_size"]*cfg["trainer"]["training"]["gradient_accumulation_steps"],
+        batch_size=cfg["trainer"]["training"]["batch_size"]
+        * cfg["trainer"]["training"]["gradient_accumulation_steps"],
     )
     val_data_sampler = build_datasampler(
         dataset=val_dataset,
         sampling=cfg["trainer"]["datasampling"]["name"],
-        batch_size=cfg["trainer"]["training"]["batch_size"]*cfg["trainer"]["training"]["gradient_accumulation_steps"]
+        batch_size=cfg["trainer"]["training"]["batch_size"]
+        * cfg["trainer"]["training"]["gradient_accumulation_steps"],
     )
 
     # wrap in dataloaders
@@ -218,7 +213,6 @@ def build_trainer(cfg, model, gpu_id):
         num_workers=1,
     )
 
-
     # build loss function
     loss_fn = build_loss_fn(loss_fn_name=cfg.trainer["loss_fn"]["name"])
 
@@ -233,7 +227,7 @@ def build_trainer(cfg, model, gpu_id):
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader,
         loss_fn=loss_fn,
-        gpu_id=gpu_id
+        gpu_id=gpu_id,
     )
 
     return trainer

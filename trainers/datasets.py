@@ -42,6 +42,8 @@ class DatasetInterface(torch.utils.data.Dataset):
         """
         Get data
         """
+        if not os.path.exists(self.data_path):
+            raise FileNotFoundError(f"{self.data_path} does not exist, preprocess the data first")
         self.data = np.memmap(
             self.data_path,
             dtype=np.uint16,
@@ -57,16 +59,6 @@ class DatasetInterface(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         raise NotImplementedError
     
-    def check_processed(self):
-        """
-        Check if the data has been preprocessed
-        """
-        # raise error if not exists
-        if not os.path.exists(self.data_path):
-            raise FileNotFoundError(f"{self.data_path} does not exist")
-        
-
-
 class BaseDataset(DatasetInterface):
     """
     Simple base dataloader for standard gpt-2'esk architectures and training.
