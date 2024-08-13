@@ -56,15 +56,6 @@ class DatasetInterface(torch.utils.data.Dataset):
     
     def __getitem__(self, idx):
         raise NotImplementedError
-    
-    def check_processed(self):
-        """
-        Check if the data has been preprocessed
-        """
-        # raise error if not exists
-        if not os.path.exists(self.data_path):
-            raise FileNotFoundError(f"{self.data_path} does not exist")
-        
 
 
 class BaseDataset(DatasetInterface):
