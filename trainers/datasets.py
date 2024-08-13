@@ -59,7 +59,7 @@ class DatasetInterface(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         raise NotImplementedError
     
-class BaseDataset(DatasetInterface):
+class BaseDatasetRandom(DatasetInterface):
     """
     Simple base dataloader for standard gpt-2'esk architectures and training.
     """
@@ -71,6 +71,8 @@ class BaseDataset(DatasetInterface):
         """
         Get a batch of data
         """
+        # get a random data sample
+        idx = random.randint(0, self.dataset_len - 1)
         x = torch.from_numpy((self.data[idx: idx + self.context_window]).astype(np.int64))
         y = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
         return x, y
