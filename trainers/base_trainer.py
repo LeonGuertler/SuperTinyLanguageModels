@@ -203,7 +203,7 @@ class BaseTrainer:
         self.scaler.update()
         self.optimizer.zero_grad()  # Reset gradients after update
 
-        return accumulated_loss / (i+1)
+        return accumulated_loss
 
     def run_profile(self):
         """Run the profiler"""
@@ -299,11 +299,9 @@ class BaseTrainer:
                 self._save_model(iter_num)
 
 
-            loss = self._run_step() ## set the 'epoch' to ensure shuffle
+            lossf = self._run_step() ## set the 'epoch' to ensure shuffle
             end_time = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
-                lossf = loss * self.gradient_accumulation_steps
-
                 ## uncomment the following line to print the loss on all GPUs
                 # print(f"GPU {self.gpu_id}: step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
 
