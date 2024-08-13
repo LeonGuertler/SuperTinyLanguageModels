@@ -10,6 +10,11 @@ For a comprehensive understanding of our research methodology and initial findin
 
 Please note that this repository is an evolving work in progress, reflecting the ongoing nature of our research. It is subject to frequent updates and improvements as we continue to explore and refine our work on STLMs. We welcome the community's engagement with our work, value your feedback, and appreciate any contributions to this challenging but promising endeavor.
 
+## Experiments
+
+| Title | Prereport Link | Paper Link |
+| --- | --- | --- |
+| Dropout | [dropout_prereport](pre_reports/dropout_prereport.pdf) | --- |
 
 ## Download
 ### Access to Hugging Face
@@ -57,6 +62,10 @@ We include a .pylintrc file in the repository. For VSCode users, you can install
 }
 ```
 Note that our precommit hooks do not actually enforce the linting, although you can inspect the results in github actions.
+
+### Experimental Contribution
+
+If you want to add your own experiments
 
 ## Known Issues
 The initial tokenization step setting up the dataset takes a long time. Do a run with a single gpu first to make sure these are initialized properly (or even use a debug run) when you are using a new dataset or tokenizer.
