@@ -5,7 +5,7 @@ teachermodel:
   hs_loss_weight: 1
   soft_targets_loss_weight: 1
   label_loss_weight: 1
-  kl_type: 'forward'
+  kl_type: 'reverse'
 model:
   core_model:
     core_model_type: generic
