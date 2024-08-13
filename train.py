@@ -9,6 +9,7 @@ from models.build_models import build_model
 from trainers.build_trainers import build_trainer, ddp_setup
 from trainers.utils import create_folder_structure, init_print_override, restore_print_override
 from models.utils import print_model_stats
+from trainers.build_teachermodel import init_teachermodel
 
 import torch
 from torch.distributed import destroy_process_group
@@ -31,12 +32,22 @@ def ddp_main(rank, world_size, cfg):
         model.train()
         print(f"Rank{rank} Model built")
         print_model_stats(model)
+
+        # load the teacher model, if any
+        if cfg.get("teachermodel", None):
+            teacher_model, projection = init_teachermodel(cfg)
+        else:
+            teacher_model, projection = None, None
+
         # load the relevant trainer
         trainer = build_trainer(
             cfg=cfg,
             model=model,
-            gpu_id=rank
+            gpu_id=rank,
+            projection=projection,
+            teacher_model=teacher_model,
         )
+
         print(f"Rank{rank} Trainer built")
         # preprocess the training data
         trainer.preprocess_data()

@@ -255,20 +255,112 @@ def restore_print_override(original_print):
     import builtins as __builtin__
     __builtin__.print = original_print
 
-def init_teachermodel(cfg):
+def init_kd_cfg(cfg):
     """
-    Initialize the teacher model.
+    Initialize the knowledge distillation config.
     """
-    from models import build_models
     
     temperature = cfg.teachermodel.temperature
+    attn_loss_weight = cfg.teachermodel.attn_loss_weight
+    hs_loss_weight = cfg.teachermodel.hs_loss_weight
     soft_targets_loss_weight = cfg.teachermodel.soft_targets_loss_weight
-    cross_entropy_loss_weight = 1 - soft_targets_loss_weight
+    label_loss_weight = cfg.teachermodel.label_loss_weight
 
-    cfg.teachermodel["model_ckpt"] = hydra.utils.to_absolute_path(cfg.teachermodel["model_ckpt"])
-    model = build_models.build_model(checkpoint=torch.load(cfg.teachermodel["model_ckpt"]))
+    kd_cfg = {
+        "temperature": temperature,
+        "attn_loss_weight": attn_loss_weight,
+        "hs_loss_weight": hs_loss_weight,
+        "soft_targets_loss_weight": soft_targets_loss_weight,
+        "label_loss_weight": label_loss_weight
+    }
+
+    return kd_cfg
+
+def get_qk_scores(model, inputs):
+    '''
+    Get the q and k projections from the model.
+    '''
+    raw_attentions = []
+    hooks = []
+
+    ## create a hook to capture the raw attention logits
+    def attention_hook(module, input, output):
+        # Capture the raw attention logits (QK^T)
+        qk = output
+        raw_attentions.append(qk.detach())
+
+    ## register the hook to the relevant modules of the model
+    for name, module in model.named_modules():
+        if 'q_proj' in name or 'k_proj' in name:
+            hook = module.register_forward_hook(attention_hook)
+            hooks.append(hook)
+
+    ## forward pass
+    with torch.no_grad():
+        outputs = model(inputs)
+
+    ## remove the hooks
+    for hook in hooks:
+        hook.remove()
+
+    return raw_attentions
+
+
+def calculate_prenormalized_attention(q, k, teacher_model = None):
+    '''
+    Calculate the pre-normalized attention scores.
+    '''
     
-    model = model.to(cfg.general.device)
-    model.eval()
+    ## if teacher model is provided, we need to adjust the q and k projections
+    if teacher_model is not None:
+        config = teacher_model.core_model.model.config
 
-    return model, temperature, soft_targets_loss_weight, cross_entropy_loss_weight
+        B, S = q.size()[:2]
+        H = config.hidden_size
+        nH = config.num_attention_heads
+        nKV = config.num_key_value_heads
+
+        q = q.view(B, S, nH, H // nH) # (B, S, nH, H//nH)
+        k = k.view(B, S, nKV, H // nH) # (B, S, nKV, H//nH)
+
+        q = q.transpose(1,2) # (B, nH, S, H//nH)
+        k = k.transpose(1,2) # (B, nKV, S, H//nH)
+
+        k = k.repeat_interleave(nH // nKV, dim=1) # (B, nKV, S, H//nH) -> (B, nH, S, H//nH)
+
+    return torch.matmul(q, k.transpose(-1, -2)) / (q.size(-1) ** 0.5)
+
+
+def get_prenormalized_attention_list(raw_attentions, teacher_model = None):
+    '''
+    Get the attention matrix for each layer
+    '''
+    ## get the odd indexzes of raw attentions
+    q_projs = [raw_attentions[i] for i in range(0, len(raw_attentions), 2)]
+    k_projs = [raw_attentions[i] for i in range(1, len(raw_attentions), 2)]
+
+    attention_matrices = [calculate_prenormalized_attention(q_proj, k_proj, teacher_model=teacher_model) for q_proj, k_proj in zip(q_projs, k_projs)]
+
+    return attention_matrices
+
+def project_student_to_teacher(projection, student_attention, student_hiddenstate):
+    '''
+    Project student attention and hidden states to match teacher dimensions.
+    '''
+    batch_size, student_heads, sequence_len, _ = student_attention.size()
+    teacher_heads = projection.projection_attn.out_features
+
+    if student_heads != teacher_heads:
+        student_attention = student_attention.permute(0, 2, 3, 1).contiguous()
+        student_attention = student_attention.view(batch_size * sequence_len * sequence_len, student_heads)
+        student_attention = projection.projection_attn(student_attention)
+        student_attention = student_attention.view(batch_size, sequence_len, sequence_len, teacher_heads)
+        student_attention = student_attention.permute(0, 3, 1, 2).contiguous()
+
+    from_dim = student_hiddenstate.size(-1)
+    to_dim = projection.projection_hs.out_features
+
+    if from_dim != to_dim:
+        student_hiddenstate = projection.projection_hs(student_hiddenstate)
+
+    return student_attention, student_hiddenstate

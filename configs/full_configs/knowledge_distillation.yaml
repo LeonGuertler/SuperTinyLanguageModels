@@ -1,7 +1,11 @@
 teachermodel:
-  model_ckpt: '/home/bobby/code-repo/SuperTinyLanguageModels/outputs/2024-06-28/11-24-15/checkpoints/ckpt_49999.pt'
-  temperature: 0.8
-  soft_targets_loss_weight: 0.8
+  model_ckpt: '/home/bobby/code-repo/SuperTinyLanguageModels/outputs/2024-06-28/11-24-15/checkpoints/ckpt_49999.pt' #'/home/bobby/code-repo/SuperTinyLanguageModels/outputs/2024-07-19/11-09-23/checkpoints/ckpt_15999.pt'
+  temperature: 1
+  attn_loss_weight: 1
+  hs_loss_weight: 1
+  soft_targets_loss_weight: 1
+  label_loss_weight: 1
+  kl_type: 'forward'
 model:
   core_model:
     core_model_type: generic
@@ -39,9 +43,9 @@ trainer:
   dataset: openwebtext
   training:
     trainer_type: base_trainer
-    batch_size: 2
-    gradient_accumulation_steps: 240
-    max_iters: 50000
+    batch_size: 4 #2
+    gradient_accumulation_steps: 120 #240
+    max_iters: 30000
     lr_decay_iters: 50000
     warmup_iters: 5000
     eval_interval: 2000

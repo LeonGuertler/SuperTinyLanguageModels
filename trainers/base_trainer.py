@@ -23,7 +23,7 @@ from itertools import islice
 from torch.nn.parallel import DistributedDataParallel as DDP 
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import SequentialSampler
-from trainers.utils import aggregate_value
+from trainers.utils import aggregate_value, get_qk_scores, get_prenormalized_attention_list, project_student_to_teacher
 
 
 # pylint: disable invalid-name
@@ -43,6 +43,8 @@ class BaseTrainer:
         gpu_id, 
         lr_scheduler=None,
         dropout_scheduler=None,
+        projection=None,
+        teacher_model=None,
     ) -> None:
         self.model = model
         self.DDP_model = DDP(self.model, device_ids=[gpu_id])
@@ -73,16 +75,18 @@ class BaseTrainer:
             self.run_profile()
             raise SystemExit
         
-        teachermodel = cfg.get('teachermodel', None)
-
-        if teachermodel is not None:
-            self.knowledge_distillation = True
-            self.teachermodel, self.temperature, self.soft_targets_loss_weight, self.cross_entropy_loss_weight = utils.init_teachermodel(cfg)
-            # self.teachermodel = DDP(self.teachermodel, device_ids=[gpu_id])
+        ## For knowledge distillation, set the teacher model and hyperparameters
+        self.teacher_model = teacher_model
+        if self.teacher_model is not None:
+            self.perform_kd = True
+            self.kd_cfg = utils.init_kd_cfg(cfg)
+            self.projection = projection
+            
+            ## import the distillation loss function
             from trainers.loss_fn import distillation_loss_fn
             self.distillation_loss_fn = distillation_loss_fn
         else:
-            self.knowledge_distillation = False
+            self.perform_kd = False
 
     def _setup_logging(self):
         # set run name
@@ -225,16 +229,41 @@ class BaseTrainer:
                 ddp_no_sync_ctx = nullcontext()
             with ddp_no_sync_ctx:
                 with self.ctx:
-                    if self.knowledge_distillation:
+                    if self.perform_kd:
                         ## get the teacher model output, without gradient calculation
                         with torch.no_grad():
-                            teacher_output, _ = self.teachermodel(x)
-                        
+                            teacher_output, _ = self.teacher_model(x)
+                            
+                            teacher_QKs = get_qk_scores(self.teacher_model, x)
+                            teacher_attns = get_prenormalized_attention_list(teacher_QKs, teacher_model=self.teacher_model)
+                            teacher_hidden_states = self.teacher_model.core_model.hidden_states[1:]
+
                         ## get the student model output, with gradient calculation
                         student_output, aux_loss = self.DDP_model(x)
 
+                        student_QKs = self.DDP_model.module.core_model.qk_lists
+                        student_attns = get_prenormalized_attention_list(student_QKs)
+                        student_hidden_states = self.DDP_model.module.core_model.hidden_states
+                        
+                        ## take every k-th attention matrix from teacher to match all students
+                        k = len(teacher_attns) // len(student_attns)
+                        teacher_attns = teacher_attns[::k] # get every k-th attention matrix
+                        teacher_hidden_states = teacher_hidden_states[::k] # get every k-th hidden state
+
+                        ## calculate the transformer's attention and hidden_state loss over each layer
+                        attn_loss = 0.0
+                        hs_loss = 0.0
+                        for i in range(len(student_attns)):
+
+                            ## project the student's attention and hidden states to the teacher's dimensions
+                            student_attns[i], student_hidden_states[i] = project_student_to_teacher(self.projection, student_attns[i], student_hidden_states[i])
+                            
+                            ## calculate the mean squared error loss between the student and teacher's attention and hidden states
+                            attn_loss += torch.nn.functional.mse_loss(student_attns[i], teacher_attns[i])
+                            hs_loss += torch.nn.functional.mse_loss(student_hidden_states[i], teacher_hidden_states[i])
+
                         ## calculate the soft_targets loss
-                        soft_targets_loss = self.distillation_loss_fn(student_output, teacher_output, self.temperature)
+                        soft_targets_loss = self.distillation_loss_fn(student_output, teacher_output, self.kd_cfg['temperature'])
 
                         ## calculate the cross entropy label loss
                         label_loss = self.loss_fn(student_output, y)
@@ -244,7 +273,7 @@ class BaseTrainer:
                         # print(f"Cross Entropy Loss: {label_loss.item()}")
 
                         ## combine the two losses
-                        loss = self.soft_targets_loss_weight * soft_targets_loss + self.cross_entropy_loss_weight * label_loss
+                        loss = self.kd_cfg['attn_loss_weight']*attn_loss + self.kd_cfg['hs_loss_weight']*hs_loss + self.kd_cfg['soft_targets_loss_weight']*soft_targets_loss + self.kd_cfg['label_loss_weight']*label_loss
                     
                     else:
                         output, aux_loss = self.DDP_model(x)
@@ -374,7 +403,18 @@ class BaseTrainer:
             ):
                 self._save_model(iter_num)
 
+            # # Save initial weights of the projection layer
+            # initial_weights = self.projection.projection_hs.weight.clone().detach()
+
             loss = self._run_step() ## set the 'epoch' to ensure shuffle
+
+            # # Check if weights have been updated
+            # updated_weights = self.projection.projection_hs.weight.clone().detach()
+
+            # Compare initial and updated weights
+            # weights_changed = not torch.equal(initial_weights, updated_weights)
+            # print(f"Projection layer weights changed: {weights_changed}")
+
             end_time = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
                 lossf = loss.item() * self.gradient_accumulation_steps

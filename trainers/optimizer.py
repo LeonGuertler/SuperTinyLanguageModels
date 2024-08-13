@@ -8,10 +8,13 @@ import torch
 
 
 # pylint: disable=invalid-name
-def configure_nanoGPT_optimizer(model, weight_decay, learning_rate, betas):
+def configure_nanoGPT_optimizer(model, projection, weight_decay, learning_rate, betas):
     """Configure the optimizer for NanoGPT"""
     # start with all of the candidate parameters
     param_dict = {pn: p for pn, p in model.named_parameters()}
+    # add the projection parameters
+    if projection is not None:
+        param_dict.update({pn: p for pn, p in projection.named_parameters()})
     # filter out those that do not require grad
     param_dict = {pn: p for pn, p in param_dict.items() if p.requires_grad}
     # create optim groups. Any parameters that is 2D will be weight decayed, otherwise no.

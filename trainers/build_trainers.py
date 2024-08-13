@@ -47,8 +47,9 @@ def ddp_setup(rank, world_size):
 
 
 OPTIMIZER_DICT = {
-    "nanoGPTadamW": lambda model, trainer_cfg: configure_nanoGPT_optimizer(
+    "nanoGPTadamW": lambda model, projection, trainer_cfg: configure_nanoGPT_optimizer(
         model=model,
+        projection=projection,
         weight_decay=trainer_cfg["weight_decay"],
         learning_rate=trainer_cfg["lr"],
         betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
@@ -56,12 +57,12 @@ OPTIMIZER_DICT = {
 }
 
 
-def build_optimizer(model, optimizer_config):
+def build_optimizer(model, projection, optimizer_config):
     """
     Given the optimizer config, build the optimizer
     """
     return OPTIMIZER_DICT[optimizer_config["name"]](
-        model=model, trainer_cfg=optimizer_config
+        model=model, projection = projection, trainer_cfg=optimizer_config
     )
 
 
@@ -149,14 +150,14 @@ TRAINER_DICT = {
 }
 
 
-def build_trainer(cfg, model, gpu_id):
+def build_trainer(cfg, model, gpu_id, projection=None, teacher_model=None):
     """
     Given a config, this function builds a trainer
     and all relevant components of it.
     """
 
     # build optimizer
-    optimizer = build_optimizer(model=model, optimizer_config=cfg.trainer["optimizer"])
+    optimizer = build_optimizer(model=model, projection=projection, optimizer_config=cfg.trainer["optimizer"])
 
     # build LR scheduler
     lr_scheduler = build_lr_scheduler(trainer_cfg=cfg.trainer)
@@ -176,6 +177,8 @@ def build_trainer(cfg, model, gpu_id):
     trainer = TRAINER_DICT[cfg.trainer["training"]["trainer_type"]](
         cfg=cfg,
         model=model,
+        projection=projection,
+        teacher_model=teacher_model,
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
         dropout_scheduler=dropout_scheduler,
