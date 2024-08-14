@@ -13,7 +13,7 @@ from models import model_shell
 from trainers import datasets as train_dataloader
 from trainers import utils
 
-from trainers.evaluator import train_eval
+from trainers.evaluator import train_eval, train_eval_text_modeling
 
 import numpy as np
 from itertools import islice
@@ -157,6 +157,10 @@ class BaseTrainer:
             for metric in evaluator_results[evaluator["evaluator"]]:
                 relabeled_results[f"{evaluator['evaluator']}/{metric}"] = evaluator_results[evaluator["evaluator"]][metric]
             evaluator_results[evaluator["evaluator"]] = relabeled_results
+
+        text_modeling_results = train_eval_text_modeling(self.model)
+        print(text_modeling_results)
+        exit()
         self.model.train()
         return eval_results, evaluator_results
 

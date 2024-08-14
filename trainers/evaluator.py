@@ -11,3 +11,10 @@ def train_eval(eval_cfg, model):
     evaluator = load_evaluator(evaluator_name, model, **kwargs)
     results = evaluator.evaluate()
     return results
+
+
+def train_eval_text_modeling(model):
+    """ Test the model """
+    evaluator = load_evaluator("text_modeling", model)
+    results = evaluator.evaluate()
+    return results
