@@ -96,8 +96,8 @@ class TextModelingEvaluator(EvaluationInterface):
                     input_ids, predicted_ids = self._process_chunk(chunk)
 
                     for input_id, predicted_id in zip(input_ids, predicted_ids):
-                        input_text = self.model.embedding_model.decode(input_id)# , skip_special_tokens=True)
-                        predicted_text = self.model.embedding_model.decode(predicted_id) #, skip_special_tokens=True)
+                        input_text = self.model.embedding_model.decode([input_id])# , skip_special_tokens=True)
+                        predicted_text = self.model.embedding_model.decode([predicted_id]) #, skip_special_tokens=True)
                         input_text_enc = input_text.encode("utf-8")
                         total_edit_distance += levenshtein_distance(
                             input_text_enc, 
