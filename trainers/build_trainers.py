@@ -172,32 +172,18 @@ def build_trainer(cfg, model, gpu_id):
     train_dataset = build_dataset(cfg=cfg, split="train")
     val_dataset = build_dataset(cfg=cfg, split="val")
 
-    # Determine if DistributedSampler is necessary
-    world_size = torch.cuda.device_count()
-    if world_size > 1:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(
-            train_dataset, num_replicas=world_size, rank=gpu_id, shuffle=False
-        )
-        val_sampler = torch.utils.data.distributed.DistributedSampler(
-            val_dataset, num_replicas=world_size, rank=gpu_id, shuffle=False
-        )
-    else:
-        train_sampler = None
-        val_sampler = None
 
     # wrap in dataloaders
     train_dataloader = torch.utils.data.DataLoader(
         dataset=train_dataset,
         batch_size=cfg["trainer"]["training"]["batch_size"],
         shuffle=False,
-        sampler=train_sampler,
 
     )
     val_dataloader = torch.utils.data.DataLoader(
         dataset=val_dataset,
         batch_size=cfg["trainer"]["training"]["batch_size"],
         shuffle=False,
-        sampler=val_sampler,
     )
 
     # build loss function
