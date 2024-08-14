@@ -69,13 +69,18 @@ class BaseDatasetRandom(DatasetInterface):
     
     def __iter__(self):
         """
-        Get a batch of data
+        Get a batch of random data points in an infinite loop.
         """
-        # get a random data sample
-        idx = random.randint(0, self.dataset_len - 1)
-        x = torch.from_numpy((self.data[idx: idx + self.context_window]).astype(np.int64))
-        y = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
-        return x, y
+        while True:
+            # Get a random index
+            idx = random.randint(0, self.dataset_len - 1)
+            
+            # Extract a slice of data for x and y
+            x = torch.from_numpy((self.data[idx: idx + self.context_window]).astype(np.int64))
+            y = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
+            
+            # Yield the data points
+            yield x, y
 
 
 class BytePoolingDataset(DatasetInterface):
