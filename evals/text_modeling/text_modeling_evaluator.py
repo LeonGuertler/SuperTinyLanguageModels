@@ -59,6 +59,9 @@ class TextModelingEvaluator(EvaluationInterface):
         """
         input_ids = self.model.embedding_model.tokenize_input(chunk) #, return_tensors="pt")
 
+        # convert to tensor
+        input_ids = torch.tensor(input_ids).unsqueeze(0).to(self.model.device)
+
         # Get logits from the model (normal forward pass)
         with torch.no_grad():
             logits, _ = self.model(token_ids=input_ids)
