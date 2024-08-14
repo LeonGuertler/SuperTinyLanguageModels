@@ -15,7 +15,7 @@ model:
       bias: false
       is_causal: true
   embedder:
-    tokenizer_type: gpt2
+    tokenizer_type: p50k
     embedding_model_type: generic
     dataset_name: stlm
   lm_head:
