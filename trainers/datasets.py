@@ -14,7 +14,7 @@ from trainers.utils import load_data
 
 
 
-class DatasetInterface(torch.utils.data.Dataset):
+class DatasetInterface(torch.utils.data.IterableDataset):
     """
     A basic interface to be used by the remaining datasets
     """
@@ -67,7 +67,7 @@ class BaseDatasetRandom(DatasetInterface):
         super().__init__(split, cfg)
 
     
-    def __getitem__(self, idx):
+    def __getitem__(self):
         """
         Get a batch of data
         """
