@@ -20,7 +20,7 @@ class TextModelingEvaluator(EvaluationInterface):
         self.model.eval()
 
         self.modeling_topics = os.listdir(
-            os.path.join("evals", "text_modeling", "data")
+            os.path.join("evals", "text_modeling", "test_data")
         )
         self.modeling_difficulties = ["easy", "medium", "hard"]
 
@@ -36,7 +36,7 @@ class TextModelingEvaluator(EvaluationInterface):
             self.data[topic] = {}
             for difficulty in self.modeling_difficulties:
                 file_path = os.path.join(
-                    "evals", "text_modeling", "data", topic, f"{difficulty}.txt"
+                    "evals", "text_modeling", "test_data", topic, f"{difficulty}.txt"
                 )
                 with open(file_path, "r") as f:
                     self.data[topic][difficulty] = f.read()

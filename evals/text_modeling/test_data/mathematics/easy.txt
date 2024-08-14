@@ -1,0 +1,19 @@
+Probability is the branch of mathematics that deals with the likelihood of events happening. When we talk about probability, we usually refer to how likely something is to occur. The probability of an event is always a number between 0 and 1. A probability of 0 means that the event is impossible, while a probability of 1 means that the event is certain to happen.
+
+To understand probability, let's start with a simple example: flipping a fair coin. A fair coin has two sides, heads and tails, and each side is equally likely to land face up. Since there are two possible outcomes, the probability of getting heads is \( \frac{1}{2} \) or 0.5, and the probability of getting tails is also \( \frac{1}{2} \) or 0.5.
+
+Another important concept in probability is the idea of independent events. Two events are independent if the occurrence of one does not affect the occurrence of the other. For example, if you flip a coin twice, the result of the first flip does not influence the result of the second flip. The probability of getting two heads in a row is calculated by multiplying the probability of getting heads on the first flip by the probability of getting heads on the second flip: \( \frac{1}{2} \times \frac{1}{2} = \frac{1}{4} \) or 0.25.
+
+Probability can be applied to many real-life situations, such as predicting the weather, deciding whether to take an umbrella, or determining the chances of winning a game. By understanding probability, we can make better decisions based on the likelihood of different outcomes.
+
+Geometry is the branch of mathematics that deals with shapes, sizes, and the properties of space. One of the most basic concepts in geometry is the idea of a point, which represents a location in space with no dimensions—no length, width, or height. Points are usually labeled with capital letters like \( A \) or \( B \).
+
+Another fundamental concept is the line, which is a straight path that extends infinitely in both directions and has no thickness. A line can be defined by any two points on it. If we have two points \( A \) and \( B \), the line passing through them can be denoted as \( \overleftrightarrow{AB} \).
+
+When a line is drawn between two points, but it doesn't extend infinitely, it is called a line segment. For example, the line segment \( \overline{AB} \) represents the straight path between points \( A \) and \( B \), and it has a finite length.
+
+Angles are another important concept in geometry. An angle is formed when two rays meet at a common endpoint, called the vertex. Angles are measured in degrees, and there are different types of angles based on their measures. For example, a right angle measures exactly 90 degrees, while an acute angle is less than 90 degrees, and an obtuse angle is more than 90 degrees but less than 180 degrees.
+
+Triangles, which are three-sided polygons, are a common shape in geometry. The sum of the angles in any triangle is always 180 degrees. Triangles can be classified by their angles or sides. For example, an equilateral triangle has all three sides of equal length, and all three angles are 60 degrees.
+
+Understanding these basic concepts of geometry helps us describe and analyze the shapes and spaces around us, from the simple shapes we see in everyday life to the complex structures used in architecture and engineering.
