@@ -32,16 +32,14 @@ def configure_nanoGPT_optimizer(model, weight_decay, learning_rate, betas):
         f"num non-decayed parameter tensors: {len(nodecay_params)},"
         f" with {num_nodecay_params:,} parameters"
     )
-    # Create AdamW optimizer and use the fused version if it is available
+   # Check if fused AdamW is available and use it only if CUDA is available
     fused_available = "fused" in inspect.signature(torch.optim.AdamW).parameters
-    use_fused = fused_available
-    extra_args = {"fused": True} if use_fused else {}
+    use_fused = fused_available and torch.cuda.is_available()
+    extra_args = {"fused": use_fused} if use_fused else {}
+    
     optimizer = torch.optim.AdamW(
         optim_groups, lr=learning_rate, betas=betas, **extra_args
     )
-    print(f"using fused AdamW: {use_fused}")
+    print(f"Using fused AdamW: {use_fused}")
 
     return optimizer
-
-
-# pylint: enable=invalid-name

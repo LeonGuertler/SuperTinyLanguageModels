@@ -60,9 +60,9 @@ class BaseTrainer:
         #assert self.cfg["trainer"]["training"]["gradient_accumulation_steps"] % torch.cuda.device_count() == 0, "Gradient Accumulation Steps must be divisible by the number of GPUs"
         self.gradient_accumulation_steps = cfg["trainer"]["training"][
             "gradient_accumulation_steps"
-        ] // torch.cuda.device_count() #if torch.cuda.device_count() >=0 else cfg["trainer"]["training"][
-        #    "gradient_accumulation_steps"
-        #]## divide by number of GPUs to maximise throughput
+        ] // torch.cuda.device_count() if torch.cuda.is_available() else cfg["trainer"]["training"][
+            "gradient_accumulation_steps"
+        ]## divide by number of GPUs to maximise throughput
         self.scaler = None
         self.use_wandb = cfg["general"]["logging"]["wandb_log"]
         self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
