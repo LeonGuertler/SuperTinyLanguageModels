@@ -61,7 +61,7 @@ class TextModelingEvaluator(EvaluationInterface):
 
         # Get logits from the model (normal forward pass)
         with torch.no_grad():
-            logits, _ = self.model(input_ids=input_ids)
+            logits, _ = self.model(token_ids=input_ids)
 
 
         # Shift the input tokens to align them with the predicted tokens
