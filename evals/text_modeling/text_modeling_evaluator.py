@@ -88,15 +88,14 @@ class TextModelingEvaluator(EvaluationInterface):
 
                 # Split the text into chunks
                 chunks = self._split_into_chunks(reference_text)
-
+                # TODO the chunks should be stacked and run simulataneously
                 total_edit_distance = 0
                 count = 0
 
                 for chunk in chunks:
                     input_ids, predicted_ids = self._process_chunk(chunk)
-                    print(input_ids, predicted_ids)
 
-                    for input_id, predicted_id in zip(input_ids, predicted_ids):
+                    for input_id, predicted_id in zip(input_ids[0], predicted_ids[0]):
                         print(input_id, predicted_id)
                         input_text = self.model.embedding_model.decode([input_id])# , skip_special_tokens=True)
                         predicted_text = self.model.embedding_model.decode([predicted_id]) #, skip_special_tokens=True)
