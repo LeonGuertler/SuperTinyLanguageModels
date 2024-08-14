@@ -94,6 +94,7 @@ class TextModelingEvaluator(EvaluationInterface):
 
                 for chunk in chunks:
                     input_ids, predicted_ids = self._process_chunk(chunk)
+                    print(input_ids, predicted_ids)
 
                     for input_id, predicted_id in zip(input_ids, predicted_ids):
                         print(input_id, predicted_id)
