@@ -159,10 +159,8 @@ class BaseTrainer:
             evaluator_results[evaluator["evaluator"]] = relabeled_results
 
         text_modeling_results = train_eval_text_modeling(self.model)
-        print(text_modeling_results)
-        exit()
         self.model.train()
-        return eval_results, evaluator_results
+        return eval_results, evaluator_results, text_modeling_results
 
 
 
@@ -274,14 +272,15 @@ class BaseTrainer:
             if (
                 not iter_num % self.cfg.trainer.training.eval_interval
             ): # run on first iter to prevent bugs causing it to crash
-                eval_results, benchmark_results = self.estimate_performance()
+                eval_results, benchmark_results, text_modeling_results = self.estimate_performance()
 
                 # print the evals as table
                 # evals format is d1: type d2: train/val
                 print_evaluation_results(
                     iter_num=iter_num, 
                     eval_results=eval_results, 
-                    benchmark_results=benchmark_results
+                    benchmark_results=benchmark_results,
+                    text_modeling_results=text_modeling_results
                 )
 
                 # Log to wandb
@@ -289,6 +288,13 @@ class BaseTrainer:
                     log_dict = {"iter": iter_num, "lr": lr, "dropout": dropout}
                     log_dict.update(eval_results)  # Directly add evals to the log dictionary
                     log_dict.update({k:v for k,v in benchmark_results.items()}) # Add benchmark results to the log dictionary
+                    log_dict.update({f"text_modeling/{k}":v for k,v in text_modeling_results.items()})
+                    log_dict.update({
+                        f"text_modeling/{topic}-{difficulty}":text_modeling_results[topic][difficulty] 
+                        for topic in text_modeling_results.keys() 
+                        for difficulty in text_modeling_results[topic].keys()
+                    }) 
+                                     
 
                     wandb.log(log_dict)
 

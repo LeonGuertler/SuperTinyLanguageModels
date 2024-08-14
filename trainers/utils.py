@@ -290,7 +290,7 @@ def restore_print_override(original_print):
 
 
 # Function to print evaluation results and benchmark results
-def print_evaluation_results(iter_num, eval_results, benchmark_results):
+def print_evaluation_results(iter_num, eval_results, benchmark_results, text_modeling_results):
     headers = ['Metric', 'Value']
     table = PrettyTable(headers)
 
@@ -317,5 +317,18 @@ def print_evaluation_results(iter_num, eval_results, benchmark_results):
 
     print("Benchmark Results")
     print(benchmark_table)
+
+    text_modeling_table = PrettyTable(['Topic', 'Difficulty', 'Norm. Lev. Dist.'])
+    for topic in text_modeling_results.keys():
+        for difficulty, value in text_modeling_results[topic].items():
+            text_modeling_table.add_row([
+                f"{topic}", 
+                f"{difficulty}",
+                value
+            ])
+
+    print("Text Modeling Results")
+    print(text_modeling_table)
+
 
 
