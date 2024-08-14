@@ -2,6 +2,7 @@
 Evaluator class for evaluating models.
 """
 import os
+import hydra
 import torch
 import torch.nn.functional as F
 from Levenshtein import distance as levenshtein_distance
@@ -20,7 +21,9 @@ class TextModelingEvaluator(EvaluationInterface):
         self.model.eval()
 
         self.modeling_topics = os.listdir(
-            os.path.join("evals", "text_modeling", "test_data")
+            hydra.utils.to_absolute_path(
+                os.path.join("evals", "text_modeling", "test_data")
+            )
         )
         self.modeling_difficulties = ["easy", "medium", "hard"]
 
@@ -35,8 +38,10 @@ class TextModelingEvaluator(EvaluationInterface):
         for topic in self.modeling_topics:
             self.data[topic] = {}
             for difficulty in self.modeling_difficulties:
-                file_path = os.path.join(
-                    "evals", "text_modeling", "test_data", topic, f"{difficulty}.txt"
+                file_path = hydra.utils.to_absolute_path(
+                        os.path.join(
+                            "evals", "text_modeling", "test_data", topic, f"{difficulty}.txt"
+                        )
                 )
                 with open(file_path, "r") as f:
                     self.data[topic][difficulty] = f.read()
