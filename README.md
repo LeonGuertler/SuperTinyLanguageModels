@@ -10,6 +10,11 @@ For a comprehensive understanding of our research methodology and initial findin
 
 Please note that this repository is an evolving work in progress, reflecting the ongoing nature of our research. It is subject to frequent updates and improvements as we continue to explore and refine our work on STLMs. We welcome the community's engagement with our work, value your feedback, and appreciate any contributions to this challenging but promising endeavor.
 
+## Experiments
+
+| Title | Prereport Link | Paper Link |
+| --- | --- | --- |
+| Knowledge Distillation | [Click here](reports/preregistration-knowledgedistillation.pdf) | --- |
 
 ## Download
 ### Access to Hugging Face
