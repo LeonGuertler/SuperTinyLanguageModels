@@ -13,8 +13,8 @@ def train_eval(eval_cfg, model):
     return results
 
 
-def train_eval_text_modeling(model):
+def train_eval_text_modeling(model, eval_dir):
     """ Test the model """
-    evaluator = load_evaluator("text_modeling", model)
+    evaluator = load_evaluator("text_modeling", model, eval_dir=eval_dir)
     results = evaluator.evaluate()
     return results

@@ -78,6 +78,9 @@ def main(cfg):
     cfg["general"]["paths"]["data_dir"] = hydra.utils.to_absolute_path(
         cfg["general"]["paths"]["data_dir"]
     ) # must be done before multiprocessing or else the path is wrong?
+    cfg["general"]["paths"]["eval_dir"] = hydra.utils.to_absolute_path(
+        cfg["general"]["paths"]["eval_dir"]
+    )
 
     create_folder_structure(path_config=cfg["general"]["paths"])
 

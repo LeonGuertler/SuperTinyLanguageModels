@@ -158,7 +158,7 @@ class BaseTrainer:
                 relabeled_results[f"{evaluator['evaluator']}/{metric}"] = evaluator_results[evaluator["evaluator"]][metric]
             evaluator_results[evaluator["evaluator"]] = relabeled_results
 
-        text_modeling_results = train_eval_text_modeling(self.model)
+        text_modeling_results = train_eval_text_modeling(self.model, eval_dir=self.cfg["general"]["paths"]["eval_dir"])
         self.model.train()
         return eval_results, evaluator_results, text_modeling_results
 

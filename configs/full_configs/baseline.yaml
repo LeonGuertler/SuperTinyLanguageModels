@@ -81,5 +81,6 @@ general:
     output_dir: outputs
     data_dir: data
     checkpoint_dir: checkpoints
+    eval_dir: eval
   seed: 489
   device: cuda
