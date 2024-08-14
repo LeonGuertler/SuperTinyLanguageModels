@@ -56,8 +56,9 @@ class DatasetInterface(torch.utils.data.IterableDataset):
         """
         return self.dataset_len
     
-    def __getitem__(self, idx):
+    def __iter__(self, idx):
         raise NotImplementedError
+    
     
 class BaseDatasetRandom(DatasetInterface):
     """
@@ -112,13 +113,15 @@ class BytePoolingDataset(DatasetInterface):
             shape=self.loading_shape,
         )
     
-    def __getitem__(self, idx):
+    def __iter__(self):
         """
         Get a batch of data
         """
-        x = torch.from_numpy((self.data[idx: idx + self.context_window]).astype(np.int64))
-        y = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
-        return x, y
+        while True:
+            idx = random.randint(0, self.dataset_len - 1)
+            x = torch.from_numpy((self.data[idx: idx + self.context_window]).astype(np.int64))
+            y = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
+            yield x, y
     
 
 class DualBytePooling(DatasetInterface):
@@ -164,16 +167,18 @@ class DualBytePooling(DatasetInterface):
             mode="r",
         )
     
-    def __getitem__(self, idx):
+    def __iter__(self):
         """
         Get a batch of data from both the byte and higher token level
         """
-        # get byte level batch
-        x_byte = torch.from_numpy((self.data_byte[idx: idx + self.context_window]).astype(np.int64))
-        #y_byte = torch.from_numpy((self.data_byte[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
+        while True:
+            idx = random.randint(0, self.dataset_len - 1)
+            # get byte level batch
+            x_byte = torch.from_numpy((self.data_byte[idx: idx + self.context_window]).astype(np.int64))
+            #y_byte = torch.from_numpy((self.data_byte[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
 
-        # get token level batch
-        #x_token = torch.from_numpy((self.data_token[idx: idx + self.context_window]).astype(np.int64))
-        y_token = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
-        return x_byte, y_token  
+            # get token level batch
+            #x_token = torch.from_numpy((self.data_token[idx: idx + self.context_window]).astype(np.int64))
+            y_token = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
+            yield x_byte, y_token  
 
