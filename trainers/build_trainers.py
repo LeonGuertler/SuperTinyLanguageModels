@@ -190,16 +190,16 @@ def build_trainer(cfg, model, gpu_id):
         dataset=train_dataset,
         batch_size=cfg["trainer"]["training"]["batch_size"],
         shuffle=False,
-        sampler=train_sampler,
-        num_workers=1,
+        #sampler=train_sampler,
+        #num_workers=1,
 
     )
     val_dataloader = torch.utils.data.DataLoader(
         dataset=val_dataset,
         batch_size=cfg["trainer"]["training"]["batch_size"],
         shuffle=False,
-        sampler=val_sampler,
-        num_workers=1,
+        #sampler=val_sampler,
+        #num_workers=1,
     )
 
     # build loss function
