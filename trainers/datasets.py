@@ -67,7 +67,7 @@ class BaseDatasetRandom(DatasetInterface):
         super().__init__(split, cfg)
 
     
-    def __getitem__(self):
+    def __iter__(self):
         """
         Get a batch of data
         """
