@@ -60,9 +60,9 @@ class BaseTrainer:
         #assert self.cfg["trainer"]["training"]["gradient_accumulation_steps"] % torch.cuda.device_count() == 0, "Gradient Accumulation Steps must be divisible by the number of GPUs"
         self.gradient_accumulation_steps = cfg["trainer"]["training"][
             "gradient_accumulation_steps"
-        ] // torch.cuda.device_count() if torch.cuda.device_count() >=0 else cfg["trainer"]["training"][
-            "gradient_accumulation_steps"
-        ]## divide by number of GPUs to maximise throughput
+        ] // torch.cuda.device_count() #if torch.cuda.device_count() >=0 else cfg["trainer"]["training"][
+        #    "gradient_accumulation_steps"
+        #]## divide by number of GPUs to maximise throughput
         self.scaler = None
         self.use_wandb = cfg["general"]["logging"]["wandb_log"]
         self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
@@ -181,11 +181,12 @@ class BaseTrainer:
                 context_manager = nullcontext()
 
             with context_manager:
-                with self.ctx:  # Assuming self.ctx is something like torch.cuda.amp.autocast
+                with self.ctx: 
                     output, aux_loss = self.DDP_model(x)
-                    loss = self.loss_fn(output, y) #+ (aux_loss if aux_loss is not None else 0)
+                    loss = self.loss_fn(output, y)
                     if aux_loss is not None:
                         loss += aux_loss
+
                 # Scale loss to simulate larger effective batch size
                 loss = loss / self.gradient_accumulation_steps
                 self.scaler.scale(loss).backward()

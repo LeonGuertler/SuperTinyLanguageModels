@@ -184,6 +184,8 @@ def build_trainer(cfg, model, gpu_id):
     else:
         train_sampler = None
         val_sampler = None
+        train_sampler = torch.utils.data.SequentialSampler(train_dataset)
+        val_sampler = torch.utils.data.SequentialSampler(val_dataset)
 
     # wrap in dataloaders
     train_dataloader = torch.utils.data.DataLoader(
