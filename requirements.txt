@@ -5,3 +5,4 @@ wandb
 mteb
 pre-commit
 prettytable
+levenshtein
