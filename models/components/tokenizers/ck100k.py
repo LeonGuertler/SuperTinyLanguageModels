@@ -14,7 +14,7 @@ class CL100KTokenizer(Tokenizer):
 
     def __init__(self, **_):
         super().__init__()
-        self.tokenizer = tiktoken.get_encoding("cl100k")
+        self.tokenizer = tiktoken.get_encoding("cl100k_base")
         self.eot_token = self.tokenizer.eot_token
         self.pad_token = self.tokenizer.eot_token
         self.vocab_size = self.tokenizer.max_token_value + 1
