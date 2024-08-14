@@ -57,8 +57,7 @@ class TextModelingEvaluator(EvaluationInterface):
         """
         Process a chunk of text by predicting the next word after the chunk.
         """
-        inputs = self.model.embedding_model.tokenize_input(chunk) #, return_tensors="pt")
-        input_ids = inputs.input_ids
+        input_ids = self.model.embedding_model.tokenize_input(chunk) #, return_tensors="pt")
 
         # Get logits from the model (normal forward pass)
         with torch.no_grad():
