@@ -18,7 +18,7 @@ Please note that this repository is an evolving work in progress, reflecting the
 | Reinforcement Learning   | `feature/knowledge-distillation/replace-teacher-tokenizer`|                  | [View preregistration](reports/preregistration-knowledgedistillation.pdf)  | In progress  |
 | Byte Level             |        |                       | In progress  | In progress  |
 | Self Play Evals        |            |   [Join the room](https://discord.gg/hgVhe6Hp)                 | In progress| In progress  |
-| Optimizers   |  | [Join the room](https://discord.gg/S5Q2ZmWY) | In progress | In progress
+| Optimizers   | `optimizers` | [Join the room](https://discord.gg/S5Q2ZmWY) | In progress | In progress
 
 
 ## Download
