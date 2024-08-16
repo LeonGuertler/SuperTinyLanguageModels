@@ -125,7 +125,11 @@ class TextModelingEvaluator(EvaluationInterface):
 
 
                 if topic not in results:
-                    results[topic] = {}
+                    results[topic] = {
+                        "easy": {},
+                        "medium": {},
+                        "hard": {}
+                    }
 
                 results[topic][difficulty]['Norm. Lev. Dist.'] = total_edit_distance / count
                 results[topic][difficulty]["Byte Acc."] = byte_correct / byte_count
