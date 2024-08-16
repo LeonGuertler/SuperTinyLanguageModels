@@ -70,7 +70,7 @@ class TextModelingEvaluator(EvaluationInterface):
         # Get the predicted tokens (the ones with the highest logit)
         predicted_token_ids = torch.argmax(shift_logits, dim=-1)
 
-        return shift_labels, predicted_token_ids, predicted_token_logits
+        return shift_labels, predicted_token_ids, shift_logits
 
 
     def evaluate(self):
