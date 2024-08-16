@@ -8,6 +8,7 @@ from models.components.tokenizers.gpt2 import GPT2Tokenizer
 from models.components.tokenizers.ck100k import CL100KTokenizer
 from models.components.tokenizers.p50k import P50KTokenizer
 from models.components.tokenizers.llama_30k import LLaMATokenizer
+from models.components.tokenizers.opt import OPTTokenizer
 
 TOKENIZER_DICT = {
     "gpt2": lambda vocab_size, dataset_name: GPT2Tokenizer(),
@@ -17,6 +18,7 @@ TOKENIZER_DICT = {
     "cl100k": lambda vocab_size, dataset_name: CL100KTokenizer(),
     "p50k": lambda vocab_size, dataset_name: P50KTokenizer(),
     "llama_30k": lambda vocab_size, dataset_name: LLaMATokenizer(),
+    "opt": lambda vocab_size, dataset_name: OPTTokenizer(),
 }
 
 

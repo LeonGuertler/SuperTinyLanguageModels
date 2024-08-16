@@ -1,20 +1,19 @@
 """
-A simple wrapper around the LLaMA Tokenizer to
+A simple wrapper around the OPT Tokenizer to
 standardize the interface for tokenization.
-32_001 vocab size
 """
-
 
 import torch
 from transformers import AutoTokenizer
 from models.components.tokenizers.base_class import Tokenizer
 
-class LLaMATokenizer(Tokenizer):
-    """A simple wrapper around a LLaMA-based Tokenizer."""
+class OPTTokenizer(Tokenizer):
+    """A simple wrapper around the OPT Tokenizer."""
 
     def __init__(self, **_):
         super().__init__()
-        model_name_or_path = "chavinlo/alpaca-native"
+        # Hardcoded model name or path from Hugging Face
+        model_name_or_path = "facebook/opt-1.3b"
         self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
         self.eot_token = self.tokenizer.eos_token_id
         self.pad_token = self.tokenizer.pad_token_id
@@ -30,6 +29,7 @@ class LLaMATokenizer(Tokenizer):
 
     def decode(self, tokens):
         """Decode a list of tokens into a string."""
+        # Check if the tokens are a tensor
         if torch.is_tensor(tokens):
             tokens = tokens.tolist()
         return self.tokenizer.decode(tokens)
