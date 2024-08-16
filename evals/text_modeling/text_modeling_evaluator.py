@@ -70,7 +70,7 @@ class TextModelingEvaluator(EvaluationInterface):
         # Get the predicted tokens (the ones with the highest logit)
         predicted_token_ids = torch.argmax(shift_logits, dim=-1)
 
-        return shift_labels, predicted_token_ids
+        return shift_labels, predicted_token_ids, predicted_token_logits
 
 
     def evaluate(self):
@@ -93,7 +93,7 @@ class TextModelingEvaluator(EvaluationInterface):
                 byte_perplexity_total = 0
 
                 for chunk in chunks:
-                    input_ids, predicted_ids = self._process_chunk(chunk)
+                    input_ids, predicted_ids, predicted_token_logits = self._process_chunk(chunk)
 
                     for input_id, predicted_id in zip(input_ids[0], predicted_ids[0]):
                         input_text = self.model.embedding_model.decode([[input_id.item()]])# , skip_special_tokens=True)
@@ -116,7 +116,7 @@ class TextModelingEvaluator(EvaluationInterface):
                         # calculate byte perplexity
                         byte_perplexity_total += torch.exp(
                             F.cross_entropy(
-                                predicted_id.unsqueeze(0),
+                                predicted_token_logits.unsqueeze(0),
                                 input_id.unsqueeze(0)
                             )
                         )*len(input_text_enc)
@@ -124,7 +124,7 @@ class TextModelingEvaluator(EvaluationInterface):
 
                 if topic not in results:
                     results[topic] = {}
-                    
+
                 results[topic][difficulty]['Norm. Lev. Dist.'] = total_edit_distance / count
                 results[topic][difficulty]["Byte Acc."] = byte_correct / byte_count
                 results[topic][difficulty]["Byte Perplexity"] = byte_perplexity_total / count
