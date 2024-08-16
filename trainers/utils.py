@@ -318,13 +318,15 @@ def print_evaluation_results(iter_num, eval_results, benchmark_results, text_mod
     print("Benchmark Results")
     print(benchmark_table)
 
-    text_modeling_table = PrettyTable(['Topic', 'Difficulty', 'Norm. Lev. Dist.'])
+    text_modeling_table = PrettyTable(['Topic', 'Difficulty', 'Norm. Lev. Dist.', 'Byte Acc.', 'Byte Perplexity'])
     for topic in text_modeling_results.keys():
         for difficulty, value in text_modeling_results[topic].items():
             text_modeling_table.add_row([
                 f"{topic}", 
                 f"{difficulty}",
-                value
+                value['Norm. Lev. Dist.'],
+                value['Byte Acc.'],
+                value['Byte Perplexity']
             ])
 
     print("Text Modeling Results")

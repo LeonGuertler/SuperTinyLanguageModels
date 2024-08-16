@@ -290,9 +290,10 @@ class BaseTrainer:
                     log_dict.update({k:v for k,v in benchmark_results.items()}) # Add benchmark results to the log dictionary
                     log_dict.update({f"text_modeling/{k}":v for k,v in text_modeling_results.items()})
                     log_dict.update({
-                        f"text_modeling/{topic}-{difficulty}":text_modeling_results[topic][difficulty] 
+                        f"text_modeling/{topic}-{difficulty}-{eval_metric}":text_modeling_results[topic][difficulty][eval_metric] 
                         for topic in text_modeling_results.keys() 
                         for difficulty in text_modeling_results[topic].keys()
+                        for eval_metric in text_modeling_results[topic][difficulty].keys()
                     }) 
                                      
 
