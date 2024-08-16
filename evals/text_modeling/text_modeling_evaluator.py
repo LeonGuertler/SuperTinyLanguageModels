@@ -87,6 +87,10 @@ class TextModelingEvaluator(EvaluationInterface):
                 # TODO the chunks should be stacked and run simulataneously
                 total_edit_distance = 0
                 count = 0
+                byte_correct = 0
+                byte_count = 0
+
+                byte_perplexity_total = 0
 
                 for chunk in chunks:
                     input_ids, predicted_ids = self._process_chunk(chunk)
@@ -102,11 +106,27 @@ class TextModelingEvaluator(EvaluationInterface):
                         # increment count by num bytes
                         count += len(input_text_enc)
 
-                # Average edit distance over all chunks
-                avg_edit_distance = total_edit_distance / count
+                        # calculate byte accuracy
+                        for byte_idx in range(len(input_text_enc)):
+                            if byte_idx < len(predicted_text[0].encode("utf-8")):
+                                if input_text_enc[byte_idx] == predicted_text[0].encode("utf-8")[byte_idx]:
+                                    byte_correct += 1
+                                byte_count += 1
+
+                        # calculate byte perplexity
+                        byte_perplexity_total += torch.exp(
+                            F.cross_entropy(
+                                predicted_id.unsqueeze(0),
+                                input_id.unsqueeze(0)
+                            )
+                        )*len(input_text_enc)
+
 
                 if topic not in results:
                     results[topic] = {}
-                results[topic][difficulty] = avg_edit_distance
+                    
+                results[topic][difficulty]['Norm. Lev. Dist.'] = total_edit_distance / count
+                results[topic][difficulty]["Byte Acc."] = byte_correct / byte_count
+                results[topic][difficulty]["Byte Perplexity"] = byte_perplexity_total / count
 
         return results

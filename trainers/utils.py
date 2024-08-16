@@ -126,7 +126,7 @@ DATASET_DICT = {
     "tinystories": lambda: load_dataset("roneneldan/TinyStories"), # https://huggingface.co/datasets/roneneldan/TinyStories
     "stlm": create_stlm_data_mix,
     "openhermes-2.5": lambda: load_dataset("teknium/OpenHermes-2.5"),
-    "openwebtext": lambda: load_dataset("Skylion007/openwebtext"),
+    "openwebtext": lambda: load_dataset("Skylion007/openwebtext", trust_remote_code=True),
     "github-code": lambda: load_github_code_dataset(),
     "competition_math": lambda: load_competition_math_dataset(),
 }

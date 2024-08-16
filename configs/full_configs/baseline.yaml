@@ -24,7 +24,7 @@ model:
     lm_head_type: generic
   hidden_dim: 512
   context_window: 512
-  vocab_size: 50257
+  vocab_size: 50281
   model_shell_type: standard
   embedding_weight_tying: true
   positional_encoding_type: rope
@@ -81,6 +81,6 @@ general:
     output_dir: outputs
     data_dir: data
     checkpoint_dir: checkpoints
-    eval_dir: eval
+    eval_dir: evals
   seed: 489
   device: cuda
