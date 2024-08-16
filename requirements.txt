@@ -6,3 +6,4 @@ mteb
 pre-commit
 prettytable
 levenshtein
+sentencepiece

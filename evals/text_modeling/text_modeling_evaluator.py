@@ -95,7 +95,7 @@ class TextModelingEvaluator(EvaluationInterface):
                 for chunk in chunks:
                     input_ids, predicted_ids, predicted_token_logits = self._process_chunk(chunk)
 
-                    for input_id, predicted_id in zip(input_ids[0], predicted_ids[0]):
+                    for input_id, predicted_id, pred_logits in zip(input_ids[0], predicted_ids[0], predicted_token_logits[0]):
                         input_text = self.model.embedding_model.decode([[input_id.item()]])# , skip_special_tokens=True)
                         predicted_text = self.model.embedding_model.decode([[predicted_id.item()]]) #, skip_special_tokens=True)
                         input_text_enc = input_text[0].encode("utf-8")
@@ -114,11 +114,11 @@ class TextModelingEvaluator(EvaluationInterface):
                                 byte_count += 1
 
                         # calculate byte perplexity
-                        print(predicted_token_logits.size())
+                        print(pred_logits.size())
                         print(input_id.size())
                         byte_perplexity_total += torch.exp(
                             F.cross_entropy(
-                                predicted_token_logits.unsqueeze(0),
+                                pred_logits.unsqueeze(0),
                                 input_id.unsqueeze(0)
                             )
                         )*len(input_text_enc)
