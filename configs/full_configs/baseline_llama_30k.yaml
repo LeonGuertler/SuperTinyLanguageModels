@@ -24,7 +24,7 @@ model:
     lm_head_type: generic
   hidden_dim: 512
   context_window: 512
-  vocab_size: 32000
+  vocab_size: 32001
   model_shell_type: standard
   embedding_weight_tying: true
   positional_encoding_type: rope
