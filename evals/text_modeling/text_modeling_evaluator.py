@@ -114,6 +114,8 @@ class TextModelingEvaluator(EvaluationInterface):
                                 byte_count += 1
 
                         # calculate byte perplexity
+                        print(predicted_token_logits.size())
+                        print(input_id.size())
                         byte_perplexity_total += torch.exp(
                             F.cross_entropy(
                                 predicted_token_logits.unsqueeze(0),
