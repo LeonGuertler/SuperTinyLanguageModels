@@ -5,15 +5,17 @@ standardize the interface for tokenization.
 
 import sentencepiece as spm
 import torch
-
+from huggingface_hub import hf_hub_download
 from models.components.tokenizers.base_class import Tokenizer
-
 
 class LLaMATokenizer(Tokenizer):
     """A simple wrapper around the LLaMA Tokenizer."""
 
-    def __init__(self, model_path, **_):
+    def __init__(self, **_):
         super().__init__()
+        # Hardcoded model path from Hugging Face
+        model_name_or_path = "decapoda-research/llama-7b-hf"
+        model_path = hf_hub_download(repo_id=model_name_or_path, filename="tokenizer.model")
         self.tokenizer = spm.SentencePieceProcessor(model_file=model_path)
         self.eot_token = self.tokenizer.eos_id()
         self.pad_token = self.tokenizer.pad_id()
