@@ -15,7 +15,7 @@ model:
       bias: false
       is_causal: true
   embedder:
-    tokenizer_type: p50k
+    tokenizer_type: gpt2
     embedding_model_type: generic
     dataset_name: stlm
   lm_head:
@@ -24,7 +24,7 @@ model:
     lm_head_type: generic
   hidden_dim: 512
   context_window: 512
-  vocab_size: 50281
+  vocab_size: 50257
   model_shell_type: standard
   embedding_weight_tying: true
   positional_encoding_type: rope
