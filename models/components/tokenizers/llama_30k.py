@@ -4,7 +4,9 @@ standardize the interface for tokenization.
 """
 
 
+import torch
 from transformers import AutoTokenizer
+from models.components.tokenizers.base_class import Tokenizer
 
 class LLaMATokenizer(Tokenizer):
     """A simple wrapper around a LLaMA-based Tokenizer."""
