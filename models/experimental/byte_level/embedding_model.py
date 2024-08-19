@@ -4,12 +4,24 @@ the tokenizer(s), token embeddings and positional encodings
 (if necessary).
 """
 
+from typing import Literal
+
 import torch
 
 from models.components.positional_encoding import LearnedPosEncoding
 from models.components.tokenizers import build_tokenizer
-from models.embedding_models import EmbedderInterface
+from models.embedding_models import EmbedderInterface, GenericEmbedderConfig
+from models.experimental.byte_level.byte_model_shell import ByteShellConfig
 from models.experimental.byte_level.layers import ByteLevelTransformerBlock
+
+
+class ByteLevelEmbedderConfig(GenericEmbedderConfig):
+    """
+    Byte Level configuration
+    """
+
+    embedder_type: Literal["byte_level"]
+    byte_tokenizer_type: str
 
 
 class ByteLevelEmbedder(EmbedderInterface):
@@ -23,67 +35,78 @@ class ByteLevelEmbedder(EmbedderInterface):
     """
 
     # pylint: disable=super-init-not-called
-    def __init__(self, model_cfg):
+    def __init__(
+        self,
+        vocab_size,
+        hidden_dim,
+        byte_cfg: ByteShellConfig,
+        embedder_cfg: ByteLevelEmbedderConfig,
+    ):
         super().__init__()
-        self.model_cfg = model_cfg
 
         # build the tokenizers
         self.byte_tokenizer = build_tokenizer(
-            tokenizer_type=model_cfg["embedder"]["byte_tokenizer_type"],
-            vocab_size=model_cfg["byte_vocab_size"],
-            dataset_name=model_cfg["embedder"]["dataset_name"],
+            tokenizer_type=embedder_cfg.byte_tokenizer_type,
+            vocab_size=embedder_cfg,
+            dataset_name=embedder_cfg.dataset_name,
         )
         self.pooling_tokenizer = build_tokenizer(
-            tokenizer_type=model_cfg["embedder"]["tokenizer_type"],
-            vocab_size=model_cfg["vocab_size"],
-            dataset_name=model_cfg["embedder"]["dataset_name"],
+            tokenizer_type=embedder_cfg.tokenizer_type,
+            vocab_size=vocab_size,
+            dataset_name=embedder_cfg.dataset_name,
         )
 
         # positional encodings
         self.pos_encoder = LearnedPosEncoding(
-            hidden_dim=model_cfg["byte_embedding_dim"],
-            context_window=model_cfg["byte_context_window"],
+            hidden_dim=hidden_dim,
+            context_window=byte_cfg.byte_context_window,
         )
 
         # build the token embeddings
         self.byte_token_embedder = torch.nn.Embedding(
-            num_embeddings=model_cfg["byte_vocab_size"],
-            embedding_dim=model_cfg["byte_embedding_dim"],
+            num_embeddings=byte_cfg.byte_vocab_size,
+            embedding_dim=byte_cfg.byte_embedding_dim,
         )
 
         # build the transformer blocks
         self.transformer = torch.nn.ModuleList(
             [
                 ByteLevelTransformerBlock(
-                    input_dim=model_cfg["byte_embedding_dim"],
-                    output_dim=model_cfg["byte_embedding_dim"] * 2,
-                    ffn_dim=model_cfg["byte_embedding_dim"] * 4,
-                    context_window=model_cfg["byte_context_window"],
-                    use_rope=False,
+                    input_dim=byte_cfg.byte_embedding_dim,
+                    output_dim=byte_cfg.byte_embedding_dim * 2,
+                    ffn_dim=byte_cfg.byte_embedding_dim * 4,
+                    context_window=byte_cfg.byte_context_window,
+                    byte_transformer_block_cfg=embedder_cfg.ffn_cfg,
+                    attn_config=embedder_cfg.attn_cfg,
                 ),
                 ByteLevelTransformerBlock(
-                    input_dim=model_cfg["byte_embedding_dim"]*2,
-                    output_dim=model_cfg["byte_embedding_dim"] * 2,
-                    ffn_dim=model_cfg["byte_embedding_dim"] * 8,
-                    context_window=model_cfg["byte_context_window"],
-                    use_rope=False,
+                    input_dim=byte_cfg.byte_embedding_dim * 2,
+                    output_dim=byte_cfg.byte_embedding_dim * 2,
+                    ffn_dim=byte_cfg.byte_embedding_dim * 8,
+                    context_window=byte_cfg.byte_context_window,
+                    byte_transformer_block_cfg=embedder_cfg.ffn_cfg,
+                    attn_config=embedder_cfg.attn_cfg,
                 ),
                 ByteLevelTransformerBlock(
-                    input_dim=model_cfg["byte_embedding_dim"]*2,
-                    output_dim=model_cfg["byte_embedding_dim"] * 2,
-                    ffn_dim=model_cfg["byte_embedding_dim"] * 8,
-                    context_window=model_cfg["byte_context_window"],
-                    use_rope=False,
+                    input_dim=byte_cfg.byte_embedding_dim * 2,
+                    output_dim=byte_cfg.byte_embedding_dim * 2,
+                    ffn_dim=byte_cfg.byte_embedding_dim * 8,
+                    context_window=byte_cfg.byte_context_window,
+                    byte_transformer_block_cfg=embedder_cfg.ffn_cfg,
+                    attn_config=embedder_cfg.attn_cfg,
                 ),
                 ByteLevelTransformerBlock(
-                    input_dim=model_cfg["byte_embedding_dim"] * 2,
-                    output_dim=model_cfg["hidden_dim"],
-                    ffn_dim=model_cfg["byte_embedding_dim"] * 8,
-                    context_window=model_cfg["byte_context_window"],
-                    use_rope=False,
+                    input_dim=byte_cfg.byte_embedding_dim * 2,
+                    output_dim=hidden_dim,
+                    ffn_dim=byte_cfg.byte_embedding_dim * 8,
+                    context_window=byte_cfg.byte_context_window,
+                    byte_transformer_block_cfg=embedder_cfg.ffn_cfg,
+                    attn_config=embedder_cfg.attn_cfg,
                 ),
             ]
         )
+        self.byte_cfg = byte_cfg
+        self.embedder_cfg = embedder_cfg
 
     def tokenize_input(self, input_string: str, truncate=False, add_eot=True):
         """Tokenize an input string.
@@ -102,13 +125,13 @@ class ByteLevelEmbedder(EmbedderInterface):
         ]
         # truncate bytes
         tokens = [
-            token_seq[: self.model_cfg["byte_context_window"]] for token_seq in tokens
+            token_seq[: self.byte_cfg.byte_context_window] for token_seq in tokens
         ]
         # pad bytes
         tokens = [
             token_seq
             + [self.byte_tokenizer.pad_token]
-            * (self.model_cfg["byte_context_window"] - len(token_seq))
+            * (self.byte_cfg.byte_context_window - len(token_seq))
             for token_seq in tokens
         ]
         return tokens
@@ -127,43 +150,38 @@ class ByteLevelEmbedder(EmbedderInterface):
         max_len = max([len(token_list) for token_list in token_lists])
         padded_token_lists = []
         mask = []
-        byte_context_window = self.model_cfg["byte_context_window"]
+        byte_context_window = self.byte_cfg.byte_context_window
         for token_list in token_lists:
             if direction == "right":
                 padded_token_list = token_list + [
-                    [self.byte_tokenizer.pad_token]
-                    * byte_context_window
+                    [self.byte_tokenizer.pad_token] * byte_context_window
                 ] * (max_len - len(token_list))
                 padded_token_lists.append(padded_token_list)
-                mask.append(
-                    [1] * len(token_list)
-                    + [0] * (max_len - len(token_list))
-                )
+                mask.append([1] * len(token_list) + [0] * (max_len - len(token_list)))
             else:
                 padded_token_list = token_list + [
-                    [self.byte_tokenizer.pad_token]
-                    * byte_context_window
+                    [self.byte_tokenizer.pad_token] * byte_context_window
                 ] * (max_len - len(token_list))
                 padded_token_lists.append(padded_token_list)
-                mask.append(
-                    [0] * (max_len - len(token_list))
-                    + [1] * len(token_list)
-                )
+                mask.append([0] * (max_len - len(token_list)) + [1] * len(token_list))
             # expand the mask to include the byte context window
             mask[-1] = [[it] * byte_context_window for it in mask[-1]]
         return torch.tensor(padded_token_lists), torch.tensor(mask)
 
     def truncate(self, token_lists):
         # get model max length
-        max_length = self.model_cfg["context_window"]
+        max_length = self.byte_cfg.context_window
         return [token_seq[-max_length:] for token_seq in token_lists]
 
-    def decode(self, list_of_token_idss):
+    def decode(self, tokens):
         """
         Decode the token ids.
+        Tokens is a second level list, where the first level
+        is the batch dimension, and the second level is the
+        list of token ids for a given sequence.
         """
         return_strings = []
-        for list_of_token_ids in list_of_token_idss:
+        for list_of_token_ids in tokens:
             return_string = ""
             for token_ids in list_of_token_ids:
                 token_ids = [

@@ -1,16 +1,17 @@
 """Utilities for the trainer"""
 
+import enum
 import importlib
-from prettytable import PrettyTable
 import inspect
 import os
 import pkgutil
 
 import numpy as np
 import torch
-from datasets import load_dataset, DatasetDict, concatenate_datasets
-
 import torch.distributed as dist
+from datasets import DatasetDict, concatenate_datasets, load_dataset
+from prettytable import PrettyTable
+
 
 def set_seed(seed):
     """Setup the trainer"""
@@ -29,6 +30,7 @@ def create_folder_structure(path_config):
     if not os.path.exists(path_config["checkpoint_dir"]):
         os.makedirs(path_config["checkpoint_dir"])
 
+
 def create_stlm_data_mix():
     """
     A small custom datamix for STLM models containing:
@@ -44,41 +46,59 @@ def create_stlm_data_mix():
 
     # Load Python code from DeepMind Code Contests
     code_dataset = load_dataset("jtatman/python-code-dataset-500k")["train"]
-    code_dataset = code_dataset.map(lambda x: {"text": f"Instruction: {x['instruction']}\nOutput: {x['output']}"})
-
+    code_dataset = code_dataset.map(
+        lambda x: {"text": f"Instruction: {x['instruction']}\nOutput: {x['output']}"}
+    )
 
     # Load technical QA style data from StackExchange
     openhermes = load_dataset("teknium/OpenHermes-2.5")["train"]
 
     # Transform to have a "text" column with both question and answers
-    openhermes = openhermes.map(lambda x: {"text": f"Question: {x['conversations'][0]['value']}\nAnswers: {x['conversations'][1]['value']}"})
+    openhermes = openhermes.map(
+        lambda x: {
+            "text": (
+                f"Question: {x['conversations'][0]['value']}"
+                f"\nAnswers: {x['conversations'][1]['value']}"
+            )
+        }
+    )
 
     # Add tiny stories
     tiny_stories = load_dataset("roneneldan/TinyStories")["train"]
-
 
     # Calculate and print the distribution of string lengths
     def calculate_length_distribution(dataset):
         lengths = [len(item["text"]) for item in dataset]
         return sum(lengths), lengths
 
-    wiki_length, wiki_lengths = calculate_length_distribution(wiki)
-    python3_code_length, python3_code_lengths = calculate_length_distribution(code_dataset)
-    openhermes_length, openhermes_lengths = calculate_length_distribution(openhermes)
-    tiny_stories_length, tiny_stories_lengths = calculate_length_distribution(tiny_stories)
+    wiki_length, _ = calculate_length_distribution(wiki)
+    python3_code_length, _ = calculate_length_distribution(code_dataset)
+    openhermes_length, _ = calculate_length_distribution(openhermes)
+    tiny_stories_length, _ = calculate_length_distribution(tiny_stories)
 
-    total_length = wiki_length + python3_code_length + openhermes_length + tiny_stories_length
+    total_length = (
+        wiki_length + python3_code_length + openhermes_length + tiny_stories_length
+    )
 
     print(f"Wiki Text Length: {wiki_length} ({wiki_length/total_length*100:.2f}%)")
-    print(f"Python Code Text Length: {python3_code_length} ({python3_code_length/total_length*100:.2f}%)")
-    print(f"openhermes Text Length: {openhermes_length} ({openhermes_length/total_length*100:.2f}%)")
+    print(
+        f"Python Code Text Length: {python3_code_length}"
+        f" ({python3_code_length/total_length*100:.2f}%)"
+    )
+    print(
+        f"openhermes Text Length: {openhermes_length} ({openhermes_length/total_length*100:.2f}%)"
+    )
 
     # Concatenate datasets
-    combined_dataset = concatenate_datasets([wiki, code_dataset, openhermes, tiny_stories])
+    combined_dataset = concatenate_datasets(
+        [wiki, code_dataset, openhermes, tiny_stories]
+    )
 
-    combined_dataset = DatasetDict({
-        "train": combined_dataset,
-    })
+    combined_dataset = DatasetDict(
+        {
+            "train": combined_dataset,
+        }
+    )
 
     return combined_dataset
 
@@ -88,48 +108,70 @@ def load_github_code_dataset():
     load and re-format the github code dataset
     https://huggingface.co/datasets/codeparrot/github-code
     """
-    dataset = load_dataset("codeparrot/github-code") 
+    dataset = load_dataset("codeparrot/github-code")
 
     # rename "code" column to "text" column
     dataset = dataset.map(lambda x: {"text": x["code"]})["train"]
 
-    #dataset = DatasetDict({
+    # dataset = DatasetDict({
     #    "train": dataset,
-    #})
-
+    # })
 
     return dataset
+
 
 def load_competition_math_dataset():
     """
     load and re-format the competition math dataset
     https://huggingface.co/datasets/hendrycks/competition_math
     """
-    dataset = load_dataset("hendrycks/competition_math") 
+    dataset = load_dataset("hendrycks/competition_math")
 
     # format the problem and solution into a single "text" column
-    dataset = dataset.map(lambda x: {"text": f"Problem: {x['problem']}\nSolution: {x['solution']}"})
+    dataset = dataset.map(
+        lambda x: {"text": f"Problem: {x['problem']}\nSolution: {x['solution']}"}
+    )
 
-    dataset = DatasetDict({
-        "train": dataset,
-    })
+    dataset = DatasetDict(
+        {
+            "train": dataset,
+        }
+    )
 
     return dataset
-
 
 
 DATASET_DICT = {
     "debug": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
     "en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.en"),
     "simple_en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
-    "babylm_100m": lambda: load_dataset("Sree1994/babylm_100M"), # https://babylm.github.io/
-    "tinystories": lambda: load_dataset("roneneldan/TinyStories"), # https://huggingface.co/datasets/roneneldan/TinyStories
+    "babylm_100m": lambda: load_dataset(
+        "Sree1994/babylm_100M"
+    ),  # https://babylm.github.io/
+    "tinystories": lambda: load_dataset(
+        "roneneldan/TinyStories"
+    ),  # https://huggingface.co/datasets/roneneldan/TinyStories
     "stlm": create_stlm_data_mix,
     "openhermes-2.5": lambda: load_dataset("teknium/OpenHermes-2.5"),
     "openwebtext": lambda: load_dataset("Skylion007/openwebtext"),
-    "github-code": lambda: load_github_code_dataset(),
-    "competition_math": lambda: load_competition_math_dataset(),
+    "github-code": load_github_code_dataset,
+    "competition_math": load_competition_math_dataset,
 }
+
+
+class DatasetEnum(str, enum.Enum):
+    """All the possible dataset mixes we support"""
+
+    DEBUG = "debug"
+    EN_WIKI = "en_wiki"
+    SIMPLE_EN_WIKI = "simple_en_wiki"
+    BABYLM_100M = "babylm_100m"
+    TINYSTORIES = "tinystories"
+    STLM = "stlm"
+    OPENHERMES_2_5 = "openhermes-2.5"
+    OPENWEBTEXT = "openwebtext"
+    GITHUB_CODE = "github-code"
+    COMPETITION_MATH = "competition_math"
 
 
 def load_data(dataset_name, shuffle=True):
@@ -244,16 +286,18 @@ def profilize(model, classes=None):
 
         model.forward = forward_wrapper
 
+
 def is_dist():
     """
     Check if the current process is distributed.
     """
     return dist.is_initialized()
 
-def aggregate_value(value, device = torch.device("cuda")): 
+
+def aggregate_value(value, device=torch.device("cuda")):
     """
-    Since using DDP, calculation of metrics happen across all GPUs. 
-    This function aggregate the loss across all GPUs. 
+    Since using DDP, calculation of metrics happen across all GPUs.
+    This function aggregate the loss across all GPUs.
     """
     if not is_dist():
         return value
@@ -262,36 +306,44 @@ def aggregate_value(value, device = torch.device("cuda")):
     return all_loss.item() / dist.get_world_size()
     # return value
 
+
 def init_print_override():
-    '''
-    Overriding the print function is useful when running DDP. 
+    """
+    Overriding the print function is useful when running DDP.
     This way, only rank 0 prints to the console.
-    '''
+    """
+    # pylint: disable=redefined-builtin
+    # this is literally the point of this function lol
+    # pylint: disable=import-outside-toplevel
     import builtins as __builtin__
-    
+
+    # pylint: disable=import-outside-toplevel
     original_print = __builtin__.print
 
     def print(*args, **kwargs):
-        if os.getenv('GLOBAL_RANK') == '0':
+        if os.getenv("GLOBAL_RANK") == "0":
             original_print(*args, **kwargs)
 
     __builtin__.print = print
-
+    # pylint: enable=redefined-builtin
     return original_print
 
+
 def restore_print_override(original_print):
-    '''
+    """
     Restore the original print function.
-    '''
+    """
+    # pylint: disable=import-outside-toplevel
     import builtins as __builtin__
+
+    # pylint: enable=import-outside-toplevel
+
     __builtin__.print = original_print
 
 
-
-
-# Function to print evaluation results and benchmark results
 def print_evaluation_results(iter_num, eval_results, benchmark_results):
-    headers = ['Metric', 'Value']
+    """Function to print evaluation results and benchmark results"""
+    headers = ["Metric", "Value"]
     table = PrettyTable(headers)
 
     # Adding eval_results rows
@@ -302,20 +354,21 @@ def print_evaluation_results(iter_num, eval_results, benchmark_results):
     print(f"Iteration {iter_num}")
     print(table)
 
-    
-    benchmark_table = PrettyTable(['Benchmark', 'Accuracy', "Path Conf.", "Ground Conf."])
+    benchmark_table = PrettyTable(
+        ["Benchmark", "Accuracy", "Path Conf.", "Ground Conf."]
+    )
     for eval_method in benchmark_results.keys():
         if eval_method == "ft_qa":
             continue
         for benchmark, value in benchmark_results[eval_method].items():
-            benchmark_table.add_row([
-                f"{benchmark}", 
-                value['accuracy'],
-                value['path_confidence'],
-                value['ground_confidence']
-            ])
+            benchmark_table.add_row(
+                [
+                    f"{benchmark}",
+                    value["accuracy"],
+                    value["path_confidence"],
+                    value["ground_confidence"],
+                ]
+            )
 
     print("Benchmark Results")
     print(benchmark_table)
-
-

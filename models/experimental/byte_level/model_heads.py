@@ -5,10 +5,12 @@ A collection of different model heads.
 import torch
 
 from models.components.positional_encoding import LearnedPosEncoding
+from models.experimental.byte_level.byte_model_shell import ByteShellConfig
 from models.experimental.byte_level.layers import ByteLevelTransformerBlock
+from models.model_heads import HeadInterface
 
 
-class ByteLevelDecoder(torch.nn.Module):
+class ByteLevelDecoder(HeadInterface):
     """
     Use multiple learned heads to decode into by hidden size,
     pre-append to the byte embeddings of the answers and
@@ -17,21 +19,18 @@ class ByteLevelDecoder(torch.nn.Module):
     the latent ecoded ones.
     """
 
-    def __init__(self, model_cfg):
+    def __init__(self, byte_cfg: ByteShellConfig):
         super().__init__()
-        self.hidden_dim = model_cfg["hidden_dim"]
-        self.embedding_dim = model_cfg["byte_embedding_dim"]
-        self.byte_vocab_size = model_cfg["byte_vocab_size"]
-        self.byte_context_window = model_cfg["byte_context_window"]
-
+        self.hidden_dim = byte_cfg.hidden_dim
+        self.embedding_dim = byte_cfg.byte_embedding_dim
         self.projection = torch.nn.Linear(
             in_features=self.hidden_dim,
-            out_features=self.byte_context_window * self.embedding_dim,
+            out_features=byte_cfg.byte_context_window * self.embedding_dim,
             bias=False,
         )
 
         self.pos_encoder = LearnedPosEncoding(
-            hidden_dim=self.embedding_dim, context_window=self.byte_context_window
+            hidden_dim=self.embedding_dim, context_window=byte_cfg.byte_context_window
         )
 
         # build transformer block
@@ -41,59 +40,67 @@ class ByteLevelDecoder(torch.nn.Module):
                     input_dim=self.embedding_dim,
                     output_dim=self.embedding_dim,
                     ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
-                    use_rope=False,
+                    context_window=byte_cfg.byte_context_window,
+                    byte_transformer_block_cfg=byte_cfg.ffn_cfg,
+                    attn_config=byte_cfg.attn_cfg,
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=self.embedding_dim,
                     output_dim=self.embedding_dim,
                     ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
-                    use_rope=False,
+                    context_window=byte_cfg.byte_context_window,
+                    byte_transformer_block_cfg=byte_cfg.ffn_cfg,
+                    attn_config=byte_cfg.attn_cfg,
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=self.embedding_dim,
                     output_dim=self.embedding_dim,
                     ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
-                    use_rope=False,
+                    context_window=byte_cfg.byte_context_window,
+                    byte_transformer_block_cfg=byte_cfg.ffn_cfg,
+                    attn_config=byte_cfg.attn_cfg,
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=self.embedding_dim,
                     output_dim=self.embedding_dim,
                     ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
-                    use_rope=False,
+                    context_window=byte_cfg.byte_context_window,
+                    byte_transformer_block_cfg=byte_cfg.ffn_cfg,
+                    attn_config=byte_cfg.attn_cfg,
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=self.embedding_dim,
                     output_dim=self.embedding_dim,
                     ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
-                    use_rope=False,
+                    context_window=byte_cfg.byte_context_window,
+                    byte_transformer_block_cfg=byte_cfg.ffn_cfg,
+                    attn_config=byte_cfg.attn_cfg,
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=self.embedding_dim,
                     output_dim=self.embedding_dim,
                     ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
-                    use_rope=False,
+                    context_window=byte_cfg.byte_context_window,
+                    byte_transformer_block_cfg=byte_cfg.ffn_cfg,
+                    attn_config=byte_cfg.attn_cfg,
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=self.embedding_dim,
                     output_dim=self.embedding_dim,
                     ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
-                    use_rope=False,
+                    context_window=byte_cfg.byte_context_window,
+                    byte_transformer_block_cfg=byte_cfg.ffn_cfg,
+                    attn_config=byte_cfg.attn_cfg,
                 ),
             ]
         )
 
         self.lm_head = torch.nn.Linear(
             in_features=self.embedding_dim,
-            out_features=self.byte_vocab_size,
+            out_features=byte_cfg.byte_vocab_size,
             bias=False,
         )
+        self.byte_cfg = byte_cfg
 
     def forward(self, x):
         """
@@ -102,11 +109,13 @@ class ByteLevelDecoder(torch.nn.Module):
 
         # project the latent embeddings
         x = self.projection(x)
-        x = x.view(x.size(0), x.size(1), self.byte_context_window, self.embedding_dim)
+        x = x.view(
+            x.size(0), x.size(1), self.byte_cfg.byte_context_window, self.embedding_dim
+        )
 
         # pass through model and deocde
         B, S, _, _ = x.size()
-        x = x.view(B * S, self.byte_context_window, self.embedding_dim)
+        x = x.view(B * S, self.byte_cfg.byte_context_window, self.embedding_dim)
 
         # positional encoding
         x = x + self.pos_encoder(x)
@@ -119,7 +128,9 @@ class ByteLevelDecoder(torch.nn.Module):
         x = self.lm_head(x)
 
         # reshape and return
-        x = x.view(B, S, self.byte_context_window, self.byte_vocab_size)
+        x = x.view(
+            B, S, self.byte_cfg.byte_context_window, self.byte_cfg.byte_vocab_size
+        )
 
         return x, None
 

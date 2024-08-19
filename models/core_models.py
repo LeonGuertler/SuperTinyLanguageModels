@@ -2,9 +2,29 @@
 Simple, flexible core models.
 """
 
+import pydantic
 import torch
 
 from models.components.layers.transformer_blocks import GenericTransformerBlock
+
+
+class CoreModelConfig(pydantic.BaseModel):
+    """
+    Core Model configuration
+    """
+
+    core_model_type: str
+
+
+class GenericCoreModelConfig(CoreModelConfig):
+    """
+    Generic Core Model configuration
+    """
+
+    positional_encoding_type: str
+    ffn: dict
+    attn: dict
+    num_layers: int
 
 
 class GenericTransformer(torch.nn.Module):
@@ -13,7 +33,12 @@ class GenericTransformer(torch.nn.Module):
     broad a range of transformer models as possible.
     """
 
-    def __init__(self, model_cfg):
+    def __init__(
+        self,
+        hidden_dim,
+        context_window,
+        core_model_cfg: GenericCoreModelConfig,
+    ):
         super().__init__()
 
         # build the transformer
@@ -23,13 +48,12 @@ class GenericTransformer(torch.nn.Module):
                 "h": torch.nn.ModuleList(
                     [
                         GenericTransformerBlock(
-                            hidden_dim=model_cfg["hidden_dim"],
-                            context_window=model_cfg["context_window"],
-                            use_rope=model_cfg["positional_encoding_type"] == "rope",
-                            ffn_cfg=model_cfg["core_model"]["ffn"],
-                            attn_cfg=model_cfg["core_model"]["attn"],
+                            hidden_dim=hidden_dim,
+                            context_window=context_window,
+                            ffn_cfg=core_model_cfg.ffn,
+                            attn_cfg=core_model_cfg.attn,
                         )
-                        for _ in range(model_cfg["core_model"]["num_layers"])
+                        for _ in range(core_model_cfg.num_layers)
                     ]
                 ),
             }
@@ -61,8 +85,17 @@ class GenericFFNSharedTransfomer(GenericTransformer):
     https://arxiv.org/abs/2402.16840).
     """
 
-    def __init__(self, model_cfg):
-        super().__init__(model_cfg=model_cfg)
+    def __init__(
+        self,
+        hidden_dim,
+        context_window,
+        core_model_cfg: CoreModelConfig,
+    ):
+        super().__init__(
+            hidden_dim=hidden_dim,
+            context_window=context_window,
+            core_model_cfg=core_model_cfg,
+        )
 
         # share the weights between transformer blocks
         ffn_0 = self.transformer.h[0].ffn

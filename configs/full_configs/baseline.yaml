@@ -32,29 +32,30 @@ trainer:
   dropout_scheduler:
     dropout_type: constant
     dropout: 0.1
-  dataset: openwebtext
   training:
+    dataset: openwebtext
     trainer_type: base_trainer
     batch_size: 24
     gradient_accumulation_steps: 20
     max_iters: 30000
     lr_decay_iters: 30000
     warmup_iters: 5000
-    eval_interval: 2000
     log_interval: 10
-    eval_iters: 500
     checkpoint_interval: 1000000000.0
     run_profiler: false
   eval:
-    - benchmarks:
-        - "winograd"
-        - "hellaswag"
-        - "arc"
-        - "mmlu"
-        - "blimp"
-      num_samples: 1000
-      evaluator: "mcq"
-    - evaluator: "prog"
+    eval_iters: 500
+    eval_interval: 2000
+    evaluators:
+      - benchmarks:
+          - "winograd"
+          - "hellaswag"
+          - "arc"
+          - "mmlu"
+          - "blimp"
+        num_samples: 1000
+        evaluator: "mcq"
+      - evaluator: "prog"
   optimizer:
     name: nanoGPTadamW
     lr: 0.0006

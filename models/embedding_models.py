@@ -4,10 +4,31 @@ the tokenizer(s), token embeddings and positional encodings
 (if necessary).
 """
 
+from typing import Literal
+
+import pydantic
 import torch
 
 from models.components.positional_encoding import build_positional_encodings
 from models.components.tokenizers import build_tokenizer
+
+
+class EmbedderConfig(pydantic.BaseModel):
+    """
+    Embedder configuration
+    """
+
+    embedding_model_type: str
+
+
+class GenericEmbedderConfig(EmbedderConfig):
+    """
+    Embedder configuration
+    """
+
+    embedding_model_type: Literal["generic"]
+    tokenizer_type: str
+    dataset_name: str
 
 
 class EmbedderInterface(torch.nn.Module):
@@ -47,8 +68,8 @@ class EmbedderInterface(torch.nn.Module):
     def inference(self, input_string: str, add_eot=False):
         """This function should map string to embeddings."""
         token_ids = self.tokenize_input(input_string, truncate=True, add_eot=add_eot)
-        token_ids = torch.tensor(token_ids).unsqueeze(0).to(
-            next(self.parameters()).device
+        token_ids = (
+            torch.tensor(token_ids).unsqueeze(0).to(next(self.parameters()).device)
         )
         return self.forward(token_ids)
 
@@ -95,25 +116,34 @@ class GenericEmbedder(EmbedderInterface):
     All embedders should inherit from this class.
     """
 
-    def __init__(self, model_cfg):
+    def __init__(
+        self,
+        embedder_cfg: GenericEmbedderConfig,
+        vocab_size: int,
+        hidden_dim: int,
+        context_window: int,
+        positional_encoding_type: str,
+    ):
         super().__init__()
         # build the tokenizer
         self.tokenizer = build_tokenizer(
-            tokenizer_type=model_cfg["embedder"]["tokenizer_type"],
-            vocab_size=model_cfg["vocab_size"],
-            dataset_name=model_cfg["embedder"]["dataset_name"],
+            tokenizer_type=embedder_cfg.tokenizer_type,
+            vocab_size=vocab_size,
+            dataset_name=embedder_cfg.dataset_name,
         )
 
         # build the token embeddings
         self.token_embedder = torch.nn.Embedding(
-            num_embeddings=model_cfg["vocab_size"],
-            embedding_dim=model_cfg["hidden_dim"],
+            num_embeddings=vocab_size,
+            embedding_dim=hidden_dim,
         )
 
         # build the positional encodings
-        self.positional_encodings = build_positional_encodings(model_cfg=model_cfg)
+        self.positional_encodings = build_positional_encodings(
+            positional_encoding_type, hidden_dim, context_window
+        )
         self.eot_token = self.tokenizer.eot_token
-        self.model_cfg = model_cfg
+        self.context_window = context_window
 
     def forward(self, token_ids):
         """
@@ -157,7 +187,7 @@ class GenericEmbedder(EmbedderInterface):
 
     def truncate(self, token_lists):
         # get model max length
-        max_length = self.model_cfg["context_window"]
+        max_length = self.context_window
         return [token_seq[-max_length:] for token_seq in token_lists]
 
     def decode(self, tokens):

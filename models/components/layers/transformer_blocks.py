@@ -5,9 +5,8 @@ FFN, Attn and normalizatio
 
 import torch
 
-from models.components.layers.attention import build_attention
-from models.components.layers.feedforward import build_ffn
-from models.components.layers.normalization import build_normalization
+from models.components.layers.attention import AttentionConfig, build_attention
+from models.components.layers.feedforward import FFNConfig, build_ffn
 
 
 class GenericTransformerBlock(torch.nn.Module):
@@ -16,29 +15,17 @@ class GenericTransformerBlock(torch.nn.Module):
     FFN, Attn and normalization.
     """
 
-    def __init__(self, hidden_dim, context_window, use_rope, ffn_cfg, attn_cfg):
+    def __init__(
+        self, hidden_dim, context_window, ffn_cfg: FFNConfig, attn_cfg: AttentionConfig
+    ):
         super().__init__()
-
-        # build the attn norm
-        self.attn_norm = build_normalization(
-            normalization_name=attn_cfg["normalization"],
-            dim=hidden_dim,
-            bias=attn_cfg["bias"],
-        )
+        attn_cfg = AttentionConfig(**attn_cfg)
 
         # build the attention
         self.attn = build_attention(
             hidden_dim=hidden_dim,
             context_window=context_window,
-            use_rope=use_rope,
             attn_cfg=attn_cfg,
-        )
-
-        # build the ffn norm
-        self.ffn_norm = build_normalization(
-            normalization_name=ffn_cfg["normalization"],
-            dim=hidden_dim,
-            bias=ffn_cfg["bias"],
         )
 
         # build the ffn block
@@ -57,6 +44,6 @@ class GenericTransformerBlock(torch.nn.Module):
         Returns:
             x: the output tensor (b, s, h)
         """
-        x = x + self.attn(self.attn_norm(x), attention_mask)
-        x = x + self.ffn(self.ffn_norm(x))
+        x = x + self.attn(x, attention_mask)
+        x = x + self.ffn(x)
         return x
