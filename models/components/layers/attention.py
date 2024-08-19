@@ -15,7 +15,7 @@ class AttentionConfig(pydantic.BaseModel):
     Attention configuration
     """
 
-    attn_type = "generic"
+    attn_type: str = "generic"
     num_heads: int
     bias: bool
     use_rope: bool
