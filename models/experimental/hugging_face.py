@@ -1,18 +1,54 @@
 """An interface for loading in models from the Hugging Face model hub
 This can be used for finetuning or training from scratch."""
 
+from typing import Literal
+
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from models.components.tokenizers.base_class import Tokenizer
-from models.embedding_models import EmbedderInterface
-from models.model_shell import ModelShell
+from models.core_models import CoreModelConfig
+from models.embedding_models import EmbedderConfig, EmbedderInterface
+from models.model_heads import HeadInterface, LMHeadConfig
 from trainers.base_trainer import BaseTrainer
 
+
+class HFEmbedderConfig(EmbedderConfig):
+    """
+    Configuration for the Hugging Face model.
+    """
+
+    model_string: str
+    flash_attention: bool = False
+    embedding_model_type: Literal["hf_embedder"]
+    tokenizer_type: str = "dummy"
+    dataset_name: str = "dummy"
+
+
+class HFCoreModelConfig(CoreModelConfig):
+    """
+    Configuration for the Hugging Face transformer core.
+    """
+
+    core_model_type: Literal["hf_core"]
+    model_string: str
+    flash_attention: bool = False
+
+
+class HFLMHeadConfig(LMHeadConfig):
+    """
+    Configuration for the Hugging Face language model head.
+    """
+
+    lm_head_type: Literal["hf_lm_head"]
+    model_string: str
+    flash_attention: bool = False
+
+
 def build_model(model_cfg):
-    '''
+    """
     Helper function to build a model from the huggingface model hub.
-    '''
+    """
     ## get the model string
     model_str = model_cfg["model_string"]
 
@@ -35,7 +71,10 @@ def build_model(model_cfg):
 
 
 class HFTokenizerWrapper(Tokenizer):
+    """Wrapper for the Hugging Face tokenizer"""
+
     def __init__(self, hf_tokenizer_name):
+        super().__init__()
         self.hf_tokenizer = AutoTokenizer.from_pretrained(hf_tokenizer_name)
         self.eot_token = self.hf_tokenizer.eos_token_id
         self.pad_token = self.hf_tokenizer.pad_token_id
@@ -73,18 +112,18 @@ class HFEmbedder(EmbedderInterface):
     A class for loading in models from the Hugging Face model hub
     """
 
-    def __init__(self, model_cfg):
+    def __init__(self, model_cfg: HFEmbedderConfig):
         super().__init__()
         self.model_cfg = model_cfg
         model_string = model_cfg["model_string"]
         self.tokenizer = HFTokenizerWrapper(model_string)
         self.embeddings = build_model(model_cfg).get_input_embeddings()
 
-    def decode(self, token_ids):
+    def decode(self, tokens):
         """
         Decode the token ids
         """
-        return self.tokenizer.decode_batch(token_ids)
+        return self.tokenizer.decode_batch(tokens)
 
     def forward(self, token_ids):
         """
@@ -127,7 +166,7 @@ class HFTransformerCore(torch.nn.Module):
 
     def __init__(self, model_cfg):
         super().__init__()
-        self.model = build_model(model_cfg = model_cfg)
+        self.model = build_model(model_cfg=model_cfg)
 
         ## freeze the parameters
         print("Note: Freezing the parameters of the hf_core model.")
@@ -139,23 +178,24 @@ class HFTransformerCore(torch.nn.Module):
         Calls the huggingface model in question, and returns the last hidden state.
         """
         ## get the hidden states
-        hidden_states = self.model(inputs_embeds = x, output_hidden_states = True).hidden_states
+        hidden_states = self.model(
+            inputs_embeds=x, output_hidden_states=True
+        ).hidden_states
 
         ## return the last hidden state
         if isinstance(hidden_states, tuple):
             return hidden_states[-1]
 
-        
 
-class HFLMHead(torch.nn.Module):
+class HFLMHead(HeadInterface):
     """
     Takes the language model head of a Hugging Face transformer class.
     """
 
     def __init__(self, model_cfg):
         super().__init__()
-        self.lm_head = build_model(model_cfg = model_cfg).get_output_embeddings()
-    
+        self.lm_head = build_model(model_cfg=model_cfg).get_output_embeddings()
+
     def forward(self, x):
         """
         Passes the input through the language model head to get logits.
@@ -171,24 +211,9 @@ class HFLMHead(torch.nn.Module):
 class MockTrainer(BaseTrainer):
     """A trainer that skips the training step, but runs e.g. logging"""
 
-    def __init__(
-        self,
-        cfg,
-        model: ModelShell,
-        optimizer,
-        dataloader,
-        loss_fn,
-        lr_scheduler=None,
-        dropout_scheduler=None,
-    ) -> None:
-        """Just forward the arguments to the parent class"""
-        super().__init__(
-            cfg, model, optimizer, dataloader, loss_fn, lr_scheduler, dropout_scheduler
-        )
-
-    def _run_step(self, *args, **kwargs):
+    def _run_step(self, *_, **__):
+        """We don't want to run the training step in this case..."""
         return torch.tensor(0.0)
 
     def _save_model(self, iter_num=0):
         """We don't want to save the model in this case..."""
-        pass

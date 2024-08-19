@@ -2,7 +2,26 @@
 A collection of attention layers.
 """
 
+import enum
+
+import pydantic
 import torch
+
+from models.components.layers import normalization
+
+
+class AttentionConfig(pydantic.BaseModel):
+    """
+    Attention configuration
+    """
+
+    attn_type = "generic"
+    num_heads: int
+    bias: bool
+    use_rope: bool
+    is_causal: bool
+    group_size: int
+    normalization: str
 
 
 class Attention(torch.nn.Module):
@@ -12,15 +31,14 @@ class Attention(torch.nn.Module):
 
     def __init__(
         self,
-        hidden_dim,
-        num_heads,
-        bias,
-        use_rope,
-        context_window,
-        is_causal,
-        group_size,
+        attn_config: AttentionConfig,
+        hidden_dim: int,
+        context_window: int,
     ):
         super().__init__()
+        bias = attn_config.bias
+        num_heads = attn_config.num_heads
+        group_size = attn_config.group_size
         assert hidden_dim % num_heads == 0, "Hidden dim must be divisible by num heads"
 
         # key, query, value projections for all heads
@@ -34,17 +52,23 @@ class Attention(torch.nn.Module):
         # attention dropout
         self.attn_dropout = torch.nn.Dropout()
 
-        self.num_heads = num_heads
-        self.group_size = group_size
-        self.is_causal = is_causal
+        self.num_heads = attn_config.num_heads
+        self.group_size = attn_config.group_size
+        self.is_causal = attn_config.is_causal
 
         # rope
-        self.use_rope = use_rope
+        self.use_rope = attn_config.use_rope
+
         if self.use_rope:
             assert context_window % 2 == 0
             self.freqs_cis = compute_freqs_cis(
                 seq_len=context_window, head_dim=hidden_dim // num_heads
             )
+        self.normalization = normalization.build_normalization(
+            normalization_name=attn_config.normalization,
+            dim=hidden_dim,
+            bias=attn_config.bias,
+        )
 
     def forward(self, x, attention_mask=None):
         """
@@ -91,7 +115,7 @@ class Attention(torch.nn.Module):
 
         # output projection
         y = self.attn_dropout(self.c_proj(y))  # is this really necessary?
-
+        y = self.normalization(y)
         return y
 
 
@@ -126,20 +150,15 @@ def compute_freqs_cis(seq_len, head_dim):
     return freqs_cis
 
 
-ATTENTION_DICT = {
-    "generic": lambda hidden_dim, context_window, use_rope, attn_cfg: Attention(
-        hidden_dim=hidden_dim,
-        num_heads=attn_cfg["num_heads"],
-        bias=attn_cfg["bias"],
-        use_rope=use_rope,
-        context_window=context_window,
-        is_causal=attn_cfg["is_causal"],
-        group_size=attn_cfg["group_size"],
-    )
-}
+class AttentionMechanisms(enum.Enum):
+    """
+    Enum for the different attention mechanisms
+    """
+
+    GENERIC = "generic"
 
 
-def build_attention(hidden_dim, context_window, use_rope, attn_cfg):
+def build_attention(hidden_dim: int, context_window: int, attn_cfg: AttentionConfig):
     """
     Build an attention layer
 
@@ -149,9 +168,12 @@ def build_attention(hidden_dim, context_window, use_rope, attn_cfg):
         use_rope: whether to use rope
         attn_cfg: attention config
     """
-    return ATTENTION_DICT[attn_cfg["attn_type"]](
-        hidden_dim=hidden_dim,
-        context_window=context_window,
-        use_rope=use_rope,
-        attn_cfg=attn_cfg,
-    )
+    match attn_cfg.attn_type:
+        case AttentionMechanisms.GENERIC:
+            return Attention(
+                attn_config=attn_cfg,
+                hidden_dim=hidden_dim,
+                context_window=context_window,
+            )
+        case _:
+            raise ValueError("Invalid attention mechanism")

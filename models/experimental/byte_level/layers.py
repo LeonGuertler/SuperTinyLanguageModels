@@ -2,11 +2,22 @@
 Shared components of the byte level models.
 """
 
+import pydantic
 import torch
 
 from models.components.layers.activations import build_activation
-from models.components.layers.attention import Attention
+from models.components.layers.attention import AttentionConfig, build_attention
 from models.components.layers.normalization import build_normalization
+
+
+class ByteTransformerBlockConfig(pydantic.BaseModel):
+    """
+    Feedforward network configuration
+    """
+
+    bias: bool
+    ffn_activation: str
+    ffn_normalization: str = "rmsprop"
 
 
 class ProjectingFFN(torch.nn.Module):
@@ -16,24 +27,27 @@ class ProjectingFFN(torch.nn.Module):
 
     def __init__(
         self,
-        hidden_dim,
-        output_dim,
+        input_dim,
         ffn_dim,
-        bias,
-        ffn_activation,
+        output_dim,
+        block_cfg: ByteTransformerBlockConfig,
     ):
         super().__init__()
         # build the ffn block
-        self.linear_1 = torch.nn.Linear(hidden_dim, ffn_dim, bias=bias)
+        self.linear_1 = torch.nn.Linear(input_dim, ffn_dim, bias=block_cfg.bias)
 
-        self.activation = build_activation(activation_name=ffn_activation)
+        self.activation = build_activation(activation_name=block_cfg.ffn_activation)
 
-        self.linear_2 = torch.nn.Linear(ffn_dim, output_dim, bias=bias)
+        self.linear_2 = torch.nn.Linear(ffn_dim, output_dim, bias=block_cfg.bias)
+        self.normalization = build_normalization(
+            normalization_name="rmsprop", dim=input_dim, bias=block_cfg.bias
+        )
 
     def forward(self, x):
         """
         A simple forward pass through the FFN
         """
+        x = self.normalization(x)
         x = self.linear_1(x)
         x = self.activation(x)
         x = self.linear_2(x)
@@ -46,37 +60,28 @@ class ByteLevelTransformerBlock(torch.nn.Module):
     FFN, Attn and normalization.
     """
 
-    def __init__(self, input_dim, output_dim, ffn_dim, context_window, use_rope=False):
+    def __init__(
+        self,
+        input_dim,
+        output_dim,
+        ffn_dim,
+        context_window,
+        byte_transformer_block_cfg: ByteTransformerBlockConfig,
+        attn_config: AttentionConfig,
+    ):
         super().__init__()
 
-        # build the attn norm
-        self.attn_norm = build_normalization(
-            normalization_name="rms_norm", dim=input_dim, bias=False
-        )
-
         # build the attention
-        self.attn = Attention(
-            hidden_dim=input_dim,
-            num_heads=8,
-            bias=False,
-            use_rope=use_rope,
-            context_window=context_window,
-            is_causal=False,
-            group_size=1,
-        )
-
-        # build the ffn norm
-        self.ffn_norm = build_normalization(
-            normalization_name="rms_norm", dim=input_dim, bias=False
+        self.attn = build_attention(
+            hidden_dim=input_dim, context_window=context_window, attn_cfg=attn_config
         )
 
         # build the ffn block
         self.ffn = ProjectingFFN(
-            hidden_dim=input_dim,
+            input_dim=input_dim,
             ffn_dim=ffn_dim,
             output_dim=output_dim,
-            bias=False,
-            ffn_activation="gelu",
+            block_cfg=byte_transformer_block_cfg,
         )
 
     def forward(self, x, attention_mask=None):
@@ -89,6 +94,6 @@ class ByteLevelTransformerBlock(torch.nn.Module):
         Returns:
             x: the output tensor (b, s, h)
         """
-        x = x + self.attn(self.attn_norm(x), attention_mask)
-        x = self.ffn(self.ffn_norm(x))
+        x = x + self.attn(x, attention_mask)
+        x = self.ffn(x)
         return x

@@ -25,7 +25,7 @@ class Tokenizer:
     def pad_batch(self, token_lists, direction="right"):
         """Pad a list of token lists to the same length,
         and return the padded tensor, and mask tensor.
-        
+
         Direction can be 'right' or 'left' to specify the padding direction.
         """
         max_len = max(len(tokens) for tokens in token_lists)
@@ -33,10 +33,14 @@ class Tokenizer:
         mask = []
         for tokens in token_lists:
             if direction == "right":
-                padded_tokens.append(tokens + [self.pad_token] * (max_len - len(tokens)))
+                padded_tokens.append(
+                    tokens + [self.pad_token] * (max_len - len(tokens))
+                )
                 mask.append([1] * len(tokens) + [0] * (max_len - len(tokens)))
             elif direction == "left":
-                padded_tokens.append([self.pad_token] * (max_len - len(tokens)) + tokens)
+                padded_tokens.append(
+                    [self.pad_token] * (max_len - len(tokens)) + tokens
+                )
                 mask.append([0] * (max_len - len(tokens)) + [1] * len(tokens))
         return torch.tensor(padded_tokens), torch.tensor(mask)
 

@@ -3,10 +3,26 @@ The standard Model Shell. It combines the embedding model,
 core model and LM head.
 """
 
+from typing import Literal
+
+import pydantic
 import torch
 
 from models import core_models, embedding_models, model_heads
 
+
+class ModelShellConfig(pydantic.BaseModel):
+    """Config for the standard model shell"""
+
+    model_shell_type: Literal["standard"]
+    core_model: core_models.CoreModelConfig
+    embedding_model: embedding_models.EmbedderConfig
+    model_head: model_heads.LMHeadConfig
+    hidden_dim: int
+    context_window: int
+    vocab_size: int
+    embedding_weight_tying: bool
+    positional_encoding_type: str
 
 
 class ModelShell(torch.nn.Module):
@@ -71,7 +87,9 @@ class ModelShell(torch.nn.Module):
         # check if input is string
         if isinstance(model_input, str):
             # use inference function of the embedding model
-            model_input = self.embedding_model.tokenize_input(model_input, truncate=True, add_eot=False)
+            model_input = self.embedding_model.tokenize_input(
+                model_input, truncate=True, add_eot=False
+            )
         x = torch.tensor(model_input, device=self.device, dtype=torch.long).unsqueeze(0)
         x = self.embedding_model(model_input)
 
@@ -94,9 +112,16 @@ class ModelShell(torch.nn.Module):
         Returns:
             ll: torch.tensor(B)
         """
-        total_strings = [f"{prefix} {cont}" for prefix, cont in zip(prefixes, continuations)]
-        input_tokens = [self.embedding_model.tokenize_input(string, truncate=True) for string in total_strings]
-        padded_batch, mask = self.embedding_model.pad_batch(input_tokens, direction="right")
+        total_strings = [
+            f"{prefix} {cont}" for prefix, cont in zip(prefixes, continuations)
+        ]
+        input_tokens = [
+            self.embedding_model.tokenize_input(string, truncate=True)
+            for string in total_strings
+        ]
+        padded_batch, mask = self.embedding_model.pad_batch(
+            input_tokens, direction="right"
+        )
         input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
         logits, _ = self.forward(input_tensor)
         logits = logits[:, :-1].reshape(-1, logits.size(-1))

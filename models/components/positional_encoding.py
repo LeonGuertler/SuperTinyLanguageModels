@@ -2,8 +2,10 @@
 A collection of positional encoding modules.
 """
 
-import torch
+import enum
 import math
+
+import torch
 
 
 class LearnedPosEncoding(torch.nn.Module):
@@ -45,44 +47,48 @@ class IdentityEncoding(torch.nn.Module):
         """
         return x
 
-class SinCosPosEncoding(
-    torch.nn.Module
-):
+
+class SinCosPosEncoding(torch.nn.Module):
     """SinCos encoding taken from:
     \\url{https://github.com/pytorch/examples/blob/main/word_language_model/model.py#L65}
     As used in the Vaiswani et al. paper..."""
+
     def __init__(self, hidden_dim, context_window):
         """Set up the pe buffer etc."""
         super().__init__()
         pe = torch.zeros(context_window, hidden_dim)
         position = torch.arange(0, context_window, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, hidden_dim, 2).float() * (-math.log(10000.0) / hidden_dim))
+        div_term = torch.exp(
+            torch.arange(0, hidden_dim, 2).float() * (-math.log(10000.0) / hidden_dim)
+        )
 
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0) # pe has shape (1, S, H)
+        pe = pe.unsqueeze(0)  # pe has shape (1, S, H)
 
-        self.pe = torch.nn.Parameter(pe) # hack for distributed data parallel
+        self.pe = torch.nn.Parameter(pe)  # hack for distributed data parallel
         self.pe.requires_grad = False
 
     def forward(self, x):
         """Add the pe to the input tensor."""
         # x of shape (B, S, H)
-        return x + self.pe[:, :x.size(1)]
+        return x + self.pe[:, : x.size(1)]
 
 
-POS_ENCODING_DICT = {
-    "learned": lambda dim, size, **_: LearnedPosEncoding(
-        hidden_dim=dim, context_window=size
-    ),
-    "rope": lambda **_: IdentityEncoding(),
-    "none": lambda **_: IdentityEncoding(),
-    "sincos": lambda dim, size, **_: SinCosPosEncoding(
-        hidden_dim=dim, context_window=size
-    ),
-}
+class PosEncodingType(enum.Enum):
+    """
+    Enum for the different types of positional encodings
+    """
 
-def build_positional_encodings(model_cfg):
+    LEARNED = "learned"
+    ROPE = "rope"
+    NONE = "none"
+    SINCOS = "sincos"
+
+
+def build_positional_encodings(
+    positional_encoding_type: PosEncodingType, hidden_dim, context_window
+):
     """
     Given the positional encoding config, build it.
     Args:
@@ -90,6 +96,18 @@ def build_positional_encodings(model_cfg):
     Returns:
         positional_encodings: positional_encodings_instance
     """
-    return POS_ENCODING_DICT[model_cfg["positional_encoding_type"]](
-        dim=model_cfg["hidden_dim"], size=model_cfg["context_window"]
-    )
+    match positional_encoding_type:
+        case PosEncodingType.LEARNED:
+            return LearnedPosEncoding(
+                hidden_dim=hidden_dim, context_window=context_window
+            )
+        case PosEncodingType.ROPE:
+            return IdentityEncoding()
+        case PosEncodingType.NONE:
+            return IdentityEncoding()
+        case PosEncodingType.SINCOS:
+            return SinCosPosEncoding(
+                hidden_dim=hidden_dim, context_window=context_window
+            )
+        case _:
+            raise ValueError("Invalid positional encoding type")

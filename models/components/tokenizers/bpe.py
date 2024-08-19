@@ -5,10 +5,11 @@ by https://twitter.com/lexandermorgan/status/1778793836929495098.
 
 Original Paper: https://arxiv.org/abs/1508.07909v5
 """
-import torch 
+
 import os
 from heapq import nlargest
 
+import torch
 from tqdm import tqdm
 
 from models.components.tokenizers import utils
