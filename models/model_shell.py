@@ -16,7 +16,7 @@ class ModelShellConfig(pydantic.BaseModel):
 
     model_shell_type: Literal["standard"]
     core_model: core_models.CoreModelConfig
-    embedding_model: embedding_models.EmbedderConfig
+    embedding_model: embedding_models.GenericEmbedderConfig
     model_head: model_heads.LMHeadConfig
     hidden_dim: int
     context_window: int

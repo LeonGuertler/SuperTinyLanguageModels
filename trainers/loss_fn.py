@@ -3,21 +3,37 @@
 Each loss function should take in output of a model and the target labels
 and return the loss value. This need not be the logits."""
 
-import time
+from enum import Enum
 
+import pydantic
 import torch
 
 
-def masked_cross_entropy_loss_fn(logits, y, mask=None):
+class LossFNName(str, Enum):
+    """Enum over possible loss functions"""
+
+    CROSS_ENTROPY = "cross_entropy"
+
+
+class LossConfig(pydantic.BaseModel):
+    """The type of loss function"""
+
+    loss_fn_type: LossFNName
+
+
+def masked_cross_entropy_loss_fn(logits, y, _=None):
     """Cross Entropy Loss Function"""
-    # mask the pad token from y 
-    pad_token_id = 257
+    # mask the pad token from y
+    pad_token_id = (
+        257  # TODO: Make this not dumb... no guarantee this will be the mask token???
+    )
     logits = logits.view(-1, logits.size(-1))
     y = y.view(-1)
-    #return torch.nn.functional.cross_entropy(logits, y, weight=mask, ignore_index=-1)
+    # return torch.nn.functional.cross_entropy(logits, y, weight=mask, ignore_index=-1)
     return torch.nn.functional.cross_entropy(logits, y, ignore_index=pad_token_id)
 
-def cross_entropy_loss_fn(logits, y, mask=None):
+
+def cross_entropy_loss_fn(logits, y, _=None):
     """Cross Entropy Loss Function"""
     logits = logits.view(-1, logits.size(-1))
     y = y.view(-1)
@@ -79,8 +95,8 @@ def compute_perplexity(logits, y, char_lengths, mask=None):
     return (torch.exp(loss)).mean().item()
 
 
-def build_loss_fn(loss_fn_type: str):
+def build_loss_fn(loss_config: LossConfig):
     """Build the loss function"""
-    if loss_fn_type == "cross_entropy":
-        return cross_entropy_loss_fn
-    raise ValueError(f"Loss function {loss_fn_type} not supported.")
+    match loss_config.loss_fn_type:
+        case LossFNName.CROSS_ENTROPY:
+            return cross_entropy_loss_fn

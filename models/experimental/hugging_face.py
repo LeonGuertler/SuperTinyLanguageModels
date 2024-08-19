@@ -8,12 +8,12 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from models.components.tokenizers.base_class import Tokenizer
 from models.core_models import CoreModelConfig
-from models.embedding_models import EmbedderConfig, EmbedderInterface
+from models.embedding_models import EmbedderInterface, GenericEmbedderConfig
 from models.model_heads import HeadInterface, LMHeadConfig
 from trainers.base_trainer import BaseTrainer
 
 
-class HFEmbedderConfig(EmbedderConfig):
+class HFEmbedderConfig(GenericEmbedderConfig):
     """
     Configuration for the Hugging Face model.
     """

@@ -118,7 +118,7 @@ class GenericEmbedder(EmbedderInterface):
 
     def __init__(
         self,
-        embedder_cfg: EmbedderConfig,
+        embedder_cfg: GenericEmbedderConfig,
         vocab_size: int,
         hidden_dim: int,
         context_window: int,

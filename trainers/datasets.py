@@ -2,48 +2,97 @@
 A collection of dataloaders
 """
 
+import enum
 import os
 
 import numpy as np
+import pydantic
 import torch
-from tqdm import tqdm
-import random
 
-from models.embedding_models import GenericEmbedder
-from trainers.utils import load_data
+from high_level_configs import GeneralConfig
+from models.experimental.byte_level import byte_model_shell
+from models.model_shell import ModelShellConfig
+from trainers.config import TrainerConfig
+from trainers.utils import DatasetEnum
 
+
+class DatasetTypeNames(str, enum.Enum):
+    """Possible dataset types"""
+
+    STANDARD = "standard"
+    BYTE_POOLED = "byte_pooling"
+    DUAL_BYTE_POOLED = "dual_byte_pooling"
+
+
+class DatasetConfig(pydantic.BaseModel):
+    """Configuration for the dataset"""
+
+    dataset_type: DatasetTypeNames
+    dataset: DatasetEnum
+
+
+class BaseDatasetConfig(pydantic.BaseModel):
+    """Configuration for dataset specifying the type"""
+
+    dataset: DatasetEnum
+    dataset_type: DatasetTypeNames.STANDARD
+
+
+class BytePoolingDatasetConfig(pydantic.BaseModel):
+    """Configuration for BytePooling dataset"""
+
+    dataset: DatasetEnum
+    dataset_type: DatasetTypeNames.BYTE_POOLED
+
+
+class DualBytePoolingDatasetConfig(pydantic.BaseModel):
+    """Configuration for DualBytePooling dataset"""
+
+    dataset: DatasetEnum
+    dataset_type: DatasetTypeNames.DUAL_BYTE_POOLED
 
 
 class DatasetInterface(torch.utils.data.Dataset):
     """
     A basic interface to be used by the remaining datasets
     """
-    def __init__(self, split, cfg):
+
+    def __init__(
+        self,
+        split,
+        dataset_cfg: DatasetConfig,
+        model_cfg: ModelShellConfig,
+        trainer_cfg: TrainerConfig,
+        general_cfg: GeneralConfig,
+    ):
         """
         Arguments:
             cfg: the train script cfg
         """
         super().__init__()
-        self.cfg = cfg
-        self.dataset_name = self.cfg["trainer"]["dataset"]
-        self.context_window = self.cfg["model"]["context_window"]
+        self.dataset_name = dataset_cfg.dataset
+        self.context_window = model_cfg.context_window
         self.data_path = os.path.join(
-            self.cfg["general"]["paths"]["data_dir"],
+            general_cfg.paths.data_dir,
             self.dataset_name,
-            f'{self.cfg["model"]["embedder"]["tokenizer_type"]}-{self.cfg["model"]["vocab_size"]}-{self.cfg["trainer"]["dataloader"]["name"]}',
-            f"{split}.bin"
+            (
+                f"{model_cfg.embedding_model.tokenizer_type}"
+                f"-{model_cfg.vocab_size}-{trainer_cfg.dataset}"
+            ),
+            f"{split}.bin",
         )
 
         self._load_data()
         self.dataset_len = len(self.data) - self.context_window
-
 
     def _load_data(self):
         """
         Get data
         """
         if not os.path.exists(self.data_path):
-            raise FileNotFoundError(f"{self.data_path} does not exist, preprocess the data first")
+            raise FileNotFoundError(
+                f"{self.data_path} does not exist, preprocess the data first"
+            )
         self.data = np.memmap(
             self.data_path,
             dtype=np.uint16,
@@ -55,24 +104,26 @@ class DatasetInterface(torch.utils.data.Dataset):
         Return dataset length
         """
         return self.dataset_len
-    
+
     def __getitem__(self, idx):
         raise NotImplementedError
-    
+
+
 class BaseDataset(DatasetInterface):
     """
     Simple base dataloader for standard gpt-2'esk architectures and training.
     """
-    def __init__(self, split, cfg):
-        super().__init__(split, cfg)
 
-    
     def __getitem__(self, idx):
         """
         Get a batch of data
         """
-        x = torch.from_numpy((self.data[idx: idx + self.context_window]).astype(np.int64))
-        y = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
+        x = torch.from_numpy(
+            (self.data[idx : idx + self.context_window]).astype(np.int64)
+        )
+        y = torch.from_numpy(
+            (self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64)
+        )
         return x, y
 
 
@@ -80,11 +131,19 @@ class BytePoolingDataset(DatasetInterface):
     """
     Simple byte-level dataset
     """
-    def __init__(self, split, cfg):
+
+    def __init__(
+        self,
+        split,
+        dataset_cfg: DatasetConfig,
+        model_cfg: byte_model_shell.ByteShellConfig,
+        training_cfg: TrainerConfig,
+        general_cfg: GeneralConfig,
+    ):
+        super().__init__(split, dataset_cfg, model_cfg, training_cfg, general_cfg)
         self.loading_shape = None
-        super().__init__(split, cfg)
-        # force parent init
         self._load_data()
+        self.model_cfg = model_cfg
 
     def _load_data(self):
         """
@@ -96,7 +155,10 @@ class BytePoolingDataset(DatasetInterface):
                 dtype=np.uint16,
                 mode="r",
             )
-            self.loading_shape = (len(data)// self.cfg["model"]["embedder"]["byte_context_window"], self.cfg["model"]["embedder"]["byte_context_window"])
+            self.loading_shape = (
+                len(data) // self.model_cfg.byte_context_window,
+                self.model_cfg.byte_context_window,
+            )
             data = None
         self.data = np.memmap(
             self.data_path,
@@ -104,34 +166,49 @@ class BytePoolingDataset(DatasetInterface):
             mode="r",
             shape=self.loading_shape,
         )
-    
+
     def __getitem__(self, idx):
         """
         Get a batch of data
         """
-        x = torch.from_numpy((self.data[idx: idx + self.context_window]).astype(np.int64))
-        y = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
+        x = torch.from_numpy(
+            (self.data[idx : idx + self.context_window]).astype(np.int64)
+        )
+        y = torch.from_numpy(
+            (self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64)
+        )
         return x, y
-    
+
 
 class DualBytePooling(DatasetInterface):
     """
     Dataset for both byte-level and higher token level tokens simultaneously
     """
-    def __init__(self, split, cfg):
+
+    def __init__(
+        self,
+        split,
+        dataset_cfg: DatasetConfig,
+        model_cfg: byte_model_shell.ByteShellConfig,
+        training_cfg: TrainerConfig,
+        general_cfg: GeneralConfig,
+    ):
         self.loading_shape = None
         # overwrite datapath
         data_folder = os.path.join(
-            cfg["general"]["paths"]["data_dir"],
-            cfg["trainer"]["dataset"],
-            f'{cfg["model"]["embedder"]["tokenizer_type"]}-{cfg["model"]["vocab_size"]}-{cfg["trainer"]["dataloader"]["name"]}',
+            general_cfg.paths.data_dir,
+            dataset_cfg.dataset,
+            (
+                f"{model_cfg.embedding_model.tokenizer_type}"
+                f"-{model_cfg.vocab_size}-{training_cfg.dataset}"
+            ),
         )
         self.data_path_byte = os.path.join(data_folder, f"{split}_byte.bin")
         self.data_path_token = os.path.join(data_folder, f"{split}_token.bin")
-        super().__init__(split, cfg)
-
+        super().__init__(split, dataset_cfg, model_cfg, training_cfg, general_cfg)
         # force parent init
         self._load_data()
+        self.model_cfg = model_cfg
 
     def _load_data(self):
         """
@@ -143,7 +220,10 @@ class DualBytePooling(DatasetInterface):
                 dtype=np.uint16,
                 mode="r",
             )
-            self.loading_shape = (len(data)// self.cfg["model"]["embedder"]["byte_context_window"], self.cfg["model"]["embedder"]["byte_context_window"])
+            self.loading_shape = (
+                len(data) // self.model_cfg.byte_context_window,
+                self.model_cfg.byte_context_window,
+            )
             data = None
         self.data_byte = np.memmap(
             self.data_path_byte,
@@ -156,17 +236,25 @@ class DualBytePooling(DatasetInterface):
             dtype=np.uint16,
             mode="r",
         )
-    
+
     def __getitem__(self, idx):
         """
         Get a batch of data from both the byte and higher token level
         """
         # get byte level batch
-        x_byte = torch.from_numpy((self.data_byte[idx: idx + self.context_window]).astype(np.int64))
-        #y_byte = torch.from_numpy((self.data_byte[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
+        x_byte = torch.from_numpy(
+            (self.data_byte[idx : idx + self.context_window]).astype(np.int64)
+        )
+        # y_byte = torch.from_numpy(
+        # (self.data_byte[idx + 1: idx + 1 + self.context_window]).astype(np.int64)
+        # )
 
         # get token level batch
-        #x_token = torch.from_numpy((self.data_token[idx: idx + self.context_window]).astype(np.int64))
-        y_token = torch.from_numpy((self.data[idx + 1: idx + 1 + self.context_window]).astype(np.int64))
-        return x_byte, y_token  
-
+        # x_token = torch.from_numpy(
+        # (
+        # self.data_token[idx: idx + self.context_window]
+        # ).astype(np.int64))
+        y_token = torch.from_numpy(
+            (self.data[idx + 1 : idx + 1 + self.context_window]).astype(np.int64)
+        )
+        return x_byte, y_token
