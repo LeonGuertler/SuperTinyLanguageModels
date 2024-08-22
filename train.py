@@ -11,6 +11,8 @@ from trainers.utils import create_folder_structure, init_print_override, restore
 from models.utils import print_model_stats
 from trainers.build_teachermodel import init_teachermodel
 
+from omegaconf import OmegaConf
+
 import torch
 from torch.distributed import destroy_process_group
 import torch.multiprocessing as mp
@@ -26,8 +28,20 @@ def ddp_main(rank, world_size, cfg):
     try:
         print("Rank: ", rank, "World Size: ", world_size)
         ddp_setup(rank=rank, world_size=world_size)
+        
+        ## Locate the model checkpoint
+        if cfg.get("model_ckpt", None):
+            cfg["model_ckpt"] = hydra.utils.to_absolute_path(cfg["model_ckpt"])
+            checkpoint = torch.load(cfg["model_ckpt"])
+            ## add the previous iteration number to the config as a new key
+            dict_cfg = OmegaConf.to_container(cfg, resolve=True)
+            dict_cfg['prev_iter'] = checkpoint['config']['trainer']['training']['max_iters']
+            cfg = OmegaConf.create(dict_cfg)
 
-        model = build_model(model_cfg=cfg["model"])
+            model = build_model(checkpoint=checkpoint)
+        else: 
+            model = build_model(model_cfg=cfg["model"])
+
         model.to(cfg["general"]["device"])
         model.train()
         print(f"Rank{rank} Model built")
@@ -63,6 +77,7 @@ def ddp_main(rank, world_size, cfg):
         restore_print_override(original_print)
 
 
+# @hydra.main(config_path="configs/full_configs", config_name="knowledge_distillation")
 @hydra.main(config_path="configs", config_name="train")
 def main(cfg):
     world_size = torch.cuda.device_count()

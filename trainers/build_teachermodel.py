@@ -11,21 +11,17 @@ class ProjectionLayers(nn.Module):
 
     def __init__(self, model_cfg, teacher_model_cfg):
         super(ProjectionLayers, self).__init__()
-        ## attention heads
-        self.student_dim = model_cfg.core_model.attn.num_heads
-        self.teacher_dim = teacher_model_cfg.num_attention_heads
-        self.projection_attn = nn.Linear(self.student_dim, self.teacher_dim, bias=False)
 
         ## hidden state
         self.student_hs_dim = model_cfg.hidden_dim
         self.teacher_hs_dim = teacher_model_cfg.hidden_size
         self.projection_hs = nn.Linear(self.student_hs_dim, self.teacher_hs_dim)
 
-    def forward(self, attn, hidden_state):
-        return self.projection_attn(attn), self.projection_hs(hidden_state)
+        ## embedding state
+        self.projection_emb = nn.Linear(self.student_hs_dim, self.teacher_hs_dim)
 
 
-def build_attention_projection(model_cfg, teacher_model_cfg):
+def build_projection(model_cfg, teacher_model_cfg):
 
     return ProjectionLayers(model_cfg, teacher_model_cfg)
 
@@ -38,8 +34,13 @@ def init_teachermodel(cfg):
     teacher_model.eval() # set the teacher model to evaluation mode
     teacher_model_cfg = teacher_model.core_model.model.config # get the teacher model configuration
 
-    # build the attention projection layer
-    attention_projection = build_attention_projection(model_cfg=cfg["model"], teacher_model_cfg=teacher_model_cfg)
-    attention_projection.to(cfg["general"]["device"])
+    ## determine if should build the attention projection layer
+    if cfg.teachermodel.get("build_projection", None):
+        attention_projection = build_projection(model_cfg=cfg["model"], teacher_model_cfg=teacher_model_cfg)
+        attention_projection.to(cfg["general"]["device"])
+        print("Attention projection layer built")
+    else:
+        attention_projection = None
+        print("No attention projection layer built")
 
     return teacher_model, attention_projection

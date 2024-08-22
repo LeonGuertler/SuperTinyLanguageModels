@@ -67,11 +67,12 @@ def build_optimizer(model, projection, optimizer_config):
 
 
 SCHEDULER_DICT = {
-    "cosine": lambda trainer_cfg: CosineLRScheduler(
+    "cosine": lambda trainer_cfg, prev_iters: CosineLRScheduler(
         warmup_iters=trainer_cfg["training"]["warmup_iters"],
         decay_iters=trainer_cfg["training"]["lr_decay_iters"],
         lr=trainer_cfg["optimizer"]["lr"],
         min_lr=trainer_cfg["optimizer"]["min_lr"],
+        prev_iters=prev_iters
     ),
     "constant": lambda trainer_cfg: LRScheduler(
         lr=trainer_cfg["optimizer"]["lr"],
@@ -79,11 +80,11 @@ SCHEDULER_DICT = {
 }
 
 
-def build_lr_scheduler(trainer_cfg):
+def build_lr_scheduler(trainer_cfg, prev_iters):
     """
     Given the trainer config, build the LR scheduler.build_model
     """
-    return SCHEDULER_DICT[trainer_cfg["lr_scheduler"]["name"]](trainer_cfg=trainer_cfg)
+    return SCHEDULER_DICT[trainer_cfg["lr_scheduler"]["name"]](trainer_cfg=trainer_cfg, prev_iters=prev_iters)
 
 
 def build_dropout_scheduler(trainer_cfg):
@@ -160,7 +161,7 @@ def build_trainer(cfg, model, gpu_id, projection=None, teacher_model=None):
     optimizer = build_optimizer(model=model, projection=projection, optimizer_config=cfg.trainer["optimizer"])
 
     # build LR scheduler
-    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg.trainer)
+    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg.trainer, prev_iters = cfg["prev_iter"])
 
     # build dropout scheduler
     dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg.trainer)

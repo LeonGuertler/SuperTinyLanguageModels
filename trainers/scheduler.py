@@ -1,7 +1,9 @@
 """Various Scheduler"""
 
 import math
+import hydra
 
+import torch
 import torch.nn as nn
 
 
@@ -30,16 +32,21 @@ class LRScheduler:
 class CosineLRScheduler(LRScheduler):
     """Basic Cosine LR scheduler with warmup and decay."""
 
-    def __init__(self, warmup_iters, decay_iters, lr, min_lr):
+    def __init__(self, warmup_iters, decay_iters, lr, min_lr, prev_iters=None):
         """Initialize the scheduler"""
         super().__init__(lr)
         self.warmup_iters = warmup_iters
         self.decay_iters = decay_iters
         self.lr = lr
         self.min_lr = min_lr
+        if prev_iters is not None:
+            self.prev_iters = prev_iters
+        else:
+            self.prev_iters = 0
 
     def get_lr(self, iter_num):
         """Get the learning rate for the iteration number"""
+        iter_num += self.prev_iters
         if iter_num < self.warmup_iters:
             return self.lr * iter_num / self.warmup_iters
         return self.min_lr + 0.5 * (self.lr - self.min_lr) * (

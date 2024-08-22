@@ -133,6 +133,8 @@ class GenericEmbedder(EmbedderInterface):
         # apply the positional encoding, if any
         x = self.positional_encodings(x)
 
+        self.embedding_output = x
+
         return x
 
     def tokenize_input(self, input_string, truncate=False, add_eot=True):

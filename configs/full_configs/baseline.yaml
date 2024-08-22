@@ -35,10 +35,10 @@ trainer:
   dataset: openwebtext
   training:
     trainer_type: base_trainer
-    batch_size: 24
-    gradient_accumulation_steps: 20
-    max_iters: 50000
-    lr_decay_iters: 50000
+    batch_size: 40
+    gradient_accumulation_steps: 12
+    max_iters: 20000
+    lr_decay_iters: 40000
     warmup_iters: 5000
     eval_interval: 2000
     log_interval: 10
@@ -83,7 +83,7 @@ trainer:
     name: cross_entropy
 general:
   logging:
-    wandb_log: true
+    wandb_log: True
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs

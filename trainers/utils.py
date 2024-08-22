@@ -261,6 +261,7 @@ def init_kd_cfg(cfg):
     """
     
     temperature = cfg.teachermodel.temperature
+    embedding_loss_weight = cfg.teachermodel.embedding_loss_weight
     attn_loss_weight = cfg.teachermodel.attn_loss_weight
     hs_loss_weight = cfg.teachermodel.hs_loss_weight
     soft_targets_loss_weight = cfg.teachermodel.soft_targets_loss_weight
@@ -268,6 +269,7 @@ def init_kd_cfg(cfg):
 
     kd_cfg = {
         "temperature": temperature,
+        "embedding_loss_weight": embedding_loss_weight,
         "attn_loss_weight": attn_loss_weight,
         "hs_loss_weight": hs_loss_weight,
         "soft_targets_loss_weight": soft_targets_loss_weight,
@@ -343,19 +345,10 @@ def get_prenormalized_attention_list(raw_attentions, teacher_model = None):
 
     return attention_matrices
 
-def project_student_to_teacher(projection, student_attention, student_hiddenstate):
+def project_student_to_teacher_hs(projection, student_hiddenstate):
     '''
-    Project student attention and hidden states to match teacher dimensions.
+    Project student hidden states to match teacher dimensions.
     '''
-    batch_size, student_heads, sequence_len, _ = student_attention.size()
-    teacher_heads = projection.projection_attn.out_features
-
-    if student_heads != teacher_heads:
-        student_attention = student_attention.permute(0, 2, 3, 1).contiguous()
-        student_attention = student_attention.view(batch_size * sequence_len * sequence_len, student_heads)
-        student_attention = projection.projection_attn(student_attention)
-        student_attention = student_attention.view(batch_size, sequence_len, sequence_len, teacher_heads)
-        student_attention = student_attention.permute(0, 3, 1, 2).contiguous()
 
     from_dim = student_hiddenstate.size(-1)
     to_dim = projection.projection_hs.out_features
@@ -363,4 +356,17 @@ def project_student_to_teacher(projection, student_attention, student_hiddenstat
     if from_dim != to_dim:
         student_hiddenstate = projection.projection_hs(student_hiddenstate)
 
-    return student_attention, student_hiddenstate
+    return student_hiddenstate
+
+def project_student_to_teacher_emb(projection, student_emb):
+    '''
+    Project student hidden states to match teacher dimensions.
+    '''
+
+    from_dim = student_emb.size(-1)
+    to_dim = projection.projection_hs.out_features
+
+    if from_dim != to_dim:
+        student_emb = projection.projection_emb(student_emb)
+
+    return student_emb
