@@ -97,7 +97,7 @@ class BPETokenizer(Tokenizer):
             token_lists = token_lists.tolist()
         return [self.decode(tokens) for tokens in token_lists]
 
-    def _train_tokenizer(self, verbose=True):
+    def _train_tokenizer(self, verbose=True): 
         """
         Train the Byte Pair Encoding tokenizer
         on the given dataset.
