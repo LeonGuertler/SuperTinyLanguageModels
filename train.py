@@ -50,6 +50,24 @@ def ddp_main(rank, world_size, cfg):
         # restore the print function
         restore_print_override(original_print)
 
+def basic_main(cfg):
+    """
+    Main function for single GPU training
+    """
+    model = build_model(model_cfg=cfg["model"])
+    model.to(cfg["general"]["device"])
+    model.train()
+    print("Model built")
+    # load the relevant trainer
+    trainer = build_trainer(
+        cfg=cfg,
+        model=model,
+        gpu_id=None # disables DDP
+    )
+
+    # train the model
+    trainer.train()
+
 
 @hydra.main(config_path="configs", config_name="train")
 def main(cfg):
@@ -66,18 +84,23 @@ def main(cfg):
     # process data 
     prepare_data(cfg)
 
+    if world_size <= 1:
+        # single GPU/CPU training
+        basic_main(cfg)
 
-    mp.spawn(
-        ddp_main,
-        args=(world_size, cfg),
-        nprocs=world_size,
-        join=True,
-    )
+    else:
+        # multi-GPU training
+        mp.spawn(
+            ddp_main,
+            args=(world_size, cfg),
+            nprocs=world_size,
+            join=True,
+        )
 
-    # Additional cleanup to prevent leaked semaphores
-    for process in mp.active_children():
-        process.terminate()
-        process.join()
+        # Additional cleanup to prevent leaked semaphores
+        for process in mp.active_children():
+            process.terminate()
+            process.join()
 
 
 if __name__ == "__main__":

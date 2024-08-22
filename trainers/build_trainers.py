@@ -11,7 +11,7 @@ from torch.distributed import init_process_group
 from models.experimental.hugging_face import MockTrainer
 from trainers.base_trainer import BaseTrainer
 from trainers.datasets import (
-    BaseDataset,
+    BaseDatasetRandom,
     BytePoolingDataset,
     DatasetInterface,
     DualBytePooling,
@@ -22,7 +22,6 @@ from trainers.loss_fn import (
     next_token_mlm_loss_fn,
 )
 from trainers.optimizer import configure_nanoGPT_optimizer
-from trainers.samplers import BaseSampler
 from trainers.scheduler import (
     CosineLRScheduler,
     DropoutScheduler,
@@ -120,7 +119,7 @@ def build_dropout_scheduler(trainer_cfg):
 
 
 DATASET_DICT: dict[str, DatasetInterface] = {
-    "standard": BaseDataset,
+    "standard": BaseDatasetRandom,
     "byte_pooling": BytePoolingDataset,
     "dual_byte_pooling": DualBytePooling,
 }
@@ -132,18 +131,6 @@ def build_dataset(cfg, split):
     """
     return DATASET_DICT[cfg.trainer["dataloader"]["name"]](cfg=cfg, split=split)
 
-
-DATASAMPLER_DICT = {"standard": BaseSampler}
-
-
-def build_datasampler(dataset, sampling, batch_size):
-    """
-    Given the dataset and the sampling method, build the dataloader
-    """
-    return DATASAMPLER_DICT[sampling](
-        data_source=dataset,
-        batch_size=batch_size,
-    )
 
 
 LOSS_FN_DICT = {
@@ -185,32 +172,18 @@ def build_trainer(cfg, model, gpu_id):
     train_dataset = build_dataset(cfg=cfg, split="train")
     val_dataset = build_dataset(cfg=cfg, split="val")
 
-    # initialize datasamplers
-    train_data_sampler = build_datasampler(
-        dataset=train_dataset,
-        sampling=cfg["trainer"]["datasampling"]["name"],
-        batch_size=cfg["trainer"]["training"]["batch_size"]
-        * cfg["trainer"]["training"]["gradient_accumulation_steps"],
-    )
-    val_data_sampler = build_datasampler(
-        dataset=val_dataset,
-        sampling=cfg["trainer"]["datasampling"]["name"],
-        batch_size=cfg["trainer"]["training"]["batch_size"]
-        * cfg["trainer"]["training"]["gradient_accumulation_steps"],
-    )
 
     # wrap in dataloaders
     train_dataloader = torch.utils.data.DataLoader(
         dataset=train_dataset,
         batch_size=cfg["trainer"]["training"]["batch_size"],
-        sampler=train_data_sampler,
-        num_workers=1,
+        shuffle=False,
+
     )
     val_dataloader = torch.utils.data.DataLoader(
         dataset=val_dataset,
         batch_size=cfg["trainer"]["training"]["batch_size"],
-        sampler=val_data_sampler,
-        num_workers=1,
+        shuffle=False,
     )
 
     # build loss function
