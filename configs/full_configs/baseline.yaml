@@ -38,7 +38,7 @@ trainer:
     batch_size: 40
     gradient_accumulation_steps: 12
     max_iters: 20000
-    lr_decay_iters: 40000
+    lr_decay_iters: 40000 # Since we want to run KD for 40K (20K baseline + 20K KD)
     warmup_iters: 5000
     eval_interval: 2000
     log_interval: 10
@@ -83,7 +83,7 @@ trainer:
     name: cross_entropy
 general:
   logging:
-    wandb_log: True
+    wandb_log: False
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs

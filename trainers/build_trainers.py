@@ -161,7 +161,7 @@ def build_trainer(cfg, model, gpu_id, projection=None, teacher_model=None):
     optimizer = build_optimizer(model=model, projection=projection, optimizer_config=cfg.trainer["optimizer"])
 
     # build LR scheduler
-    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg.trainer, prev_iters = cfg["prev_iter"])
+    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg.trainer, prev_iters = cfg.get("prev_iter", 0))
 
     # build dropout scheduler
     dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg.trainer)

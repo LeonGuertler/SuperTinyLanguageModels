@@ -372,7 +372,6 @@ class BaseTrainer:
                 lr = self.lr_scheduler.step(self.optimizer, iter_num)
             else:
                 lr = self.optimizer.param_groups[0]["lr"]
-            print(f"lr: {lr}")
             dropout = self.dropout_scheduler.step(self.model, iter_num)
             # estimate the loss on the train/val sets
             if (
