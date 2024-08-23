@@ -43,6 +43,7 @@ class BaseTrainer:
         gpu_id, 
         lr_scheduler=None,
         dropout_scheduler=None,
+        distillation_loss_scheduler=None,
         projection=None,
         teacher_model=None,
     ) -> None:
@@ -52,6 +53,7 @@ class BaseTrainer:
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.dropout_scheduler = dropout_scheduler
+        self.distillation_loss_scheduler=distillation_loss_scheduler
         self.dataloader = dataloader
         self.train_val_dataloaders = {}
         self.loss_fn = loss_fn
@@ -285,7 +287,10 @@ class BaseTrainer:
 
                         ## combine the two losses
                         # loss = self.kd_cfg['embedding_loss_weight']*embeddings_loss + self.kd_cfg['attn_loss_weight']*attn_loss + self.kd_cfg['hs_loss_weight']*hs_loss + self.kd_cfg['soft_targets_loss_weight']*soft_targets_loss + self.kd_cfg['label_loss_weight']*label_loss
-                        loss = self.kd_cfg['soft_targets_loss_weight']*soft_targets_loss + (1.0 - self.kd_cfg['soft_targets_loss_weight'])*label_loss
+                        # loss = self.kd_cfg['soft_targets_loss_weight']*soft_targets_loss + (1.0 - self.kd_cfg['soft_targets_loss_weight'])*label_loss
+                        # print(f"distil loss weight: {self.w}")
+                        loss = self.w*soft_targets_loss + (1.0 - self.w)*label_loss
+
 
                     
                     else:
@@ -373,6 +378,9 @@ class BaseTrainer:
             else:
                 lr = self.optimizer.param_groups[0]["lr"]
             dropout = self.dropout_scheduler.step(self.model, iter_num)
+            if self.perform_kd:
+                w = self.distillation_loss_scheduler.get_weight(iter_num)
+                self.w = w
             # estimate the loss on the train/val sets
             if (
                 not iter_num % self.cfg.trainer.training.eval_interval
@@ -399,6 +407,7 @@ class BaseTrainer:
                                 "train/loss": losses["train"],
                                 "val/loss": losses["val"],
                                 "lr": lr,
+                                "distil_loss_weight": w,
                                 "dropout": dropout,
                                 "train/perplexity": perplexities["train"],
                                 "val/perplexity": perplexities["val"],
@@ -446,6 +455,7 @@ class BaseTrainer:
                             "iter": iter_num,
                             "loss": lossf,
                             "lr": lr,
+                            "distil_loss_weight": w,
                             "dropout": dropout,
                         }
                     )

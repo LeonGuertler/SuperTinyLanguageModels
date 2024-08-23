@@ -121,3 +121,37 @@ class TriangleDropoutScheduler(DropoutScheduler):
         dropout_p = self.get_dropout(iter_num)
         self.set_dropout(model, dropout_p)
         return dropout_p
+
+class DistilLossWeightScheduler:
+    """Constant Distillation Loss Weight Scheduler"""
+
+    def __init__(self, weight=0.1):
+        self.weight = weight
+
+    def get_weight(self, _):
+        """Return Constant Weight"""
+        return self.weight
+
+class LinearDistilLossWeightScheduler(DistilLossWeightScheduler):
+    """Linear Distillation Loss Weight Scheduler"""
+
+    def __init__(self, start_weight, end_weight, max_iters):
+        """Initialize the dropout schedule"""
+        super().__init__(start_weight)
+        self.start_weight = start_weight
+        self.end_weight = end_weight
+        self.max_iters = max_iters
+
+    def get_weight(self, iter_num):
+
+        if iter_num < 0 or iter_num > self.max_iters:
+            raise ValueError("Step must be between 0 and total_steps (inclusive)")
+        
+        if self.max_iters == 0:
+            return self.end_weight  # Avoid division by zero
+        
+        # Calculate the change rate
+        change_rate = (self.end_weight - self.start_weight) / self.max_iters
+        
+        # Calculate and return the value at the current step
+        return self.start_weight + (change_rate * iter_num)       

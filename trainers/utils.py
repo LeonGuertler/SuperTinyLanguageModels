@@ -264,7 +264,7 @@ def init_kd_cfg(cfg):
     embedding_loss_weight = cfg.teachermodel.embedding_loss_weight
     attn_loss_weight = cfg.teachermodel.attn_loss_weight
     hs_loss_weight = cfg.teachermodel.hs_loss_weight
-    soft_targets_loss_weight = cfg.teachermodel.soft_targets_loss_weight
+    # soft_targets_loss_weight = cfg.teachermodel.soft_targets_loss_weight
     label_loss_weight = cfg.teachermodel.label_loss_weight
 
     kd_cfg = {
@@ -272,7 +272,7 @@ def init_kd_cfg(cfg):
         "embedding_loss_weight": embedding_loss_weight,
         "attn_loss_weight": attn_loss_weight,
         "hs_loss_weight": hs_loss_weight,
-        "soft_targets_loss_weight": soft_targets_loss_weight,
+        # "soft_targets_loss_weight": soft_targets_loss_weight,
         "label_loss_weight": label_loss_weight
     }
 

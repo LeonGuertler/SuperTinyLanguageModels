@@ -22,7 +22,9 @@ from trainers.scheduler import (
     DropoutScheduler,
     LinearDropoutScheduler,
     LRScheduler,
-    TriangleDropoutScheduler
+    TriangleDropoutScheduler,
+    DistilLossWeightScheduler,
+    LinearDistilLossWeightScheduler
 )
 
 import torch
@@ -112,6 +114,23 @@ def build_dropout_scheduler(trainer_cfg):
         f"dropout scheduler {trainer_cfg['dropout_scheduler']['dropout_type']} not implemented."
     )
 
+DISTILLATION_LOSS_DICT = {
+    "linear": lambda cfg: LinearDistilLossWeightScheduler(
+        start_weight=cfg["teachermodel"]["distil_loss_scheduler"]["distil_loss_weight_start"],
+        end_weight=cfg["teachermodel"]["distil_loss_scheduler"]["distil_loss_weight"],
+        max_iters=cfg["trainer"]["training"]["max_iters"],
+    ),
+    "constant": lambda cfg: DistilLossWeightScheduler(
+        weight=cfg["teachermodel"]["distil_loss_scheduler"]["distil_loss_weight"],
+    ),
+}
+
+def build_distillation_loss_scheduler(cfg):
+    """
+    Given the trainer config, build the LR scheduler.build_model
+    """
+    return DISTILLATION_LOSS_DICT[cfg["teachermodel"]["distil_loss_scheduler"]["distil_loss_type"]](cfg=cfg)
+
 
 DATALOADER_DICT: dict[str, BaseDataloader] = {
     "standard": BaseDataloader,
@@ -166,6 +185,9 @@ def build_trainer(cfg, model, gpu_id, projection=None, teacher_model=None):
     # build dropout scheduler
     dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg.trainer)
 
+    ## build the distillation loss scheduler
+    distillation_loss_scheduler = build_distillation_loss_scheduler(cfg=cfg)
+
     # build dataloder
     dataloader = build_dataloader(cfg=cfg, embedder=model.embedding_model)
     dataloader.prepare_data()
@@ -183,6 +205,7 @@ def build_trainer(cfg, model, gpu_id, projection=None, teacher_model=None):
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
         dropout_scheduler=dropout_scheduler,
+        distillation_loss_scheduler=distillation_loss_scheduler,
         dataloader=dataloader,
         loss_fn=loss_fn,
         gpu_id=gpu_id
