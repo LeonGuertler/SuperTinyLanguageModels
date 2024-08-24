@@ -186,7 +186,10 @@ def build_trainer(cfg, model, gpu_id, projection=None, teacher_model=None):
     dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg.trainer)
 
     ## build the distillation loss scheduler
-    distillation_loss_scheduler = build_distillation_loss_scheduler(cfg=cfg)
+    if teacher_model is not None:
+        distillation_loss_scheduler = build_distillation_loss_scheduler(cfg=cfg)
+    else:
+        distillation_loss_scheduler = None
 
     # build dataloder
     dataloader = build_dataloader(cfg=cfg, embedder=model.embedding_model)

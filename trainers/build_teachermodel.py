@@ -28,8 +28,14 @@ def build_projection(model_cfg, teacher_model_cfg):
 def init_teachermodel(cfg):
 
     # load the teacher model
-    cfg.teachermodel["model_ckpt"] = hydra.utils.to_absolute_path(cfg.teachermodel["model_ckpt"]) # get the absolute path of the teacher model checkpoint
-    teacher_model = build_model(checkpoint=torch.load(cfg.teachermodel["model_ckpt"])) # load the teacher model
+    if "model_ckpt" in cfg.teachermodel:
+        # set the checkpoint path to absolute path
+        cfg.teachermodel["model_ckpt"] = hydra.utils.to_absolute_path(cfg.teachermodel["model_ckpt"]) # get the absolute path of the teacher model checkpoint
+        teacher_model = build_model(checkpoint=torch.load(cfg.teachermodel["model_ckpt"])) # load the teacher model
+    # otherwise build the model from scratch (e.g. for external pretrained models)
+    else:
+        teacher_model = build_model(model_cfg=cfg.teachermodel["model"])
+        
     teacher_model.to(cfg["general"]["device"]) # move the teacher model to the device
     teacher_model.eval() # set the teacher model to evaluation mode
     teacher_model_cfg = teacher_model.core_model.model.config # get the teacher model configuration
