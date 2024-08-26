@@ -9,6 +9,7 @@ import torch
 from torch.distributed import init_process_group
 
 from models.experimental.hugging_face import MockTrainer
+from models.experimental.dropout import GradiantVarianceTrainer
 from trainers.base_trainer import BaseTrainer
 from trainers.datasets import (
     BaseDatasetRandom,
@@ -150,6 +151,7 @@ def build_loss_fn(loss_fn_name):
 TRAINER_DICT = {
     "base_trainer": BaseTrainer,
     "mock_trainer": MockTrainer,
+    "grad_var_trainer": GradiantVarianceTrainer,
 }
 
 
