@@ -82,6 +82,29 @@ class ModelShell(torch.nn.Module):
         logits = self.model_head.inference(x)
 
         return logits, model_input
+    
+    @torch.no_grad()
+    def generate(self, model_input, max_length=100):
+        """
+        Generate a sequence of tokens given a prompt.
+        Args:
+            model_input: str or torch.tensor(B, S)
+            max_length: int
+        Returns:
+            tokens: list[int]
+        """
+        # tokenize the input 
+        tokens = self.embedding_model.tokenize_input(model_input, truncate=True, add_eot=False)
+
+        while len(tokens) < max_length:
+            # generate the next token
+            logits, _ = self.inference(tokens)
+            next_token = torch.argmax(logits[:, -1], dim=-1)
+            tokens.append(next_token.item())
+            if next_token == self.embedding_model.eot_token:
+                break
+
+        return tokens        
 
     @torch.no_grad()
     def loglikelihood(self, prefixes, continuations):
