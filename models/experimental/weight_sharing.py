@@ -33,7 +33,8 @@ class FFNInteriorLora(GenericTransformer):
                 base_param = getattr(self.transformer.h[base_layer].ffn, name)
                 param.data = base_param.data
                 # wrap the linear layer with LoRA
-                setattr(self.transformer.h[i].ffn, name, LoRA(base_param, self.lora_rank))
+                if self.lora_rank is not None:
+                    setattr(self.transformer.h[i].ffn, name, LoRA(base_param, self.lora_rank))
 
 
 
