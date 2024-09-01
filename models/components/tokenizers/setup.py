@@ -20,7 +20,7 @@ TOKENIZER_DICT = {
     "p50k": lambda vocab_size, dataset_name: P50KTokenizer(),
     "llama_30k": lambda vocab_size, dataset_name: LLaMATokenizer(),
     "opt": lambda vocab_size, dataset_name: OPTTokenizer(),
-    "bpe_subsampled": lambda vocab_size, dataset_name: BPESubsampledTokenizer(
+    "bpe-subsampled": lambda vocab_size, dataset_name: BPESubsampledTokenizer(
         vocab_size=vocab_size
     )
 }
