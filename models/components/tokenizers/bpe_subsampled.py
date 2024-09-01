@@ -56,6 +56,9 @@ class BPESubsampledTokenizer(BaseTokenizer):
         print(f"Vocabulary size: {len(self.tokenizer.get_vocab())}")
         print(f"Maximum token ID: {max(self.tokenizer.get_vocab().values())}")
 
+        self.pad_token_id = self.tokenizer.token_to_id("<|pad|>")
+        self.eot_token_id = self.tokenizer.token_to_id("<|endoftext|>")
+        self.unk_token_id = self.tokenizer.token_to_id("<|unk|>")
 
 
 
