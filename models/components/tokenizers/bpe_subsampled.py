@@ -22,7 +22,7 @@ class BPESubsampledTokenizer(BaseTokenizer):
         """
         Load and subsample the Llama-3.1 tokenizer
         """
-        self.vocab_size = vocab_size
+        self.vocab_size = vocab_size - 256
         self.special_tokens = ["<|pad|>", "<|endoftext|>", "<|unk|>"]
 
         assert self.vocab_size >= 256 + len(self.special_tokens), \
