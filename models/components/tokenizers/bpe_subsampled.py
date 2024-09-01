@@ -46,6 +46,11 @@ class BPESubsampledTokenizer(BaseTokenizer):
         tokenizer_json["model"]["vocab"] = new_vocab
         self.tokenizer._tokenizer = Tokenizer.from_str(json.dumps(tokenizer_json))
 
+        self.vocab_size = vocab_size
+        self.eot_token = vocab_size - 2
+        self.pad_token = vocab_size - 3
+        self.unk_token = vocab_size - 1
+
 
 
     def encode(self, text: str) -> List[int]:
