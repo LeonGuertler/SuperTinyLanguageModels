@@ -22,7 +22,7 @@ class BPESubsampledTokenizer(BaseTokenizer):
         """
         Load and subsample the Llama-3.1 tokenizer
         """
-        self.tokenizer = AutoTokenizer("NousResearch/Hermes-3-Llama-3.1-8B", use_fast=True)
+        self.tokenizer = AutoTokenizer.from_pretrained("NousResearch/Hermes-3-Llama-3.1-8B", use_fast=True)
         assert self.tokenizer.is_fast, "Tokenizer is not fast"
         tokenizer_json = json.loads(self.tokenizer._tokenizer.to_str())
         vocab = tokenizer_json["model"]["vocab"]
