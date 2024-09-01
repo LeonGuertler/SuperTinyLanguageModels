@@ -63,7 +63,11 @@ class BPESubsampledTokenizer(BaseTokenizer):
         Returns:
             List[int]: The list of token ids.
         """
-        return self.tokenizer.encode(text).ids
+        encoded = self.tokenizer.encode(text)
+        if isinstance(encoded, list):
+            return encoded
+        else:
+            return encoded.ids
 
     def encode_batch(self, texts: List[str]) -> List[List[int]]:
         """
