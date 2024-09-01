@@ -28,7 +28,7 @@ class BPESubsampledTokenizer(BaseTokenizer):
         vocab = tokenizer_json["model"]["vocab"]
 
         # Prune the vocabulary
-        new_vocab = {token: i for token, i in vocab.items() if i < vocab_size-3}
+        new_vocab = {token: i for i, (token, _) in enumerate(vocab.items()) if i < vocab_size-3}
         merges = tokenizer_json["model"]["merges"]
         new_merges = []
         for i in range(len(merges)):
@@ -63,11 +63,8 @@ class BPESubsampledTokenizer(BaseTokenizer):
         Returns:
             List[int]: The list of token ids.
         """
-        encoded = self.tokenizer.encode(text)
-        if isinstance(encoded, list):
-            return encoded
-        else:
-            return encoded.ids
+        return self.tokenizer(text)
+
 
     def encode_batch(self, texts: List[str]) -> List[List[int]]:
         """
