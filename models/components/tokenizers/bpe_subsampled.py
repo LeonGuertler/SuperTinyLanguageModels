@@ -22,11 +22,6 @@ class BPESubsampledTokenizer(BaseTokenizer):
         """
         Load and subsample the Llama-3.1 tokenizer
         """
-
-        assert self.vocab_size >= 256 + len(self.special_tokens), \
-            f"Vocab size too small! Must be > {256 + len(self.special_tokens)})"
-        
-
         self.tokenizer = AutoTokenizer("NousResearch/Hermes-3-Llama-3.1-8B", use_fast=True)
         assert self.tokenizer.is_fast, "Tokenizer is not fast"
         tokenizer_json = json.loads(self.tokenizer._tokenizer.to_str())
