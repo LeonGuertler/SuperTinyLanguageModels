@@ -22,6 +22,12 @@ class BPESubsampledTokenizer(BaseTokenizer):
         """
         Load and subsample the Llama-3.1 tokenizer
         """
+        self.vocab_size = vocab_size
+        self.special_tokens = ["<|pad|>", "<|endoftext|>", "<|unk|>"]
+
+        assert self.vocab_size >= 256 + len(self.special_tokens), \
+            f"Vocab size too small! Must be > {256 + len(self.special_tokens)})"
+
         self.tokenizer = AutoTokenizer.from_pretrained("NousResearch/Hermes-3-Llama-3.1-8B", use_fast=True)
         assert self.tokenizer.is_fast, "Tokenizer is not fast"
         tokenizer_json = json.loads(self.tokenizer._tokenizer.to_str())
@@ -33,7 +39,7 @@ class BPESubsampledTokenizer(BaseTokenizer):
         new_merges = []
         for i in range(len(merges)):
             a, b = merges[i].split()
-            new_token = " ".join([a, b])
+            new_token = "".join([a, b])
             if a in new_vocab and b in new_vocab and new_token in new_vocab:
                 new_merges.append(merges[i])
 
@@ -44,12 +50,12 @@ class BPESubsampledTokenizer(BaseTokenizer):
 
         tokenizer_json["model"]["merges"] = new_merges 
         tokenizer_json["model"]["vocab"] = new_vocab
-        self.tokenizer._tokenizer = Tokenizer.from_str(json.dumps(tokenizer_json))
+        self.tokenizer = Tokenizer.from_str(json.dumps(tokenizer_json))
 
-        self.vocab_size = vocab_size
-        self.eot_token = vocab_size - 2
-        self.pad_token = vocab_size - 3
-        self.unk_token = vocab_size - 1
+        # Verification step
+        print(f"Vocabulary size: {len(self.tokenizer.get_vocab())}")
+        print(f"Maximum token ID: {max(self.tokenizer.get_vocab().values())}")
+
 
 
 
