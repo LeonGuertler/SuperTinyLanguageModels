@@ -72,7 +72,7 @@ class BPESubsampledTokenizer(BaseTokenizer):
         Returns:
             List[int]: The list of token ids.
         """
-        return self.tokenizer.encode(text).ids
+        return self.tokenizer.encode(text, add_special_tokens=False).ids
 
 
     def encode_batch(self, texts: List[str]) -> List[List[int]]:
