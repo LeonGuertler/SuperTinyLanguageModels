@@ -34,7 +34,7 @@ class BPESubsampledTokenizer(BaseTokenizer):
         vocab = tokenizer_json["model"]["vocab"]
 
         # Prune the vocabulary
-        new_vocab = {token: i for i, (token, _) in enumerate(vocab.items()) if i < vocab_size-3}
+        new_vocab = {token: i for i, (token, _) in enumerate(vocab.items()) if i < self.vocab_size-3}
         merges = tokenizer_json["model"]["merges"]
         new_merges = []
         for i in range(len(merges)):
@@ -44,9 +44,9 @@ class BPESubsampledTokenizer(BaseTokenizer):
                 new_merges.append(merges[i])
 
         # add the special tokens (eot, pad, unk)
-        new_vocab["<|pad|>"] = vocab_size - 3
-        new_vocab["<|endoftext|>"] = vocab_size - 2
-        new_vocab["<|unk|>"] = vocab_size - 1
+        new_vocab["<|pad|>"] = self.vocab_size - 3
+        new_vocab["<|endoftext|>"] = self.vocab_size - 2
+        new_vocab["<|unk|>"] = self.vocab_size - 1
 
         tokenizer_json["model"]["merges"] = new_merges 
         tokenizer_json["model"]["vocab"] = new_vocab
