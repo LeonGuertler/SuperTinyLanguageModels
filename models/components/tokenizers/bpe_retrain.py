@@ -117,10 +117,10 @@ class BPERetrainTokenizer(BaseTokenizer):
         training_corpus = get_training_corpus()
 
         old_tokenizer = AutoTokenizer.from_pretrained("gpt2")
-        tokenizer = old_tokenizer.train_new_from_iterator(training_corpus, self.vocab_size-3)
+        self.tokenizer = old_tokenizer.train_new_from_iterator(training_corpus, self.vocab_size-3)
 
         # add special tokens
-        tokenizer.add_special_tokens(
+        self.tokenizer.add_special_tokens(
             {
                 'additional_special_tokens': [
                     "<|pad|>",
