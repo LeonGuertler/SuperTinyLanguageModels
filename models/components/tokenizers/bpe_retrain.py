@@ -112,7 +112,7 @@ class BPERetrainTokenizer(BaseTokenizer):
             dataset = raw_datasets["train"]
             for start_idx in range(0, len(dataset), 1000):
                 samples = dataset[start_idx : start_idx + 1000]
-                yield samples["whole_func_string"]
+                yield samples["text"]
 
         training_corpus = get_training_corpus()
 
