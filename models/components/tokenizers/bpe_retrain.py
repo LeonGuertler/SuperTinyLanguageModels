@@ -139,7 +139,8 @@ class BPERetrainTokenizer(BaseTokenizer):
             vocab_size=self.vocab_size,
             dataset_name=self.dataset_name,
         )
-        self.tokenizer.save(tokenizer_path)
+        #self.tokenizer.save(tokenizer_path)
+        self.tokenizer.save_pretrained(tokenizer_path)
 
     def _load(self):
         """
@@ -150,6 +151,6 @@ class BPERetrainTokenizer(BaseTokenizer):
             vocab_size=self.vocab_size,
             dataset_name=self.dataset_name,
         )
-        self.tokenizer = Tokenizer.from_file(tokenizer_path)
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
         #self.tokenizer.add_special_tokens(self.special_tokens)
         self.vocab = {id: token for token, id in self.tokenizer.get_vocab().items()}
