@@ -58,7 +58,7 @@ class BPERetrainTokenizer(BaseTokenizer):
         Returns:
             List[int]: The list of token ids.
         """
-        return self.tokenizer.encode(text).ids
+        return self.tokenizer.encode(text)#.ids
 
     def encode_batch(self, texts: List[str]) -> List[List[int]]:
         """
