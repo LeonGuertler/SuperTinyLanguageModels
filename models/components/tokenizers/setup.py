@@ -10,6 +10,7 @@ from models.components.tokenizers.p50k import P50KTokenizer
 from models.components.tokenizers.llama_30k import LLaMATokenizer
 from models.components.tokenizers.opt import OPTTokenizer
 from models.components.tokenizers.bpe_subsampled import BPESubsampledTokenizer
+from models.components.tokenizers.bpe_retrain import BPERetrainTokenizer
 
 TOKENIZER_DICT = {
     "gpt2": lambda vocab_size, dataset_name: GPT2Tokenizer(),
@@ -22,7 +23,10 @@ TOKENIZER_DICT = {
     "opt": lambda vocab_size, dataset_name: OPTTokenizer(),
     "bpe-subsampled": lambda vocab_size, dataset_name: BPESubsampledTokenizer(
         vocab_size=vocab_size
-    )
+    ),
+    "bpe-retrain": lambda vocab_size, dataset_name: BPERetrainTokenizer(
+        vocab_size=vocab_size, dataset_name=dataset_name
+    ),
 }
 
 
