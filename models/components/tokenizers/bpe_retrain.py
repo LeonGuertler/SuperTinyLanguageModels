@@ -120,7 +120,15 @@ class BPERetrainTokenizer(BaseTokenizer):
         tokenizer = old_tokenizer.train_new_from_iterator(training_corpus, self.vocab_size-3)
 
         # add special tokens
-        tokenizer.add_special_tokens(self.special_tokens)
+        tokenizer.add_special_tokens(
+            {
+                'additional_special_tokens': [
+                    "<|pad|>",
+                    "<|endoftext|>",
+                    "<|unk|>"
+                ]
+            }
+        )
 
     def _save(self):
         """
