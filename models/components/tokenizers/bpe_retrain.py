@@ -28,14 +28,14 @@ class BPERetrainTokenizer(BaseTokenizer):
         super().__init__()
         self.vocab_size = vocab_size
         self.dataset_name = dataset_name
-        self.special_tokens = {
+        """self.special_tokens = {
             "<|pad|>": vocab_size - 3,
             "<|endoftext|>": vocab_size - 2,
             "<|unk|>": vocab_size - 1,
         }
         self.pad_token = self.special_tokens["<|pad|>"]
         self.eot_token = self.special_tokens["<|endoftext|>"]
-        self.unk_token = self.special_tokens["<|unk|>"]
+        self.unk_token = self.special_tokens["<|unk|>"]"""
 
         assert self.vocab_size >= 256 + len(self.special_tokens), \
             f"Vocab size too small! Must be > {256 + len(self.special_tokens)})"
@@ -47,6 +47,10 @@ class BPERetrainTokenizer(BaseTokenizer):
             self._save()
         else:
             self._load()
+
+        self.pad_token = self.tokenizer.token_to_id("<|pad|>")
+        self.eot_token = self.tokenizer.token_to_id("<|endoftext|>")
+        self.unk_token = self.tokenizer.token_to_id("<|unk|>")
 
     def encode(self, text: str) -> List[int]:
         """
