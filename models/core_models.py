@@ -76,3 +76,25 @@ class GenericFFNSharedTransfomer(GenericTransformer):
                     ]
                     target_module.weight = module.weight
                     target_module.bias = module.bias
+
+class GenericCProjSharedTransfomer(GenericTransformer):
+    """
+    Generic Transformer Class that shares the weights
+    between all CProj blocks
+    """
+
+    def __init__(self, model_cfg):
+        super().__init__(model_cfg=model_cfg)
+
+        # share the weights between transformer blocks
+        cproj_0 = self.transformer.h[0].attn.c_proj
+
+        for i in range(1, len(self.transformer.h)):
+            # find all linear layers in the cproj subnets and tie them to the first layer
+            for name, module in cproj_0.named_modules():
+                if isinstance(module, torch.nn.Linear):
+                    target_module = dict(self.transformer.h[i].attn.c_proj.named_modules())[
+                        name
+                    ]
+                    target_module.weight = module.weight
+                    target_module.bias = module.bias
