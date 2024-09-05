@@ -9,32 +9,33 @@ class LoRA(nn.Module):
         super().__init__()
         self.linear_layer = linear_layer
         self.lora_rank = lora_rank
-        self.U = nn.Parameter(torch.randn(linear_layer.out_features, lora_rank))
-        self.V = nn.Parameter(torch.randn(lora_rank, linear_layer.in_features))
-        self.bias = linear_layer.bias
-        self.weight = linear_layer.weight
+        self.U = nn.Linear(linear_layer.in_features, lora_rank)
+        self.V = nn.Linear(lora_rank, linear_layer.out_features)
 
     def forward(self, x):
         """Forward pass through the linear layer with LoRA"""
         # compute the LoRA weight matrix
-        W = self.weight + torch.matmul(self.U, self.V)
-        return torch.nn.functional.linear(x, W, self.bias)
+        return self.linear_layer(x) + self.V(self.U(x))
 
-class FFNInteriorLora(GenericTransformer):
+class SharedInteriorFFNLora(GenericTransformer):
     def __init__(self, model_cfg):
         super().__init__(model_cfg)
         self.k_interior_layers = model_cfg["k_interior_layers"]
         self.lora_rank = model_cfg["lora_rank"]
         # share the weights between transformer blocks in layers 1+k_interior_layers to D-k_interior_layers
         base_layer = 1 + self.k_interior_layers
+        ffn_0 = self.transformer.h[base_layer].ffn
+        shared_weights = {}
+        for name, module in ffn_0.named_modules():
+            if isinstance(module, torch.nn.Linear):
+                shared_weights[name] = module.weight
         for i in range(1 + self.k_interior_layers, len(self.transformer.h) - self.k_interior_layers):
-            for name, param in self.transformer.h[i].ffn.named_parameters():
-                # set the param to the corresponding param in the base layer
-                base_param = getattr(self.transformer.h[base_layer].ffn, name)
-                param.data = base_param.data
-                # wrap the linear layer with LoRA
-                if self.lora_rank is not None:
-                    setattr(self.transformer.h[i].ffn, name, LoRA(base_param, self.lora_rank))
+            for name, module in self.transformer.h[i].ffn.named_modules():
+                if isinstance(module, torch.nn.Linear):
+                    module.weight = shared_weights[name]
+                    # wrap the linear layer with LoRA
+                    if self.lora_rank is not None:
+                        setattr(self.transformer.h[i].ffn, name, LoRA(module, self.lora_rank))
 
 
 
