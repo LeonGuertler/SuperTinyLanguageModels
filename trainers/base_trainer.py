@@ -53,14 +53,16 @@ class BaseTrainer:
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.dropout_scheduler = dropout_scheduler
-        self.train_dataloader = train_dataloader
+        self.train_dataloader_iter = iter(train_dataloader)
         self.val_dataloader = val_dataloader
         self.loss_fn = loss_fn
         self.cfg = cfg
         #assert self.cfg["trainer"]["training"]["gradient_accumulation_steps"] % torch.cuda.device_count() == 0, "Gradient Accumulation Steps must be divisible by the number of GPUs"
         self.gradient_accumulation_steps = cfg["trainer"]["training"][
             "gradient_accumulation_steps"
-        ] #// torch.cuda.device_count() ## divide by number of GPUs to maximise throughput
+        ] // torch.cuda.device_count() if torch.cuda.is_available() else cfg["trainer"]["training"][
+            "gradient_accumulation_steps"
+        ]## divide by number of GPUs to maximise throughput
         self.scaler = None
         self.use_wandb = cfg["general"]["logging"]["wandb_log"]
         self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
@@ -161,11 +163,14 @@ class BaseTrainer:
 
 
 
-    def _run_step(self, epoch=0):
+    def _run_step(self):
         """Run a single step of training with gradient accumulation."""
         self.optimizer.zero_grad()  # Clear gradients at the start of accumulation
 
-        for i, (x, y) in enumerate(self.train_dataloader):
+        accumulated_loss = 0
+        for i in range(self.gradient_accumulation_steps):
+            # get the next batch
+            x, y = next(self.train_dataloader_iter)
             x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
             y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
 
@@ -176,29 +181,30 @@ class BaseTrainer:
                 context_manager = nullcontext()
 
             with context_manager:
-                with self.ctx:  # Assuming self.ctx is something like torch.cuda.amp.autocast
+                with self.ctx: 
                     output, aux_loss = self.DDP_model(x)
-                    loss = self.loss_fn(output, y) #+ (aux_loss if aux_loss is not None else 0)
+                    loss = self.loss_fn(output, y)
                     if aux_loss is not None:
                         loss += aux_loss
+
                 # Scale loss to simulate larger effective batch size
                 loss = loss / self.gradient_accumulation_steps
                 self.scaler.scale(loss).backward()
+                accumulated_loss += loss.item()
 
-            # Step and update only after accumulating enough gradients
-            if (i + 1) % self.gradient_accumulation_steps == 0 or (i + 1) == len(self.train_dataloader):
-                if self.cfg.trainer.optimizer.grad_clip > 0:
-                    # Unscale the gradients of the optimizer's assigned params in-place
-                    self.scaler.unscale_(self.optimizer)
-                    # Clip the gradients with normalization
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.trainer.optimizer.grad_clip)
-                
-                # Perform a single optimization step
-                self.scaler.step(self.optimizer)
-                self.scaler.update()
-                self.optimizer.zero_grad()  # Reset gradients after update
+        # once graidents are accumulated, step 
+        if self.cfg.trainer.optimizer.grad_clip > 0:
+            # Unscale the gradients of the optimizer's assigned params in-place
+            self.scaler.unscale_(self.optimizer)
+            # Clip the gradients with normalization
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.trainer.optimizer.grad_clip)
+        
+        # Perform a single optimization step
+        self.scaler.step(self.optimizer)
+        self.scaler.update()
+        self.optimizer.zero_grad()  # Reset gradients after update
 
-        return loss.item()  # Assuming loss is the average over the accumulated steps
+        return accumulated_loss
 
     def run_profile(self):
         """Run the profiler"""
@@ -294,11 +300,9 @@ class BaseTrainer:
                 self._save_model(iter_num)
 
 
-            loss = self._run_step() ## set the 'epoch' to ensure shuffle
+            lossf = self._run_step() ## set the 'epoch' to ensure shuffle
             end_time = time.time()
             if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
-                lossf = loss * self.gradient_accumulation_steps
-
                 ## uncomment the following line to print the loss on all GPUs
                 # print(f"GPU {self.gpu_id}: step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
 
