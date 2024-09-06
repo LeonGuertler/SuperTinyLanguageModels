@@ -299,10 +299,11 @@ class BaseTrainer:
                         # print(f"Cross Entropy Loss: {label_loss.item()}")
 
                         ## combine the two losses
-                        loss = self.kd_cfg['embedding_loss_weight']*embeddings_loss + self.kd_cfg['attn_loss_weight']*attn_loss + self.kd_cfg['hs_loss_weight']*hs_loss + self.kd_cfg['soft_targets_loss_weight']*soft_targets_loss + self.kd_cfg['label_loss_weight']*label_loss
-                        # loss = self.kd_cfg['soft_targets_loss_weight']*soft_targets_loss + (1.0 - self.kd_cfg['soft_targets_loss_weight'])*label_loss
+                        print('embedding weight:', self.e, 'attn weight:', self.a, 'hs weight:', self.h, 'distil weight:', self.d, 'label weight:', self.l)
+                        loss = self.e*embeddings_loss + self.a*attn_loss + self.h*hs_loss + self.d*soft_targets_loss + self.l*label_loss
+                        # loss = self.kd_cfg['distil_loss_weight']*soft_targets_loss + (1.0 - self.kd_cfg['distil_loss_weight'])*label_loss
                         # print(f"distil loss weight: {self.w}")
-                        # loss = self.w*soft_targets_loss + (1.0 - self.w)*label_loss
+                        # loss = self.d*soft_targets_loss + self.l*label_loss
 
                     
                     else:
@@ -391,8 +392,22 @@ class BaseTrainer:
                 lr = self.optimizer.param_groups[0]["lr"]
             dropout = self.dropout_scheduler.step(self.model, iter_num)
             if self.perform_kd:
-                w = self.distillation_loss_scheduler.get_weight(iter_num)
-                self.w = w
+                self.e = self.kd_cfg['embedding_loss_weight']
+                self.a = self.kd_cfg['attn_loss_weight']
+                self.h = self.kd_cfg['hs_loss_weight']
+                self.d = self.distillation_loss_scheduler.get_weight(iter_num)
+                if self.kd_cfg['distil_loss_type'] == "linear":
+                    ## when the distillation loss is linear, the label loss is the complement of the distillation loss
+                    self.l = 1.0 - self.d
+                elif self.kd_cfg['distil_loss_type'] == "constant":
+                    ## when the distillation loss is constant, the label loss is what's provided in the config
+                    self.l = self.kd_cfg['label_loss_weight']
+            else:
+                self.e = 0.0
+                self.a = 0.0
+                self.h = 0.0
+                self.d = 0.0
+                self.l = 1.0
             # estimate the loss on the train/val sets
             if (
                 not iter_num % self.cfg.trainer.training.eval_interval
@@ -419,7 +434,6 @@ class BaseTrainer:
                                 "train/loss": losses["train"],
                                 "val/loss": losses["val"],
                                 "lr": lr,
-                                "distil_loss_weight": w,
                                 "dropout": dropout,
                                 "train/perplexity": perplexities["train"],
                                 "val/perplexity": perplexities["val"],
@@ -467,7 +481,11 @@ class BaseTrainer:
                             "iter": iter_num,
                             "loss": lossf,
                             "lr": lr,
-                            "distil_loss_weight": w,
+                            "embedding_loss_weight": self.e,
+                            "attn_loss_weight": self.a,
+                            "hs_loss_weight": self.h,
+                            "distil_loss_weight": self.d,
+                            "label_loss_weight": self.l,
                             "dropout": dropout,
                         }
                     )

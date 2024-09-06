@@ -1,5 +1,5 @@
 teachermodel:
-  # model_ckpt: '/workspace/code-repo/SuperTinyLanguageModels/outputs/adapted-teacher-qwen20.5b/11-24-15/checkpoints/ckpt_49999.pt' #'/home/bobby/code-repo/SuperTinyLanguageModels/outputs/2024-07-19/11-09-23/checkpoints/ckpt_15999.pt'
+  # model_ckpt: '/home/bobby/code-repo/SuperTinyLanguageModels/outputs/adapted-teacher-qwen20.5b/11-24-15/checkpoints/ckpt_49999.pt' #'/home/bobby/code-repo/SuperTinyLanguageModels/outputs/2024-07-19/11-09-23/checkpoints/ckpt_15999.pt'
   model:
     model_string: "openai-community/gpt2-medium"
     flash_attention: false
@@ -22,7 +22,7 @@ teachermodel:
   attn_loss_weight: 1.0
   hs_loss_weight: 1.0
   distil_loss_scheduler:
-    distil_loss_type: 'constant'
+    distil_loss_type: 'linear'
     distil_loss_weight: 1.0
     distil_loss_weight_start: 0.8
   label_loss_weight: 1.0

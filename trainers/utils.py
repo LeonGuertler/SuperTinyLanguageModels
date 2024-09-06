@@ -259,103 +259,126 @@ def init_kd_cfg(cfg):
     """
     Initialize the knowledge distillation config.
     """
-    
     temperature = cfg.teachermodel.temperature
-    embedding_loss_weight = cfg.teachermodel.embedding_loss_weight
-    attn_loss_weight = cfg.teachermodel.attn_loss_weight
-    hs_loss_weight = cfg.teachermodel.hs_loss_weight
-    soft_targets_loss_weight = cfg.teachermodel.distil_loss_scheduler.distil_loss_weight
-    label_loss_weight = cfg.teachermodel.label_loss_weight
+    distil_loss_type = cfg.teachermodel.distil_loss_scheduler.distil_loss_type
+    distil_loss_weight = cfg.teachermodel.distil_loss_scheduler.distil_loss_weight
+
+    if distil_loss_type == "linear":
+        embedding_loss_weight = 0.0
+        attn_loss_weight = 0.0
+        hs_loss_weight = 0.0
+        label_loss_weight = None
+
+    else: 
+        embedding_loss_weight = cfg.teachermodel.embedding_loss_weight
+        attn_loss_weight = cfg.teachermodel.attn_loss_weight
+        hs_loss_weight = cfg.teachermodel.hs_loss_weight
+        label_loss_weight = cfg.teachermodel.label_loss_weight
 
     kd_cfg = {
         "temperature": temperature,
         "embedding_loss_weight": embedding_loss_weight,
         "attn_loss_weight": attn_loss_weight,
         "hs_loss_weight": hs_loss_weight,
-        "soft_targets_loss_weight": soft_targets_loss_weight,
+        "distil_loss_weight": distil_loss_weight,
+        "distil_loss_type": distil_loss_type,
         "label_loss_weight": label_loss_weight
     }
 
     return kd_cfg
 
 def get_qk_scores(model, inputs):
-    '''
-    Get the q and k projections from the model.
-    '''
+    """
+    Get the Q and K projections from the model.
+    This function handles both Qwen 2 0.5B and GPT-2 models.
+    """
     raw_attentions = []
     hooks = []
 
-    # ## create a hook to capture the raw attention logits
-    # def attention_hook(module, input, output):
-    #     # Capture the raw attention logits (QK^T)
-    #     qk = output
-    #     raw_attentions.append(qk.detach())
+    def attention_hook_qwen(module, input, output):
+        """Hook to capture the attention for Qwen 2 models."""
+        qk = output  # Raw attention logits (QK^T)
+        raw_attentions.append(qk.detach())
 
-    # ## register the hook to the relevant modules of the model (Qwen 2)
-    # for name, module in model.named_modules():
-    #     if 'q_proj' in name or 'k_proj' in name:
-    #         hook = module.register_forward_hook(attention_hook)
-    #         hooks.append(hook)
-
-    # ## forward pass
-    # with torch.no_grad():
-    #     outputs = model(inputs)
-
-    # ## remove the hooks
-    # for hook in hooks:
-    #     hook.remove()
-
-    # return raw_attentions
-
-    ## create a hook to capture the raw attention logits
-    def attention_hook(module, input, output):
-        # Capture the raw attention logits (QK^T)
+    def attention_hook_gpt2(module, input, output):
+        """Hook to capture the attention for GPT-2 models."""
         qkv = output  # shape: (batch_size, seq_len, 3 * hidden_size)
         hidden_size = qkv.shape[-1] // 3
         q, k, v = qkv.split(hidden_size, dim=-1)
         raw_attentions.append(q.detach())
         raw_attentions.append(k.detach())
-        
-    ## register the hook to the relevant modules of the model (GPT 2)
-    for name, module in model.named_modules():
-        if 'c_attn' in name:
-            hook = module.register_forward_hook(attention_hook)
-            hooks.append(hook)
+
+    # Identify model type and register hooks accordingly
+    if 'Qwen' in model.core_model.model.__class__.__name__:  # Assuming 'Qwen' appears in the model class name
+        # Register hooks for Qwen 2
+        for name, module in model.named_modules():
+            if 'q_proj' in name or 'k_proj' in name:
+                hook = module.register_forward_hook(attention_hook_qwen)
+                hooks.append(hook)
+    elif 'GPT2' in model.core_model.model.__class__.__name__:  # Assuming 'GPT2' appears in the model class name
+        # Register hooks for GPT-2
+        for name, module in model.named_modules():
+            if 'c_attn' in name:
+                hook = module.register_forward_hook(attention_hook_gpt2)
+                hooks.append(hook)
+    else:
+        raise ValueError("Unsupported model type: {}".format(model.core_model.model.__class__.__name__))
 
     # Forward pass
     with torch.no_grad():
         outputs = model(inputs)
 
-    ## remove the hooks
+    # Remove the hooks
     for hook in hooks:
         hook.remove()
 
     return raw_attentions
 
 
-def calculate_prenormalized_attention(q, k, teacher_model = None):
-    '''
+
+def calculate_prenormalized_attention(q, k, teacher_model=None):
+    """
     Calculate the pre-normalized attention scores.
-    '''
-    
-    ## if teacher model is provided, we need to adjust the q and k projections
+    Adjusts the q and k projections based on the teacher model's attention mechanism.
+    Supports both GPT-2 (Multi-Head Attention) and Qwen 2 (Grouped Query Attention).
+    """
     if teacher_model is not None:
         config = teacher_model.core_model.model.config
 
         B, S = q.size()[:2]
         H = config.hidden_size
         nH = config.num_attention_heads
-        nKV = config.num_attention_heads ## GPT2 ## config.num_key_value_heads ## qwen2
 
-        q = q.view(B, S, nH, H // nH) # (B, S, nH, H//nH)
-        k = k.view(B, S, nKV, H // nH) # (B, S, nKV, H//nH)
+        # Check if the teacher model is Qwen 2 or GPT-2
+        if 'Qwen' in teacher_model.core_model.model.__class__.__name__:
+            # Qwen 2 uses Grouped Query Attention
+            nKV = config.num_key_value_heads  # For Qwen 2, grouped attention
 
-        q = q.transpose(1,2) # (B, nH, S, H//nH)
-        k = k.transpose(1,2) # (B, nKV, S, H//nH)
+            q = q.view(B, S, nH, H // nH)  # (B, S, nH, H//nH)
+            k = k.view(B, S, nKV, H // nH)  # (B, S, nKV, H//nH)
 
-        k = k.repeat_interleave(nH // nKV, dim=1) # (B, nKV, S, H//nH) -> (B, nH, S, H//nH)
+            q = q.transpose(1, 2)  # (B, nH, S, H//nH)
+            k = k.transpose(1, 2)  # (B, nKV, S, H//nH)
 
+            # Grouped attention: Repeat the key to match the number of heads
+            k = k.repeat_interleave(nH // nKV, dim=1)  # (B, nKV, S, H//nH) -> (B, nH, S, H//nH)
+
+        elif 'GPT2' in teacher_model.core_model.model.__class__.__name__:
+            # GPT-2 uses Multi-Head Attention
+            nKV = nH  # In GPT-2, num_attention_heads == num_key_value_heads
+
+            q = q.view(B, S, nH, H // nH)  # (B, S, nH, H//nH)
+            k = k.view(B, S, nKV, H // nH)  # (B, S, nKV, H//nH)
+
+            q = q.transpose(1, 2)  # (B, nH, S, H//nH)
+            k = k.transpose(1, 2)  # (B, nKV, S, H//nH)
+
+        else:
+            raise ValueError(f"Unsupported teacher model type: {teacher_model.core_model.model.__class__.__name__}")
+
+    # Compute scaled dot-product attention (pre-normalized)
     return torch.matmul(q, k.transpose(-1, -2)) / (q.size(-1) ** 0.5)
+
 
 
 def get_prenormalized_attention_list(raw_attentions, teacher_model = None):
