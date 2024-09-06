@@ -1,12 +1,10 @@
 model:
-  k_interior_layers: 0
-  lora_rank: 64
   core_model:
-    core_model_type: weight_sharing
+    core_model_type: generic
     num_layers: 8
     ffn:
       ffn_type: swiglu
-      ffn_dim: 1650
+      ffn_dim: 1361
       normalization: rms_norm
       bias: false
     attn:
@@ -24,11 +22,11 @@ model:
     normalization: rms_norm
     bias: false
     lm_head_type: generic
-  hidden_dim: 640
+  hidden_dim: 528
   context_window: 512
   vocab_size: 50257
   model_shell_type: standard
-  embedding_weight_tying: true
+  embedding_weight_tying: false
   positional_encoding_type: rope
 trainer:
   dropout_scheduler:

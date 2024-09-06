@@ -1,12 +1,12 @@
 model:
-  k_interior_layers: 0
-  lora_rank: 64
+  k_interior_layers: 1
+  lora_rank: null
   core_model:
     core_model_type: weight_sharing
     num_layers: 8
     ffn:
       ffn_type: swiglu
-      ffn_dim: 1650
+      ffn_dim: 1568
       normalization: rms_norm
       bias: false
     attn:
@@ -24,7 +24,7 @@ model:
     normalization: rms_norm
     bias: false
     lm_head_type: generic
-  hidden_dim: 640
+  hidden_dim: 608
   context_window: 512
   vocab_size: 50257
   model_shell_type: standard

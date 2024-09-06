@@ -77,11 +77,11 @@ trainer:
     name: cross_entropy
 general:
   logging:
-    wandb_log: false
+    wandb_log: true
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs
-    data_dir: "../scratchDirectory/STLMData"
+    data_dir: "data"
     checkpoint_dir: checkpoints
   seed: 489
   device: cuda

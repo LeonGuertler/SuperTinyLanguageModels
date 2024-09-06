@@ -79,7 +79,7 @@ general:
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs
-    data_dir: "../scratchDirectory/STLMData"
+    data_dir: "data"
     checkpoint_dir: checkpoints
   seed: 489
   device: cuda
