@@ -236,44 +236,57 @@ class BaseTrainer:
                         with torch.no_grad():
                             teacher_output, _ = self.teacher_model(x)
                             
-                            # teacher_QKs = get_qk_scores(self.teacher_model, x)
-                            # teacher_attns = get_prenormalized_attention_list(teacher_QKs, teacher_model=self.teacher_model)
-                            # teacher_hidden_states = self.teacher_model.core_model.hidden_states[1:]
-                            # teacher_embeddings = self.teacher_model.embedding_model.embedding_output
-                            # print(f"Teacher embeddings same: {teacher_embeddings_a == teacher_embeddings_b}")
+                            ## attention
+                            # get the Q and K matrices as inputs are passed through the teacher model
+                            teacher_QKs = get_qk_scores(self.teacher_model, x)
+                            # get the pre-normalized attention matrices
+                            teacher_attns = get_prenormalized_attention_list(teacher_QKs, teacher_model=self.teacher_model)
+
+                            ## hidden states
+                            teacher_hidden_states = self.teacher_model.core_model.hidden_states[1:]
+                            
+                            ## embeddings
+                            teacher_embeddings = self.teacher_model.embedding_model.embedding_output
 
                         ## get the student model output, with gradient calculation
                         student_output, aux_loss = self.DDP_model(x)
 
-                        # student_QKs = self.DDP_model.module.core_model.qk_lists
-                        # student_attns = get_prenormalized_attention_list(student_QKs)
-                        # student_hidden_states = self.DDP_model.module.core_model.hidden_states
-                        # student_embeddings = self.DDP_model.module.embedding_model.embedding_output
+                        ## attention
+                        student_QKs = self.DDP_model.module.core_model.qk_lists
+                        student_attns = get_prenormalized_attention_list(student_QKs)
+
+                        ## hidden states
+                        student_hidden_states = self.DDP_model.module.core_model.hidden_states
+
+                        ## embeddings
+                        student_embeddings = self.DDP_model.module.embedding_model.embedding_output
                         # print(f"Student embeddings shape: {student_embeddings.shape}")
                         
-                        # ## take every k-th attention matrix from teacher to match all students
-                        # k = len(teacher_attns) // len(student_attns)
-                        # teacher_attns = teacher_attns[::k] # get every k-th attention matrix
-                        # teacher_hidden_states = teacher_hidden_states[::k] # get every k-th hidden state
+                        ## take every k-th attention matrix from teacher to match all students
+                        k = len(teacher_attns) // len(student_attns)
+                        teacher_attns = teacher_attns[::k] # get every k-th attention matrix
+                        teacher_hidden_states = teacher_hidden_states[::k] # get every k-th hidden state
 
-                        # ## calculate the transformer's attention and hidden_state loss over each layer
-                        # attn_loss = 0.0
-                        # hs_loss = 0.0
-                        # for i in range(len(student_attns)):
+                        ## calculate the transformer's attention and hidden_state loss over each layer
+                        attn_loss = 0.0
+                        hs_loss = 0.0
+                        for i in range(len(student_attns)):
 
-                        #     ## project the student's attention and hidden states to the teacher's dimensions
-                        #     student_hidden_states[i] = project_student_to_teacher_hs(self.projection, student_hidden_states[i])
+                            ## project the student's hidden states to the teacher's dimensions
+                            if self.projection:
+                                student_hidden_states[i] = project_student_to_teacher_hs(self.projection, student_hidden_states[i])
 
-                        #     mean_student_attns = torch.mean(student_attns[i], dim=1) ## mean over the heads
-                        #     mean_teacher_attns = torch.mean(teacher_attns[i], dim=1) ## mean over the heads
-                        #     attn_loss += torch.nn.functional.mse_loss(mean_student_attns, mean_teacher_attns)
+                            mean_student_attns = torch.mean(student_attns[i], dim=1) ## mean over the heads
+                            mean_teacher_attns = torch.mean(teacher_attns[i], dim=1) ## mean over the heads
+                            attn_loss += torch.nn.functional.mse_loss(mean_student_attns, mean_teacher_attns)
                             
-                        #     ## calculate the mean squared error loss between the student and teacher's attention and hidden states
-                        #     hs_loss += torch.nn.functional.mse_loss(student_hidden_states[i], teacher_hidden_states[i])
+                            ## calculate the mean squared error loss between the student and teacher's attention and hidden states
+                            hs_loss += torch.nn.functional.mse_loss(student_hidden_states[i], teacher_hidden_states[i])
 
                         ## calculate the embeddings loss
-                        # student_embeddings = project_student_to_teacher_emb(self.projection, student_embeddings)
-                        # embeddings_loss = torch.nn.functional.mse_loss(student_embeddings, teacher_embeddings)
+                        if self.projection:
+                            student_embeddings = project_student_to_teacher_emb(self.projection, student_embeddings)
+                        embeddings_loss = torch.nn.functional.mse_loss(student_embeddings, teacher_embeddings)
 
                         ## calculate the soft_targets loss
                         soft_targets_loss = self.distillation_loss_fn(student_output, teacher_output, self.kd_cfg['temperature'])
@@ -286,11 +299,10 @@ class BaseTrainer:
                         # print(f"Cross Entropy Loss: {label_loss.item()}")
 
                         ## combine the two losses
-                        # loss = self.kd_cfg['embedding_loss_weight']*embeddings_loss + self.kd_cfg['attn_loss_weight']*attn_loss + self.kd_cfg['hs_loss_weight']*hs_loss + self.kd_cfg['soft_targets_loss_weight']*soft_targets_loss + self.kd_cfg['label_loss_weight']*label_loss
+                        loss = self.kd_cfg['embedding_loss_weight']*embeddings_loss + self.kd_cfg['attn_loss_weight']*attn_loss + self.kd_cfg['hs_loss_weight']*hs_loss + self.kd_cfg['soft_targets_loss_weight']*soft_targets_loss + self.kd_cfg['label_loss_weight']*label_loss
                         # loss = self.kd_cfg['soft_targets_loss_weight']*soft_targets_loss + (1.0 - self.kd_cfg['soft_targets_loss_weight'])*label_loss
                         # print(f"distil loss weight: {self.w}")
-                        loss = self.w*soft_targets_loss + (1.0 - self.w)*label_loss
-
+                        # loss = self.w*soft_targets_loss + (1.0 - self.w)*label_loss
 
                     
                     else:

@@ -1,5 +1,5 @@
 teachermodel:
-  # model_ckpt: '/workspace/code-repo/SuperTinyLanguageModels/outputs/adapted-teacher-qwen21.5b/11-09-23/checkpoints/ckpt_15999.pt' #'/home/bobby/code-repo/SuperTinyLanguageModels/outputs/2024-07-19/11-09-23/checkpoints/ckpt_15999.pt'
+  # model_ckpt: '/workspace/code-repo/SuperTinyLanguageModels/outputs/adapted-teacher-qwen20.5b/11-24-15/checkpoints/ckpt_49999.pt' #'/home/bobby/code-repo/SuperTinyLanguageModels/outputs/2024-07-19/11-09-23/checkpoints/ckpt_15999.pt'
   model:
     model_string: "openai-community/gpt2-medium"
     flash_attention: false
@@ -17,18 +17,18 @@ teachermodel:
     model_shell_type: standard
     embedding_weight_tying: false
     positional_encoding_type: rope
-  temperature: 0.6
-  embedding_loss_weight: 0
-  attn_loss_weight: 0
-  hs_loss_weight: 0
+  temperature: 1.0
+  embedding_loss_weight: 1.0
+  attn_loss_weight: 1.0
+  hs_loss_weight: 1.0
   distil_loss_scheduler:
-    distil_loss_type: 'linear'
-    distil_loss_weight: 0.5
+    distil_loss_type: 'constant'
+    distil_loss_weight: 1.0
     distil_loss_weight_start: 0.8
-  label_loss_weight: na
+  label_loss_weight: 1.0
   kl_type: 'reverse'
-  build_projection: false
-model_ckpt: '/workspace/code-repo/SuperTinyLanguageModels/outputs/2024-08-22/13-43-36/checkpoints/ckpt_19999.pt'
+  build_projection: true
+# model_ckpt: '/workspace/code-repo/SuperTinyLanguageModels/outputs/2024-08-22/13-43-36/checkpoints/ckpt_19999.pt'
 model:
   core_model:
     core_model_type: generic
@@ -66,10 +66,10 @@ trainer:
   dataset: openwebtext
   training:
     trainer_type: base_trainer
-    batch_size: 15 #2
-    gradient_accumulation_steps: 32 #240
-    max_iters: 20000
-    lr_decay_iters: 40000 # Since we want to run KD for 40K (20K baseline + 20K KD)
+    batch_size: 12 #15 #2
+    gradient_accumulation_steps: 40 #32 #240
+    max_iters: 30000 #20000
+    lr_decay_iters: 30000 #40000 # Since we want to run KD for 40K (20K baseline + 20K KD)
     warmup_iters: 5000
     eval_interval: 2000
     log_interval: 10
@@ -114,11 +114,11 @@ trainer:
     name: cross_entropy
 general:
   logging:
-    wandb_log: true
+    wandb_log: false
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs
     data_dir: data
     checkpoint_dir: checkpoints
-  seed: 490
+  seed: 489 #490
   device: cuda

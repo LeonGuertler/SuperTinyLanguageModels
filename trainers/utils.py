@@ -264,7 +264,7 @@ def init_kd_cfg(cfg):
     embedding_loss_weight = cfg.teachermodel.embedding_loss_weight
     attn_loss_weight = cfg.teachermodel.attn_loss_weight
     hs_loss_weight = cfg.teachermodel.hs_loss_weight
-    # soft_targets_loss_weight = cfg.teachermodel.soft_targets_loss_weight
+    soft_targets_loss_weight = cfg.teachermodel.distil_loss_scheduler.distil_loss_weight
     label_loss_weight = cfg.teachermodel.label_loss_weight
 
     kd_cfg = {
@@ -272,7 +272,7 @@ def init_kd_cfg(cfg):
         "embedding_loss_weight": embedding_loss_weight,
         "attn_loss_weight": attn_loss_weight,
         "hs_loss_weight": hs_loss_weight,
-        # "soft_targets_loss_weight": soft_targets_loss_weight,
+        "soft_targets_loss_weight": soft_targets_loss_weight,
         "label_loss_weight": label_loss_weight
     }
 
@@ -285,19 +285,44 @@ def get_qk_scores(model, inputs):
     raw_attentions = []
     hooks = []
 
+    # ## create a hook to capture the raw attention logits
+    # def attention_hook(module, input, output):
+    #     # Capture the raw attention logits (QK^T)
+    #     qk = output
+    #     raw_attentions.append(qk.detach())
+
+    # ## register the hook to the relevant modules of the model (Qwen 2)
+    # for name, module in model.named_modules():
+    #     if 'q_proj' in name or 'k_proj' in name:
+    #         hook = module.register_forward_hook(attention_hook)
+    #         hooks.append(hook)
+
+    # ## forward pass
+    # with torch.no_grad():
+    #     outputs = model(inputs)
+
+    # ## remove the hooks
+    # for hook in hooks:
+    #     hook.remove()
+
+    # return raw_attentions
+
     ## create a hook to capture the raw attention logits
     def attention_hook(module, input, output):
         # Capture the raw attention logits (QK^T)
-        qk = output
-        raw_attentions.append(qk.detach())
-
-    ## register the hook to the relevant modules of the model
+        qkv = output  # shape: (batch_size, seq_len, 3 * hidden_size)
+        hidden_size = qkv.shape[-1] // 3
+        q, k, v = qkv.split(hidden_size, dim=-1)
+        raw_attentions.append(q.detach())
+        raw_attentions.append(k.detach())
+        
+    ## register the hook to the relevant modules of the model (GPT 2)
     for name, module in model.named_modules():
-        if 'q_proj' in name or 'k_proj' in name:
+        if 'c_attn' in name:
             hook = module.register_forward_hook(attention_hook)
             hooks.append(hook)
 
-    ## forward pass
+    # Forward pass
     with torch.no_grad():
         outputs = model(inputs)
 
@@ -320,7 +345,7 @@ def calculate_prenormalized_attention(q, k, teacher_model = None):
         B, S = q.size()[:2]
         H = config.hidden_size
         nH = config.num_attention_heads
-        nKV = config.num_key_value_heads
+        nKV = config.num_attention_heads ## GPT2 ## config.num_key_value_heads ## qwen2
 
         q = q.view(B, S, nH, H // nH) # (B, S, nH, H//nH)
         k = k.view(B, S, nKV, H // nH) # (B, S, nKV, H//nH)

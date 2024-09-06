@@ -91,7 +91,8 @@ class HFEmbedder(EmbedderInterface):
         """
         Forward pass for the model
         """
-        return self.embeddings(token_ids)
+        self.embedding_output = self.embeddings(token_ids)
+        return self.embedding_output
 
     def tokenize_input(self, input_string, truncate=False, add_eot=True):
         """This function should take a single input string and returns
