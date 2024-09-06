@@ -1,12 +1,12 @@
 model:
-  k_interior_layers: 2
-  lora_rank: 96
+  k_interior_layers: 1
+  lora_rank: 64
   core_model:
     core_model_type: ffn_lora_sharing
-    num_layers: 18
+    num_layers: 6
     ffn:
       ffn_type: swiglu
-      ffn_dim: 1650
+      ffn_dim: 1072
       normalization: rms_norm
       bias: false
     attn:
@@ -17,16 +17,16 @@ model:
       bias: false
       is_causal: true
   embedder:
-    tokenizer_type: gpt2
+    tokenizer_type: bpe-retrain
     embedding_model_type: generic
     dataset_name: en_wiki
   lm_head:
     normalization: rms_norm
     bias: false
     lm_head_type: generic
-  hidden_dim: 640
+  hidden_dim: 416
   context_window: 512
-  vocab_size: 10000
+  vocab_size: 4000
   model_shell_type: standard
   embedding_weight_tying: true
   positional_encoding_type: rope
@@ -39,9 +39,9 @@ trainer:
     trainer_type: base_trainer
     batch_size: 24
     gradient_accumulation_steps: 20
-    max_iters: 150000
-    lr_decay_iters: 150000
-    warmup_iters: 20000
+    max_iters: 80000
+    lr_decay_iters: 80000
+    warmup_iters: 10000
     eval_interval: 2000
     log_interval: 10
     eval_iters: 500
@@ -66,7 +66,7 @@ trainer:
     beta2: 0.95
     grad_clip: 1.0
     decay_lr: true
-    warmup_iters: 20000
+    warmup_iters: 10000
   lr_scheduler:
     name: cosine
   dataloader:

@@ -15,7 +15,12 @@ from models.experimental.next_thought.core_models import BaselineCoreModel, Conv
 from models.model_heads import AutoregressiveLMHead
 from models.model_shell import ModelShell
 from models.core_models import GenericCProjSharedTransfomer
+from models.core_models import GenericCProjFFNSharedTransfomer
 
+from models.experimental.weight_sharing import (
+    SharedInteriorFFNLoraAndCProj,
+    SharedInteriorFFNLora,
+)
 
 
 def build_model(model_cfg=None, checkpoint=None):
@@ -74,6 +79,9 @@ CORE_MODEL_DICT = {
     "next_thought_baseline": BaselineCoreModel,
     "conv": Conv1dCoreModel,
     "generic_cproj_shared": GenericCProjSharedTransfomer,
+    "generic_ffn_qproj_sharing": GenericCProjFFNSharedTransfomer,
+    "ffn_lora_sharing": SharedInteriorFFNLora,
+    "ffn_lora_sharing": SharedInteriorFFNLoraAndCProj,
 }
 
 
