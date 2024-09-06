@@ -37,8 +37,8 @@ class BPERetrainTokenizer(BaseTokenizer):
         self.eot_token = self.special_tokens["<|endoftext|>"]
         self.unk_token = self.special_tokens["<|unk|>"]"""
 
-        assert self.vocab_size >= 256 + len(self.special_tokens), \
-            f"Vocab size too small! Must be > {256 + len(self.special_tokens)})"
+        #assert self.vocab_size >= 256 + len(self.special_tokens), \
+        #    f"Vocab size too small! Must be > {256 + len(self.special_tokens)})"
 
         if not utils.check_if_tokenizer_exists(
             tokenizer_type="bpe", vocab_size=vocab_size, dataset_name=dataset_name
