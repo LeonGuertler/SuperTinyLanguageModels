@@ -10,11 +10,15 @@ For a comprehensive understanding of our research methodology and initial findin
 
 Please note that this repository is an evolving work in progress, reflecting the ongoing nature of our research. It is subject to frequent updates and improvements as we continue to explore and refine our work on STLMs. We welcome the community's engagement with our work, value your feedback, and appreciate any contributions to this challenging but promising endeavor.
 
-## Experiments
+## Research Reports
 
-| Title | Prereport Link | Paper Link |
-| --- | --- | --- |
-| Dropout | [dropout_prereport](pre_reports/dropout_prereport.pdf) | --- |
+| Research Area               | Branch Name                    | Discord Channel     | Preregistration | Full Report  |
+|-----------------------------|--------------------------------|---------------------|-----------------|--------------|
+| Dropout | `dropout-sched-exp`   |                | [View preregistration](https://github.com/LeonGuertler/SuperTinyLanguageModels/blob/main/pre_reports/dropout_prereport.pdf) | In progress |
+| Knowledge distillation  | `feature/knowledge-distillation/replace-teacher-tokenizer`|                  | [View preregistration](https://github.com/LeonGuertler/SuperTinyLanguageModels/blob/feature/knowledge-distillation/replace-teacher-tokenizer/reports/preregistration-knowledgedistillation.pdf)  | In progress  |
+| Byte Level             |        |                       | In progress  | In progress  |
+| Self Play Evals        |            |   [Join the room](https://discord.gg/hgVhe6Hp)                 | In progress| In progress  |
+| Optimizers   | `optimizers` | [Join the room](https://discord.gg/S5Q2ZmWY) | In progress | In progress
 
 ## Download
 ### Access to Hugging Face
