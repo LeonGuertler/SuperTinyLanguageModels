@@ -47,10 +47,9 @@ class BPERetrainTokenizer(BaseTokenizer):
             self._save()
         else:
             self._load()
-
-        self.pad_token = self.tokenizer.token_to_id("<|pad|>")
-        self.eot_token = self.tokenizer.token_to_id("<|endoftext|>")
-        self.unk_token = self.tokenizer.token_to_id("<|unk|>")
+        self.pad_token = self.tokenizer.decode("<|pad|>")
+        self.eot_token = self.tokenizer.decode("<|endoftext|>")
+        self.unk_token = self.tokenizer.decode("<|unk|>")
 
     def encode(self, text: str) -> List[int]:
         """
