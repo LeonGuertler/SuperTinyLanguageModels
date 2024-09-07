@@ -48,6 +48,7 @@ class BPERetrainTokenizer(BaseTokenizer):
         else:
             self._load()
         self.pad_token = self.tokenizer.encode("<|pad|>")
+        input(self.pad_token)
         self.eot_token = self.tokenizer.encode("<|endoftext|>")
         self.unk_token = self.tokenizer.encode("<|unk|>")
 
