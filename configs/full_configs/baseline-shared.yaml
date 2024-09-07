@@ -84,5 +84,6 @@ general:
     data_dir: data
     checkpoint_dir: checkpoints
     eval_dir: evals
+    tokenizer_dir: models/components/tokenizers/tokenizer_models
   seed: 489
   device: cuda

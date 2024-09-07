@@ -9,14 +9,18 @@ from collections import Counter
 import hydra  # to get the absolute path to the tokenizer
 
 
+import os
+
 def get_tokenizer_path(tokenizer_type, vocab_size, dataset_name):
     """
     Get the path to the tokenizer.
     """
+    # Get the project root directory
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    
     tokenizer_folder = os.path.join(
-        "models", "components", "tokenizers", "tokenizer_models"
+        project_root, "components", "tokenizers", "tokenizer_models"
     )
-    tokenizer_folder = hydra.utils.to_absolute_path(tokenizer_folder)
     tokenizer_full_path = os.path.join(
         tokenizer_folder, f"{tokenizer_type}_{dataset_name}_{vocab_size}.model"
     )

@@ -28,17 +28,7 @@ class BPERetrainTokenizer(BaseTokenizer):
         super().__init__()
         self.vocab_size = vocab_size
         self.dataset_name = dataset_name
-        """self.special_tokens = {
-            "<|pad|>": vocab_size - 3,
-            "<|endoftext|>": vocab_size - 2,
-            "<|unk|>": vocab_size - 1,
-        }
-        self.pad_token = self.special_tokens["<|pad|>"]
-        self.eot_token = self.special_tokens["<|endoftext|>"]
-        self.unk_token = self.special_tokens["<|unk|>"]"""
 
-        #assert self.vocab_size >= 256 + len(self.special_tokens), \
-        #    f"Vocab size too small! Must be > {256 + len(self.special_tokens)})"
 
         if not utils.check_if_tokenizer_exists(
             tokenizer_type="bpe-retrain", vocab_size=vocab_size, dataset_name=dataset_name
@@ -138,7 +128,7 @@ class BPERetrainTokenizer(BaseTokenizer):
         Save the tokenizer
         """
         _, tokenizer_path = utils.get_tokenizer_path(
-            tokenizer_type="bpe",
+            tokenizer_type="bpe-retrain",
             vocab_size=self.vocab_size,
             dataset_name=self.dataset_name,
         )
