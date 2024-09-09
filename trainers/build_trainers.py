@@ -153,7 +153,7 @@ TRAINER_DICT = {
 }
 
 
-def build_trainer(cfg, model, gpu_id):
+def build_trainer(cfg, model, gpu_id, current_iter):
     """
     Given a config, this function builds a trainer
     and all relevant components of it.
@@ -201,6 +201,7 @@ def build_trainer(cfg, model, gpu_id):
         val_dataloader=val_dataloader,
         loss_fn=loss_fn,
         gpu_id=gpu_id,
+        current_iter=current_iter,
     )
 
     return trainer

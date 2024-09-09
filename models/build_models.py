@@ -2,6 +2,7 @@
 Contains the build functions for the embedder,
 core model, lm head and the model shell.
 """
+import torch
 
 from models.core_models import GenericFFNSharedTransfomer, GenericTransformer
 from models.embedding_models import GenericEmbedder
@@ -27,7 +28,7 @@ from models.experimental.moe_weight_sharing import (
 )
 
 
-def build_model(model_cfg=None, checkpoint=None):
+def build_model(model_cfg=None, checkpoint_path=None, device="cuda"):
     """
     Either initialize or load a model, depending on
     whether a config or checkpoint was provided
@@ -41,8 +42,12 @@ def build_model(model_cfg=None, checkpoint=None):
     """
 
     # check if model is to be loaded
-    if checkpoint is not None:
+    if checkpoint_path is not None:
         # load model with the correct architecture
+        checkpoint = torch.load(
+            checkpoint_path,
+            map_location=torch.device(device),
+        )
         model = initialize_model(checkpoint["config"]["model"])
 
         # load the model weights

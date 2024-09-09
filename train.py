@@ -30,7 +30,8 @@ def ddp_main(rank, world_size, cfg):
 
         model, current_iter = build_model(
             model_cfg=cfg["model"],
-            checkpoint=cfg["checkpoint_path"]
+            checkpoint_path=cfg["checkpoint_path"],
+        device=cfg["general"]["device"]
         )
         model.to(cfg["general"]["device"])
         model.train()
@@ -60,7 +61,8 @@ def basic_main(cfg):
     """
     model, current_iter = build_model(
         model_cfg=cfg["model"],
-        checkpoint=cfg["model"]["checkpoint_path"]
+        checkpoint_path=cfg["model"]["checkpoint_path"],
+        device=cfg["general"]["device"]
     )
     model.to(cfg["general"]["device"])
     model.train()
