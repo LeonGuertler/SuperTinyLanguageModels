@@ -65,7 +65,7 @@ class MoELoRA(torch.nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """ Forward pass """
-        gate = torch.nn.functional.softmax(self.gate_linear(x), dim=-1)
+        gate = torch.nn.functional.softmax(self.gate_linear(x[:,-1]), dim=-1)
         print(x.size())
         lora_contribution = torch.zeros_like(self.weight)
         for i in range(self.n_experts):
