@@ -41,6 +41,7 @@ class BaseTrainer:
         gpu_id=None, 
         lr_scheduler=None,
         dropout_scheduler=None,
+        current_iter=0,
     ) -> None:
         self.model = model
         if gpu_id is not None: # using ddp
@@ -57,6 +58,7 @@ class BaseTrainer:
         self.val_dataloader = val_dataloader
         self.loss_fn = loss_fn
         self.cfg = cfg
+        self.current_iter = current_iter
         #assert self.cfg["trainer"]["training"]["gradient_accumulation_steps"] % torch.cuda.device_count() == 0, "Gradient Accumulation Steps must be divisible by the number of GPUs"
         self.gradient_accumulation_steps = cfg["trainer"]["training"][
             "gradient_accumulation_steps"
@@ -261,7 +263,7 @@ class BaseTrainer:
 
     def run_training_loop(self):
         """Run the training loop"""
-        for iter_num in range(self.cfg.trainer.training.max_iters):
+        for iter_num in range(self.current_iter, self.cfg.trainer.training.max_iters):
             start_time = time.time()
             if self.lr_scheduler is not None:
                 lr = self.lr_scheduler.step(self.optimizer, iter_num)

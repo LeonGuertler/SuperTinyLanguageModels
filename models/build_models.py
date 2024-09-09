@@ -43,12 +43,14 @@ def build_model(model_cfg=None, checkpoint=None):
 
         # load the model weights
         model.load_state_dict(checkpoint["model"])
+        current_iter = checkpoint["iter_num"]
 
     else:
         # initialize model
         model = initialize_model(model_cfg)
+        current_iter = 0
 
-    return model
+    return model, current_iter
 
 
 EMBEDDING_MODEL_DICT = {

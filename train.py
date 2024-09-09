@@ -28,7 +28,10 @@ def ddp_main(rank, world_size, cfg):
         print("Rank: ", rank, "World Size: ", world_size)
         ddp_setup(rank=rank, world_size=world_size)
 
-        model = build_model(model_cfg=cfg["model"])
+        model, current_iter = build_model(
+            model_cfg=cfg["model"],
+            checkpoint=cfg["checkpoint_path"]
+        )
         model.to(cfg["general"]["device"])
         model.train()
         print(f"Rank{rank} Model built")
@@ -37,7 +40,8 @@ def ddp_main(rank, world_size, cfg):
         trainer: base_trainer.BaseTrainer = build_trainer(
             cfg=cfg,
             model=model,
-            gpu_id=rank
+            gpu_id=rank,
+            current_iter=current_iter
         )
         print(f"Rank{rank} Trainer built")
         # train the model
@@ -54,7 +58,10 @@ def basic_main(cfg):
     """
     Main function for single GPU training
     """
-    model = build_model(model_cfg=cfg["model"])
+    model, current_iter = build_model(
+        model_cfg=cfg["model"],
+        checkpoint=cfg["checkpoint_path"]
+    )
     model.to(cfg["general"]["device"])
     model.train()
     print("Model built")
@@ -62,7 +69,8 @@ def basic_main(cfg):
     trainer = build_trainer(
         cfg=cfg,
         model=model,
-        gpu_id=None # disables DDP
+        gpu_id=None, # disables DDP
+        current_iter=current_iter
     )
 
     # train the model
@@ -81,6 +89,11 @@ def main(cfg):
     cfg["general"]["paths"]["eval_dir"] = hydra.utils.to_absolute_path(
         cfg["general"]["paths"]["eval_dir"]
     )
+
+    # get absolute path for checkpoint
+    if cfg["model"]["checkpoint_path"] is not None:
+        cfg["model"]["checkpoint_path"] = hydra.utils.to_absolute_path(cfg["model"]["checkpoint_path"])
+
 
     create_folder_structure(path_config=cfg["general"]["paths"])
 
