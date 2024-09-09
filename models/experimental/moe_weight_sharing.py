@@ -87,7 +87,7 @@ class MoELoRA(torch.nn.Module):
             lora_rank: int,
             n_experts: int,
             lora_alpha: float = 1.0,
-            global_gating: bool = False
+            global_gating: bool = True
         ):
         """
         LoRA MoE implementation
@@ -147,6 +147,17 @@ class MoELoRA(torch.nn.Module):
         """
         if self.global_gating:
             gate = torch.nn.functional.softmax(self.gate_linear(x[:,-1]), dim=-1) # torch.Size([2, 8]) torch.Size([8, 32, 416]) torch.Size([8, 1072, 32])
+            
+            lora_weights = self.lora_experts_V @ self.lora_experts_U
+            updated_weight = self.weight + self.scaling * lora_weights
+            #print(x.size(), updated_weight.size()) # torch.Size([2, 512, 416]) torch.Size([8, 1072, 416])
+            #input()
+            output = torch.einsum('bsh,efh->bef', x, updated_weight) # torch.Size([2, 8, 1072])
+
+            output = torch.sum(gate.unsqueeze(2) * output, dim=1)
+            return output 
+            input(output.size())
+
             lora_weights_U = torch.einsum('bi,ijk->bjk', gate, self.lora_experts_U)  # resulting shape: [2, 32, 416]
             lora_weights_V = torch.einsum('bi,ijk->bjk', gate, self.lora_experts_V)  # resulting shape: [2, 1072, 32]
             # combine
