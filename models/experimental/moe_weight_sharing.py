@@ -147,6 +147,8 @@ class MoELoRA(torch.nn.Module):
             # Use specific mixtures for each item in the sequence
             gate = torch.nn.functional.softmax(self.gate_linear(x), dim=-1)
             lora_contribution = torch.zeros_like(self.weight)
+            print(gate.size(), lora_contribution.size())
+            exit()
             for i in range(self.n_experts):
                 expert_contribution = self.lora_experts_V[i] @ self.lora_experts_U[i]
                 expert_contribution = expert_contribution.unsqueeze(0).repeat(gate.size(0), 1, 1, 1)  # Match batch size and add missing dimensions
