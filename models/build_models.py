@@ -22,6 +22,10 @@ from models.experimental.weight_sharing import (
     SharedInteriorFFNLora,
 )
 
+from models.experimental.moe_weight_sharing import (
+    SharedMoE
+)
+
 
 def build_model(model_cfg=None, checkpoint=None):
     """
@@ -84,6 +88,7 @@ CORE_MODEL_DICT = {
     "generic_ffn_qproj_sharing": GenericCProjFFNSharedTransfomer,
     "ffn_lora_sharing": SharedInteriorFFNLora,
     "ffn_lora_sharing": SharedInteriorFFNLoraAndCProj,
+    "ffn_lora_sharing_moe": SharedMoE,
 }
 
 
