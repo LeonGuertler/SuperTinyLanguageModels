@@ -60,7 +60,7 @@ def basic_main(cfg):
     """
     model, current_iter = build_model(
         model_cfg=cfg["model"],
-        checkpoint=cfg["checkpoint_path"]
+        checkpoint=cfg["model"]["checkpoint_path"]
     )
     model.to(cfg["general"]["device"])
     model.train()
