@@ -107,7 +107,7 @@ class SharedMoEFFN(torch.nn.Module):
         """
         A simple forward pass through the FFN
         """
-        return self.linear_2(F.silu(self.linear_1(x)) * self.linear_3(x))
+        return self.linear_2(torch.nn.functional.silu(self.linear_1(x)) * self.linear_3(x))
     
 
 class SharedTransformerBlock(torch.nn.Module):
