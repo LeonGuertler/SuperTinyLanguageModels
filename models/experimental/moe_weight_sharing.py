@@ -150,6 +150,7 @@ class MoELoRA(torch.nn.Module):
             for i in range(self.n_experts):
                 expert_contribution = self.lora_experts_V[i] @ self.lora_experts_U[i]
                 expert_contribution = expert_contribution.unsqueeze(0)  # Shape: [1, out_features, in_features]
+                print(expert_contribution.size(), gate[:, i].unsqueeze(-1).unsqueeze(-1).size())
                 lora_contribution += gate[:, i].unsqueeze(-1).unsqueeze(-1) * expert_contribution
 
 
