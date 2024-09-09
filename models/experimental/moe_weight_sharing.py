@@ -152,9 +152,8 @@ class MoELoRA(torch.nn.Module):
             updated_weight = self.weight + self.scaling * lora_weights
             #print(x.size(), updated_weight.size()) # torch.Size([2, 512, 416]) torch.Size([8, 1072, 416])
             #input()
-            output = torch.einsum('bsh,efh->bef', x, updated_weight) # torch.Size([2, 8, 1072])
-
-            output = torch.sum(gate.unsqueeze(2) * output, dim=1)
+            output = torch.einsum('bsh,efh->besf', x, updated_weight) # torch.Size([2, 8, 1072])
+            output = torch.sum(gate.unsqueeze(2).unsqueeze(3) * output, dim=1)
             return output 
             input(output.size())
 
