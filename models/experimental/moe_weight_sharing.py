@@ -116,14 +116,20 @@ class MoELoRA(torch.nn.Module):
         self.gate_linear = torch.nn.Linear(in_features, n_experts, bias=False)
 
         # Initialize LoRA matrices
-        self.lora_experts_U = torch.nn.ParameterList([
+        self.lora_experts_U = torch.nn.Parameter(
+            torch.empty((n_experts, lora_rank, in_features))
+        )
+        self.lora_experts_V = torch.nn.Parameter(
+            torch.zeros((n_experts, out_features, lora_rank))
+        )
+        """self.lora_experts_U = torch.nn.ParameterList([
             torch.nn.Parameter(torch.empty((lora_rank, in_features)))
             for _ in range(n_experts)
         ])
         self.lora_experts_V = torch.nn.ParameterList([
             torch.nn.Parameter(torch.zeros((out_features, lora_rank)))
             for _ in range(n_experts)
-        ])
+        ])"""
 
         self.reset_parameters()
 
@@ -135,34 +141,34 @@ class MoELoRA(torch.nn.Module):
             # V is already initialized to zeros
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """ Forward pass """
-        if self.global_gating:
-            # Use the same mixture for all items in the sequence
-            gate = torch.nn.functional.softmax(self.gate_linear(x.mean(dim=0)), dim=-1)
-            lora_contribution = torch.zeros_like(self.weight)
-            for i in range(self.n_experts):
-                expert_contribution = self.lora_experts_V[i] @ self.lora_experts_U[i]
-                lora_contribution += gate[i] * expert_contribution
-        else:
-            # Use specific mixtures for each item in the sequence
-            gate = torch.nn.functional.softmax(self.gate_linear(x), dim=-1)
-            lora_contribution = torch.zeros_like(self.weight)
-            print(gate.size(), lora_contribution.size())
-            exit()
-            for i in range(self.n_experts):
-                expert_contribution = self.lora_experts_V[i] @ self.lora_experts_U[i]
-                expert_contribution = expert_contribution.unsqueeze(0).repeat(gate.size(0), 1, 1, 1)  # Match batch size and add missing dimensions
-                lora_contribution[:, i] += gate[:, i] * expert_contribution
-                #expert_contribution = expert_contribution.unsqueeze(0)  # Shape: [1, out_features, in_features]
-                #print(expert_contribution.size(), gate[:, i].unsqueeze(-1).unsqueeze(-1).size())
-                #lora_contribution += gate[:, i].unsqueeze(-1).unsqueeze(-1) * expert_contribution
+        """ 
+        Forward pass where the gating is applied to each element in the 
+        sequence independently
+        """
+        gate = torch.nn.functional.softmax(self.gate_linear(x), dim=-1) #torch.Size([24, 512, 8])
+        B, S, E = gate.size()
 
+        # flatten gate along the B & S dim
+        gate = gate.view(-1, E) # torch.Size([12288, 8]) 
+        x = x.view(-1, self.in_features) # torch.Size([12288, 416])
+        lora_weights_U = gate.unsqueeze(2).unsqueeze(3) * self.lora_experts_U # torch.Size([12288, 8, 32, 416])
+        # now average over experts
+        lora_weights_U = lora_weights_U.mean(dim=1) # torch.Size([12288, 1072, 416])
 
+        lora_weights_V = gate.unsqueeze(2).unsqueeze(3) * self.lora_experts_V # torch.Size([12288, 8, 1072, 32])
+        # now average over experts
+        lora_weights_V = lora_weights_V.mean(dim=1) # torch.Size([12288, 1072, 32])
+
+        lora_weights = lora_weights_V @ lora_weights_U # torch.Size([12288, 1072, 416])
         # Add LoRA update to the main weight
-        updated_weight = self.weight + self.scaling * lora_contribution
-        return torch.nn.functional.linear(x, updated_weight)
+        updated_weight = self.weight + self.scaling * lora_weights
 
 
+        # apply weights
+        output = torch.einsum('ij,ikj->ik', x, updated_weight)
+        return output.view(B, S, self.out_features)
+    
+    
 class SharedMoEFFN(torch.nn.Module):
     """ """
     def __init__(self, hidden_dim, ffn_dim, lora_rank, n_experts, lora_alpha):
@@ -279,7 +285,7 @@ class SharedMoE(torch.nn.Module):
 
         # share the weights between all ffn blocks
         ffn_0 = self.transformer.h[0].ffn
-        for i in range(1, len(self.transformer.h)):
+        """for i in range(1, len(self.transformer.h)):
             self.transformer.h[i].ffn.linear_1.weight = ffn_0.linear_1.weight
             self.transformer.h[i].ffn.linear_2.gate_linear.weight = ffn_0.linear_2.gate_linear.weight
             for j in range(ffn_0.linear_1.n_experts):
@@ -296,7 +302,22 @@ class SharedMoE(torch.nn.Module):
             self.transformer.h[i].ffn.linear_3.gate_linear.weight = ffn_0.linear_3.gate_linear.weight
             for j in range(ffn_0.linear_3.n_experts):
                 self.transformer.h[i].ffn.linear_3.lora_experts_U[j] = ffn_0.linear_3.lora_experts_U[j]
-                self.transformer.h[i].ffn.linear_3.lora_experts_V[j] = ffn_0.linear_3.lora_experts_V[j]
+                self.transformer.h[i].ffn.linear_3.lora_experts_V[j] = ffn_0.linear_3.lora_experts_V[j]"""
+        for i in range(1, len(self.transformer.h)):
+            self.transformer.h[i].ffn.linear_1.weight = ffn_0.linear_1.weight
+            self.transformer.h[i].ffn.linear_1.gate_linear.weight = ffn_0.linear_1.gate_linear.weight
+            self.transformer.h[i].ffn.linear_1.lora_experts_U = ffn_0.linear_1.lora_experts_U
+            self.transformer.h[i].ffn.linear_1.lora_experts_V = ffn_0.linear_1.lora_experts_V
+
+            self.transformer.h[i].ffn.linear_2.weight = ffn_0.linear_2.weight
+            self.transformer.h[i].ffn.linear_2.gate_linear.weight = ffn_0.linear_2.gate_linear.weight
+            self.transformer.h[i].ffn.linear_2.lora_experts_U = ffn_0.linear_2.lora_experts_U
+            self.transformer.h[i].ffn.linear_2.lora_experts_V = ffn_0.linear_2.lora_experts_V
+
+            self.transformer.h[i].ffn.linear_3.weight = ffn_0.linear_3.weight
+            self.transformer.h[i].ffn.linear_3.gate_linear.weight = ffn_0.linear_3.gate_linear.weight
+            self.transformer.h[i].ffn.linear_3.lora_experts_U = ffn_0.linear_3.lora_experts_U
+            self.transformer.h[i].ffn.linear_3.lora_experts_V = ffn_0.linear_3.lora_experts_V
 
     def forward(self, x):
         """
