@@ -149,9 +149,11 @@ class MoELoRA(torch.nn.Module):
             lora_contribution = torch.zeros_like(self.weight)
             for i in range(self.n_experts):
                 expert_contribution = self.lora_experts_V[i] @ self.lora_experts_U[i]
-                expert_contribution = expert_contribution.unsqueeze(0)  # Shape: [1, out_features, in_features]
-                print(expert_contribution.size(), gate[:, i].unsqueeze(-1).unsqueeze(-1).size())
-                lora_contribution += gate[:, i].unsqueeze(-1).unsqueeze(-1) * expert_contribution
+                expert_contribution = expert_contribution.unsqueeze(0).repeat(gate.size(0), 1, 1, 1)  # Match batch size and add missing dimensions
+                lora_contribution[:, i] += gate[:, i] * expert_contribution
+                #expert_contribution = expert_contribution.unsqueeze(0)  # Shape: [1, out_features, in_features]
+                #print(expert_contribution.size(), gate[:, i].unsqueeze(-1).unsqueeze(-1).size())
+                #lora_contribution += gate[:, i].unsqueeze(-1).unsqueeze(-1) * expert_contribution
 
 
         # Add LoRA update to the main weight
