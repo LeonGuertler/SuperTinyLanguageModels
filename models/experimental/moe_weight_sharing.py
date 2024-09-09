@@ -70,7 +70,8 @@ class MoELoRA(torch.nn.Module):
         lora_contribution = torch.zeros_like(self.weight)
         for i in range(self.n_experts):
             expert_contribution = self.lora_experts_V[i] @ self.lora_experts_U[i]
-            lora_contribution += gate[:, i].unsqueeze(-1).unsqueeze(-1) * expert_contribution
+            #lora_contribution += gate[:, i].unsqueeze(-1).unsqueeze(-1) * expert_contribution
+            lora_contribution += gate[:, i] * expert_contribution
 
         effective_weight = self.weight + lora_contribution * self.scaling
         return torch.nn.functional.linear(x, effective_weight, self.bias)
