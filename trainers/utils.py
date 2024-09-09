@@ -324,15 +324,56 @@ def get_qk_scores(model, inputs):
     else:
         raise ValueError("Unsupported model type: {}".format(model.core_model.model.__class__.__name__))
 
-    # Forward pass
-    with torch.no_grad():
-        outputs = model(inputs)
+    # # Forward pass
+    # with torch.no_grad():
+    #     outputs = model(inputs)
 
     # Remove the hooks
     for hook in hooks:
         hook.remove()
 
     return raw_attentions
+
+
+def get_qk_scores_during_forward_pass(model):
+    """
+    Set up hooks to extract Q and K projections from the model during its forward pass.
+    """
+    raw_attentions = []
+    hooks = []
+
+    def attention_hook_qwen(module, input, output):
+        """Hook to capture the attention for Qwen 2 models."""
+        qk = output  # Raw attention logits (QK^T)
+        raw_attentions.append(qk.detach())
+
+    def attention_hook_gpt2(module, input, output):
+        """Hook to capture the attention for GPT-2 models."""
+        qkv = output  # shape: (batch_size, seq_len, 3 * hidden_size)
+        hidden_size = qkv.shape[-1] // 3
+        q, k, v = qkv.split(hidden_size, dim=-1)
+        raw_attentions.append(q.detach())
+        raw_attentions.append(k.detach())
+
+    # Register hooks based on the model type
+    if 'Qwen' in model.core_model.model.__class__.__name__:
+        for name, module in model.named_modules():
+            if 'q_proj' in name or 'k_proj' in name:
+                hook = module.register_forward_hook(attention_hook_qwen)
+                hooks.append(hook)
+    elif 'GPT2' in model.core_model.model.__class__.__name__:
+        for name, module in model.named_modules():
+            if 'c_attn' in name:
+                hook = module.register_forward_hook(attention_hook_gpt2)
+                hooks.append(hook)
+    else:
+        raise ValueError("Unsupported model type: {}".format(model.core_model.model.__class__.__name__))
+
+    # The model forward pass happens externally (e.g., teacher_model(x))
+    # Hooks capture raw attentions during that pass
+
+    return raw_attentions, hooks
+
 
 
 

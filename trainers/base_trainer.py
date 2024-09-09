@@ -23,7 +23,7 @@ from itertools import islice
 from torch.nn.parallel import DistributedDataParallel as DDP 
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import SequentialSampler
-from trainers.utils import aggregate_value, get_qk_scores, get_prenormalized_attention_list, project_student_to_teacher_hs, project_student_to_teacher_emb
+from trainers.utils import aggregate_value, get_qk_scores_during_forward_pass, get_prenormalized_attention_list, project_student_to_teacher_hs, project_student_to_teacher_emb
 
 
 # pylint: disable invalid-name
@@ -233,6 +233,9 @@ class BaseTrainer:
                 with self.ctx:
                     if self.perform_kd:
                         ## get the teacher model output, without gradient calculation
+
+                        teacher_QKs, hooks = get_qk_scores_during_forward_pass(self.teacher_model)
+
                         with torch.no_grad():
                             teacher_output, _ = self.teacher_model(x)
                             
@@ -240,7 +243,7 @@ class BaseTrainer:
                             if self.kd_cfg['attn_loss_weight'] > 0.0:
                                 #
                                 # get the Q and K matrices as inputs are passed through the teacher model
-                                teacher_QKs = get_qk_scores(self.teacher_model, x)
+                                # teacher_QKs = get_qk_scores(self.teacher_model, x)
                                 # get the pre-normalized attention matrices
                                 teacher_attns = get_prenormalized_attention_list(teacher_QKs, teacher_model=self.teacher_model)
 
@@ -251,6 +254,10 @@ class BaseTrainer:
                             ## embeddings
                             if self.kd_cfg['embedding_loss_weight'] > 0.0:
                                 teacher_embeddings = self.teacher_model.embedding_model.embedding_output
+
+                        # Remove hooks after forward pass
+                        for hook in hooks:
+                            hook.remove()
 
                         ## get the student model output, with gradient calculation
                         student_output, aux_loss = self.DDP_model(x)
