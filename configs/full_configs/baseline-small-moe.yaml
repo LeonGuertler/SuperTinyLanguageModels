@@ -1,7 +1,7 @@
 model:
   k_interior_layers: 1
   lora_rank: 64
-  checkpoint_path: None
+  checkpoint_path: Null
   core_model:
     core_model_type: ffn_lora_sharing_moe
     num_layers: 6
