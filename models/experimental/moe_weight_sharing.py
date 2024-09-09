@@ -145,30 +145,59 @@ class MoELoRA(torch.nn.Module):
         Forward pass where the gating is applied to each element in the 
         sequence independently
         """
-        gate = torch.nn.functional.softmax(self.gate_linear(x), dim=-1) #torch.Size([24, 512, 8])
-        B, S, E = gate.size()
+        if self.global_gating:
+            gate = torch.nn.functional.softmax(self.gate_linear(x[:,-1]), dim=-1) # torch.Size([2, 8]) torch.Size([8, 32, 416]) torch.Size([8, 1072, 32])
+            lora_weights_U = torch.einsum('bi,ijk->bjk', gate, self.lora_experts_U)  # resulting shape: [2, 32, 416]
+            lora_weights_V = torch.einsum('bi,ijk->bjk', gate, self.lora_experts_V)  # resulting shape: [2, 1072, 32]
+            # combine
+            lora_weights = torch.einsum('bij,bjk->bik', lora_weights_V, lora_weights_U)  # resulting shape: [2, 1072, 416]
+            # apply
+            updated_weight = self.weight + self.scaling * lora_weights
+            #print(x.size(), updated_weight.size()) # torch.Size([2, 512, 416]) torch.Size([2, 1072, 416])
+            #input()
+            output = torch.einsum("bsh,bfh->bsf", x, updated_weight)
+            return output
+        else:
+            gate = torch.nn.functional.softmax(self.gate_linear(x), dim=-1) #torch.Size([24, 512, 8])
+            B, S, E = gate.size()
 
-        # flatten gate along the B & S dim
-        gate = gate.view(-1, E) # torch.Size([12288, 8]) 
-        x = x.view(-1, self.in_features) # torch.Size([12288, 416])
-        lora_weights_U = gate.unsqueeze(2).unsqueeze(3) * self.lora_experts_U # torch.Size([12288, 8, 32, 416])
-        # now average over experts
-        lora_weights_U = lora_weights_U.mean(dim=1) # torch.Size([12288, 1072, 416])
+            # flatten gate along the B & S dim
+            gate = gate.view(-1, E) # torch.Size([12288, 8]) 
+            x = x.view(-1, self.in_features) # torch.Size([12288, 416])
 
-        lora_weights_V = gate.unsqueeze(2).unsqueeze(3) * self.lora_experts_V # torch.Size([12288, 8, 1072, 32])
-        # now average over experts
-        lora_weights_V = lora_weights_V.mean(dim=1) # torch.Size([12288, 1072, 32])
+            lora_weights = self.lora_experts_V @ self.lora_experts_U # torch.Size([8, 1072, 416])
+            # Add LoRA update to the main weight
+            updated_weight = self.weight + self.scaling * lora_weights # torch.Size([8, 1072, 416])
+            # apply weights
+            #print(updated_weight.size(), x.size()) # torch.Size([8, 1072, 416]) torch.Size([1024, 416])
+            output = torch.einsum('ijk,bk->bij', updated_weight, x) # torch.Size([1024, 8, 1072])
+            # apply the gates across the second dim and pool
+            #print(gate.size(), output.size()) # torch.Size([1024, 8]) torch.Size([1024, 8, 1072])
+            output = torch.sum(gate.unsqueeze(2) * output, dim=1)
+            #output = torch.einsum('ij,ikj->ik', gate, output) # torch.Size([12288, 1072])
+            return output.view(B, S, self.out_features)
 
-        lora_weights = lora_weights_V @ lora_weights_U # torch.Size([12288, 1072, 416])
-        # Add LoRA update to the main weight
-        updated_weight = self.weight + self.scaling * lora_weights
+            input(output.size())
+            output = torch.einsum('ij,ikj->ik', x, updated_weight) # torch.Size([12288, 1072])
+            input(updated_weight.size())
+            lora_weights_U = gate.unsqueeze(2).unsqueeze(3) * self.lora_experts_U # torch.Size([12288, 8, 32, 416])
+            # now average over experts
+            lora_weights_U = lora_weights_U.mean(dim=1) # torch.Size([12288, 1072, 416])
+
+            lora_weights_V = gate.unsqueeze(2).unsqueeze(3) * self.lora_experts_V # torch.Size([12288, 8, 1072, 32])
+            # now average over experts
+            lora_weights_V = lora_weights_V.mean(dim=1) # torch.Size([12288, 1072, 32])
+
+            lora_weights = lora_weights_V @ lora_weights_U # torch.Size([12288, 1072, 416])
+            # Add LoRA update to the main weight
+            updated_weight = self.weight + self.scaling * lora_weights
 
 
-        # apply weights
-        output = torch.einsum('ij,ikj->ik', x, updated_weight)
-        return output.view(B, S, self.out_features)
+            # apply weights
+            output = torch.einsum('ij,ikj->ik', x, updated_weight)
+            return output.view(B, S, self.out_features)
     
-    
+
 class SharedMoEFFN(torch.nn.Module):
     """ """
     def __init__(self, hidden_dim, ffn_dim, lora_rank, n_experts, lora_alpha):
