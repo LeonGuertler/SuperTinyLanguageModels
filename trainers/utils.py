@@ -9,7 +9,7 @@ import pkgutil
 import numpy as np
 import torch
 from datasets import load_dataset, DatasetDict, concatenate_datasets
-
+import pyarrow as pa
 import torch.distributed as dist
 
 def set_seed(seed):
@@ -331,8 +331,8 @@ def create_tiny_pile(verbose=True):
         openphi_textbooks, openphi_programming_books
     ]
 
-    # Cast the "text" column to large_string for each dataset
-    datasets = [dataset.cast_column("text", "large_string") for dataset in datasets]
+    # Cast the "text" column to pa.large_string() for each dataset
+    datasets = [dataset.cast_column("text", pa.large_string()) for dataset in datasets]
 
     # Now concatenate the datasets
     combined_dataset = concatenate_datasets(datasets)
