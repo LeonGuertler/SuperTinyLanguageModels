@@ -296,7 +296,7 @@ def get_dataset_byte_size(dataset):
     """
     return sum([len(item["text"]) for item in dataset])
 
-def create_tiny_pile(verbose=False):
+def create_tiny_pile(verbose=True):
     """
     Combine multiple high-quality tiny datasets to create the tiny-pile dataset
     1. tiny_textbooks
