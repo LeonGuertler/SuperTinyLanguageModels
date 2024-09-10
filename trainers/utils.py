@@ -326,7 +326,7 @@ def create_tiny_pile(verbose=False):
     """
     tiny_textbooks = load_dataset("nampdn-ai/tiny-textbooks")["train"]
     tiny_codes = load_tiny_codes()["train"]
-    tiny_orca_textbooks = load_tiny_orca_textbooks()["train"],
+    tiny_orca_textbooks = load_tiny_orca_textbooks()["train"][0],
     tiny_lessons = load_tiny_lessons()["train"]
     #mini_fineweb = load_dataset("nampdn-ai/mini-fineweb")["train"]
     mini_cot = load_mini_cot()["train"]
