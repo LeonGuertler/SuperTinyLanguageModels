@@ -319,7 +319,7 @@ def create_tiny_pile(verbose=True):
     #mini_fineweb = load_dataset("nampdn-ai/mini-fineweb")["train"]
     mini_cot = load_mini_cot()["train"].remove_columns(["source", "target", "rationale", "task", "type"])
     mini_ultrachat = load_mini_ultrachat()["train"].remove_columns(["id", "data"])
-    textbooks_are_all_you_need_lite = load_textbooks_are_all_you_need_lite()["train"].remove_columns(["formatted_prompt", "completion", "fist_task", "second_task", "last_task", "notes", "title", "model", "temperature"])
+    textbooks_are_all_you_need_lite = load_textbooks_are_all_you_need_lite()["train"].remove_columns(["formatted_prompt", "completion", "first_task", "second_task", "last_task", "notes", "title", "model", "temperature"])
     openphi_textbooks = load_openphi_textbooks()["train"].remove_columns(["topic", "model", "concepts", "outline", "markdown", "field", "subfield", "rag"])
     openphi_programming_books = load_openphi_programming_books()["train"].remove_columns(["topic", "outline", "concepts", "queries", "context", "markdown", "model"])
 
