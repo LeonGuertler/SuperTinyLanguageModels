@@ -335,6 +335,7 @@ def create_tiny_pile(verbose=False):
     textbooks_are_all_you_need_lite = load_textbooks_are_all_you_need_lite()["train"]
     openphi_textbooks = load_openphi_textbooks()["train"]
     openphi_programming_books = load_openphi_programming_books()["train"]
+    print(tiny_textbooks)
     input(tiny_orca_textbooks)
     # combine the dataset
     combined_dataset = concatenate_datasets([
