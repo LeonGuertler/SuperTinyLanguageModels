@@ -324,16 +324,16 @@ def create_tiny_pile(verbose=False):
 
     # combine the dataset
     combined_dataset = concatenate_datasets([
-        tiny_textbooks,
-        tiny_codes,
-        tiny_orca_textbooks,
-        tiny_lessons,
+        tiny_textbooks["text"],
+        tiny_codes["text"],
+        tiny_orca_textbooks["text"],
+        tiny_lessons["text"],
         #mini_fineweb,
-        mini_cot,
-        mini_ultrachat,
-        textbooks_are_all_you_need_lite,
-        openphi_textbooks,
-        openphi_programming_books
+        mini_cot["text"],
+        mini_ultrachat["text"],
+        textbooks_are_all_you_need_lite["text"],
+        openphi_textbooks["text"],
+        openphi_programming_books["text"]
     ])
 
     if verbose:
