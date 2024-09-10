@@ -9,7 +9,8 @@ import pkgutil
 import numpy as np
 import torch
 from datasets import load_dataset, DatasetDict, concatenate_datasets
-import pyarrow as pa
+from datasets import Features, Value
+
 import torch.distributed as dist
 
 def set_seed(seed):
@@ -331,21 +332,13 @@ def create_tiny_pile(verbose=True):
         openphi_textbooks, openphi_programming_books
     ]
 
+    # Create a feature schema with "large_string" for the "text" column
+    text_features = Features({"text": Value("large_string")})
+
+    # Cast the "text" column to "large_string" for datasets where dtype is 'string'
     for idx, dataset in enumerate(datasets):
         if dataset.features['text'].dtype == 'string':
-            datasets[idx] = dataset.cast_column("text", "large_string")
-
-
-     # Check the schema of each dataset to identify misalignment
-    for idx, dataset in enumerate(datasets):
-        print(f"Dataset {idx} schema: {dataset.features}")
-        if 'text' not in dataset.features:
-            print(f"Dataset {idx} is missing the 'text' column!")
-        else:
-            text_type = dataset.features['text']
-            print(f"Dataset {idx} 'text' column type: {text_type}")
-
-    input()
+            datasets[idx] = dataset.cast(text_features)
 
     # Now concatenate the datasets
     combined_dataset = concatenate_datasets(datasets)
