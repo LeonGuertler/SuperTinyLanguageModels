@@ -301,7 +301,7 @@ def load_tiny_orca_textbooks():
     dataset = DatasetDict({
         "train": dataset,
     })
-
+    input(dataset)
     return dataset
 
 def get_dataset_byte_size(dataset):
@@ -333,7 +333,6 @@ def create_tiny_pile(verbose=False):
     mini_cot = load_mini_cot()["train"]
     mini_ultrachat = load_mini_ultrachat()["train"]
     textbooks_are_all_you_need_lite = load_textbooks_are_all_you_need_lite()["train"]
-    input(textbooks_are_all_you_need_lite)
     openphi_textbooks = load_openphi_textbooks()["train"]
     openphi_programming_books = load_openphi_programming_books()["train"]
 
