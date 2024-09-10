@@ -1,4 +1,8 @@
-temperature: 0.8
-top_k: 10
-max_new_tokens: 300
-input_text: "Earth is the third planet from the Sun and the only astronomical object known to harbor life. This is enabled by Earth being an ocean world, the only one in the Solar System sustaining liquid surface water."
+temperature: 1.2
+top_k: 200
+max_new_tokens: 100
+beam_width: 15
+use_sampling: true
+repetition_penalty: 1.2
+repetition_window: 32
+input_text: "Let's consider a simple Python program that adds two integers."

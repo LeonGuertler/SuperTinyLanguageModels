@@ -117,6 +117,256 @@ def load_competition_math_dataset():
     return dataset
 
 
+def load_open_hermes():
+    """
+    Load and format the OpenHermes dataset
+    https://huggingface.co/datasets/teknium/OpenHermes-2.5
+    """
+    dataset = load_dataset("teknium/OpenHermes-2.5")["train"]
+
+    # format the prompt and answer into a single "text" column 
+    dataset = dataset.map(lambda x: {"text": f"Question: {x['conversations'][0]['value']}\nAnswers: {x['conversations'][1]['value']}"})
+
+    dataset = DatasetDict({
+        "train": dataset,
+    })
+
+    return dataset
+
+def load_supernatural_instructions():
+    """
+    Load and format the supernatural instructions dataset
+    https://huggingface.co/datasets/andersonbcdefg/supernatural-instructions-2m
+    """
+    dataset = load_dataset("andersonbcdefg/supernatural-instructions-2m")["train"]
+
+    # format the prompt and answer into a single "text" column 
+    dataset = dataset.map(lambda x: {"text": f"Question: {x['prompt']}\nAnswer: {x['response']}"})
+
+    dataset = DatasetDict({
+        "train": dataset,
+    })
+
+    return dataset
+
+def load_mini_cot():
+    """
+    Load and format the mini-cot dataset
+    https://huggingface.co/datasets/nampdn-ai/mini-CoT-Collection
+    """
+    dataset = load_dataset("nampdn-ai/mini-CoT-Collection")["train"]
+
+    # format the prompt and answer into a single "text" column
+    dataset = dataset.map(lambda x: {"text": f"Question: {x['source']}\nAnswer: {x['rationale']} - {x['target']}"})
+
+    dataset = DatasetDict({
+        "train": dataset,
+    })
+
+    return dataset
+
+def load_mini_ultrachat():
+    """
+    Load and format the mini-ultrachat dataset
+    https://huggingface.co/datasets/nampdn-ai/mini-ultrachat
+    """
+    dataset = load_dataset("nampdn-ai/mini-ultrachat")["train"]
+
+    # format the iterative prompt and answer into a single "text" column
+    dataset = dataset.map(
+        lambda x: {
+            "text": "".join(
+                [
+                    f"Question: {t}" 
+                    if i % 2 == 0 else f"Answer: {t}"
+                    for i, t in enumerate(x['data']) 
+                ]
+            )
+        }
+    )
+
+    dataset = DatasetDict({
+        "train": dataset,
+    })
+
+    return dataset
+
+def load_textbooks_are_all_you_need_lite():
+    """
+    Load and format the textbooks are all you need lite dataset
+    https://huggingface.co/datasets/SciPhi/textbooks-are-all-you-need-lite
+    """
+    dataset = load_dataset("SciPhi/textbooks-are-all-you-need-lite")["train"]
+
+    # format the data 
+    dataset = dataset.map(lambda x: {"text": x["completion"]})
+
+    dataset = DatasetDict({
+        "train": dataset,
+    })
+
+    return dataset
+
+def load_openphi_textbooks():
+    """
+    Load and format the openphi textbooks dataset
+    https://huggingface.co/datasets/open-phi/textbooks
+    """
+    dataset = load_dataset("open-phi/textbooks")
+
+    # format the data 
+    dataset = dataset.map(lambda x: {"text": x["markdown"]})
+
+    dataset = DatasetDict({
+        "train": dataset,
+    })
+
+    return dataset
+
+
+def load_openphi_programming_books():
+    """
+    Load and format the openphi programming textbooks dataset
+    https://huggingface.co/datasets/open-phi/programming_books_llama
+    """
+    dataset = load_dataset("open-phi/programming_books_llama")
+
+    # format the data
+    dataset = dataset.map(lambda x: {"text": x["markdown"]})
+
+    dataset = DatasetDict({
+        "train": dataset,
+    })
+
+    return dataset
+
+
+def load_tiny_codes():
+    """
+    Load and format the tiny-codes dataset
+    https://huggingface.co/datasets/nampdn-ai/tiny-codes
+    """
+    dataset = load_dataset("nampdn-ai/tiny-codes")["train"]
+
+    # format the data
+    dataset = dataset.map(lambda x: {"text": f"Question: {x['prompt']}\nAnswer: {x['response']}"})
+
+    dataset = DatasetDict({
+        "train": dataset,
+    })
+
+    return dataset
+
+def load_tiny_orca_textbooks():
+    """
+    Load and format the tiny-orca dataset
+    https://huggingface.co/datasets/nampdn-ai/tiny-orca-textbooks
+    """
+    dataste = load_dataset("nampdn-ai/tiny-orca-textbooks")
+
+    # format the data
+    dataset = dataset.map(lambda x: {"text": f"{x['textbook']}\n Question: {x['question']}\nAnswer: {x['response']}"})
+
+    dataset = DatasetDict({
+        "train": dataset,
+    })
+
+    return dataset
+
+def load_tiny_lessons():
+    """
+    Load and format the tiny-lessons dataset
+    https://huggingface.co/datasets/nampdn-ai/tiny-lessons
+    """
+    dataset = load_dataset("nampdn-ai/tiny-lessons")["train"]
+
+    # format the data
+    dataset = dataset.map(lambda x: {"text": x['textbook']})
+
+    dataset = DatasetDict({
+        "train": dataset,
+    })
+
+    return dataset
+
+def get_dataset_byte_size(dataset):
+    """
+    Get the byte size of a dataset
+    """
+    return sum([len(item["text"]) for item in dataset])
+
+def create_tiny_pile(verbose=False):
+    """
+    Combine multiple high-quality tiny datasets to create the tiny-pile dataset
+    1. tiny_textbooks
+    2. tiny_codes
+    3. tiny_orca_textbooks
+    4. tiny_webtext (exclude for now)
+    5. tiny_lessons
+    6. mini_fineweb
+    7. mini_cot
+    8. mini_ultrachat
+    9. textbooks_are_all_you_need_lite
+    10. openphi_textbooks
+    11. openphi_programming_books
+    """
+    tiny_textbooks = load_dataset("nampdn-ai/tiny-textbooks")["train"]
+    tiny_codes = load_tiny_codes()["train"]
+    tiny_orca_textbooks = load_dataset("nampdn-ai/tiny-orca-textbooks")["train"]
+    tiny_lessons = load_tiny_lessons()["train"]
+    mini_fineweb = load_dataset("nampdn-ai/mini-fineweb")["train"]
+    mini_cot = load_mini_cot()["train"]
+    mini_ultrachat = load_mini_ultrachat()["train"]
+    textbooks_are_all_you_need_lite = load_textbooks_are_all_you_need_lite()["train"]
+    openphi_textbooks = load_openphi_textbooks()["train"]
+    openphi_programming_books = load_openphi_programming_books()["train"]
+
+    # combine the dataset
+    combined_dataset = concatenate_datasets([
+        tiny_textbooks,
+        tiny_codes,
+        tiny_orca_textbooks,
+        tiny_lessons,
+        mini_fineweb,
+        mini_cot,
+        mini_ultrachat,
+        textbooks_are_all_you_need_lite,
+        openphi_textbooks,
+        openphi_programming_books
+    ])
+
+    if verbose:
+        """
+        For each dataset, count the bytes and print the percentage contribution
+        of each to the full pile dataset
+        """
+        dataset_sizes = {
+            "tiny_textbooks": get_dataset_byte_size(tiny_textbooks),
+            "tiny_codes": get_dataset_byte_size(tiny_codes),
+            "tiny_orca_textbooks": get_dataset_byte_size(tiny_orca_textbooks),
+            "tiny_lessons": get_dataset_byte_size(tiny_lessons),
+            "mini_fineweb": get_dataset_byte_size(mini_fineweb),
+            "mini_cot": get_dataset_byte_size(mini_cot),
+            "mini_ultrachat": get_dataset_byte_size(mini_ultrachat),
+            "textbooks_are_all_you_need_lite": get_dataset_byte_size(textbooks_are_all_you_need_lite),
+            "openphi_textbooks": get_dataset_byte_size(openphi_textbooks),
+            "openphi_programming_books": get_dataset_byte_size(openphi_programming_books),
+        }
+
+        total_size = sum(dataset_sizes.values())
+        table = PrettyTable(["Dataset", "Byte Size", "Percentage"])
+        for dataset_name, size in dataset_sizes.items():
+            table.add_row([dataset_name, size, size/total_size*100])
+        print(table)
+
+
+    combined_dataset = DatasetDict({
+        "train": combined_dataset,
+    })
+
+    return combined_dataset
+
+
 
 DATASET_DICT = {
     "debug": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
@@ -125,11 +375,29 @@ DATASET_DICT = {
     "babylm_100m": lambda: load_dataset("Sree1994/babylm_100M"), # https://babylm.github.io/
     "tinystories": lambda: load_dataset("roneneldan/TinyStories"), # https://huggingface.co/datasets/roneneldan/TinyStories
     "stlm": create_stlm_data_mix,
-    "openhermes-2.5": lambda: load_dataset("teknium/OpenHermes-2.5"),
+    "openhermes-2.5": lambda: load_open_hermes(),
     "openwebtext": lambda: load_dataset("Skylion007/openwebtext", trust_remote_code=True),
     "github-code": lambda: load_github_code_dataset(),
     "competition_math": lambda: load_competition_math_dataset(),
     "pints": lambda: load_dataset("pints-ai/Expository-Prose-V1"),
+    "super_natural_instructions": lambda: load_supernatural_instructions(),
+    "the_pile": lambda: load_dataset("The Pile", "pile-cc"),
+    "tiny_textbooks": lambda: load_dataset("nampdn-ai/tiny-textbooks"),
+    "tiny_codes": lambda: load_tiny_codes(),
+    #"tiny_math_textbooks": lambda: load_dataset("nampdn-ai/tiny-math-textbooks"),
+    "tiny_orca_textbooks": lambda: load_dataset("nampdn-ai/tiny-orca-textbooks"),
+    "tiny_webtext": lambda: load_dataset("nampdn-ai/tiny-webtext"),
+    "tiny_lessons": lambda: load_tiny_lessons(),
+    "tiny_bridgedict": lambda: load_dataset("nampdn-ai/tiny-bridgedict"),
+    "mini_fineweb": lambda: load_dataset("nampdn-ai/mini-fineweb"),
+    "mini_cot": lambda: load_mini_cot(),
+    "mini_ultrachat": lambda: load_mini_ultrachat(),
+    "textbooks_are_all_you_need_lite": lambda: load_textbooks_are_all_you_need_lite(),
+    "openphi_textbooks": lambda: load_openphi_textbooks(),
+    "openphi_programming_books": lambda: load_openphi_programming_books(),
+    "tiny_pile": lambda: create_tiny_pile(),
+
+
 }
 
 

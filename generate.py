@@ -6,7 +6,10 @@ import hydra
 import torch
 
 from models.build_models import build_model
-from models.generator import StandardGenerator
+from models.generator import (
+    StandardGenerator,
+    BeamSearchGenerator
+)
 
 
 @hydra.main(config_path="configs", config_name="generate")
@@ -17,16 +20,27 @@ def main(cfg):
     cfg["model_ckpt"] = hydra.utils.to_absolute_path(cfg["model_ckpt"])
 
     # load checkpoint from the path
-    model = build_model(checkpoint=torch.load(cfg["model_ckpt"]))
+    device = "cpu" if not torch.cuda.is_available() else "cuda"
+    model = build_model(
+        checkpoint_path=cfg["model_ckpt"],
+        device=device
+    )[0]
+                        
+    # put model into eval mode
+    model.eval()
 
-    generator = StandardGenerator(model=model, generate_cfg=cfg["generator"])
+    generator = BeamSearchGenerator(
+        model=model,
+        generate_cfg=cfg["generator"],
+        device=device
+    )
 
-    while True:
-        # generate the text
+    # generate the text
+    for _ in range(5):
         generated_text = generator.default_generate(
-            input_text=input("Enter the input text: ")
+            input_text=cfg["generator"]["input_text"]
         )
-        print(generated_text)
+        print("".join(generated_text))
 
 
 if __name__ == "__main__":

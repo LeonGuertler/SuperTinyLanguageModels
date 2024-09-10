@@ -40,9 +40,9 @@ trainer:
     trainer_type: base_trainer
     batch_size: 24
     gradient_accumulation_steps: 20
-    max_iters: 80000
-    lr_decay_iters: 80000
-    warmup_iters: 10000
+    max_iters: 30000
+    lr_decay_iters: 30000
+    warmup_iters: 5000
     eval_interval: 2000
     log_interval: 10
     eval_iters: 500
@@ -67,7 +67,7 @@ trainer:
     beta2: 0.95
     grad_clip: 1.0
     decay_lr: true
-    warmup_iters: 10000
+    warmup_iters: 5000
   lr_scheduler:
     name: cosine
   dataloader:
