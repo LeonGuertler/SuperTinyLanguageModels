@@ -331,6 +331,17 @@ def create_tiny_pile(verbose=True):
         openphi_textbooks, openphi_programming_books
     ]
 
+     # Check the schema of each dataset to identify misalignment
+    for idx, dataset in enumerate(datasets):
+        print(f"Dataset {idx} schema: {dataset.features}")
+        if 'text' not in dataset.features:
+            print(f"Dataset {idx} is missing the 'text' column!")
+        else:
+            text_type = dataset.features['text']
+            print(f"Dataset {idx} 'text' column type: {text_type}")
+
+    input()
+
     # Cast the "text" column to pa.large_string() for each dataset
     datasets = [dataset.cast_column("text", pa.large_string()) for dataset in datasets]
 
