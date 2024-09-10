@@ -331,6 +331,11 @@ def create_tiny_pile(verbose=True):
         openphi_textbooks, openphi_programming_books
     ]
 
+    for idx, dataset in enumerate(datasets):
+        if dataset.features['text'].dtype == 'string':
+            datasets[idx] = dataset.cast_column("text", "large_string")
+
+
      # Check the schema of each dataset to identify misalignment
     for idx, dataset in enumerate(datasets):
         print(f"Dataset {idx} schema: {dataset.features}")
@@ -341,9 +346,6 @@ def create_tiny_pile(verbose=True):
             print(f"Dataset {idx} 'text' column type: {text_type}")
 
     input()
-
-    # Cast the "text" column to pa.large_string() for each dataset
-    datasets = [dataset.cast_column("text", pa.large_string()) for dataset in datasets]
 
     # Now concatenate the datasets
     combined_dataset = concatenate_datasets(datasets)
