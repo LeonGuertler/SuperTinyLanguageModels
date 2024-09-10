@@ -22,6 +22,12 @@ class LoRA(nn.Module):
         self.lora_A = nn.Parameter(torch.empty((lora_rank, linear_layer.in_features)))
         self.lora_B = nn.Parameter(torch.zeros((linear_layer.out_features, lora_rank)))
 
+        print("LoRA A shape:", self.lora_A.shape)
+        print("LoRA B shape:", self.lora_B.shape)
+        print("Input feature size:", linear_layer.in_features)
+        print("Output feature size:", linear_layer.out_features)
+
+
         self.reset_parameters()
 
     def reset_parameters(self):
