@@ -323,19 +323,19 @@ def create_tiny_pile(verbose=True):
     openphi_textbooks = load_openphi_textbooks()["train"].remove_columns(["topic", "model", "concepts", "outline", "markdown", "field", "subfield", "rag"])
     openphi_programming_books = load_openphi_programming_books()["train"].remove_columns(["topic", "outline", "concepts", "queries", "context", "markdown", "model"])
 
-    # combine the dataset
-    combined_dataset = concatenate_datasets([
-        tiny_textbooks,
-        tiny_codes,
-        tiny_orca_textbooks,
-        tiny_lessons,
-        #mini_fineweb,
-        mini_cot,
-        mini_ultrachat,
-        textbooks_are_all_you_need_lite,
-        openphi_textbooks,
-        openphi_programming_books
-    ])
+
+    # Ensure all datasets have the same column type
+    datasets = [
+        tiny_textbooks, tiny_codes, tiny_orca_textbooks, tiny_lessons,
+        mini_cot, mini_ultrachat, textbooks_are_all_you_need_lite,
+        openphi_textbooks, openphi_programming_books
+    ]
+
+    # Cast the "text" column to large_string for each dataset
+    datasets = [dataset.cast_column("text", "large_string") for dataset in datasets]
+
+    # Now concatenate the datasets
+    combined_dataset = concatenate_datasets(datasets)
 
     if verbose:
         """
