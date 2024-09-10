@@ -313,7 +313,7 @@ def create_tiny_pile(verbose=False):
     """
     tiny_textbooks = load_dataset("nampdn-ai/tiny-textbooks")["train"]
     tiny_codes = load_tiny_codes()["train"]
-    tiny_orca_textbooks = load_tiny_orca_textbooks()["train"],
+    tiny_orca_textbooks = load_tiny_orca_textbooks()["train"]
     tiny_lessons = load_tiny_lessons()["train"]
     #mini_fineweb = load_dataset("nampdn-ai/mini-fineweb")["train"]
     mini_cot = load_mini_cot()["train"]
@@ -321,8 +321,7 @@ def create_tiny_pile(verbose=False):
     textbooks_are_all_you_need_lite = load_textbooks_are_all_you_need_lite()["train"]
     openphi_textbooks = load_openphi_textbooks()["train"]
     openphi_programming_books = load_openphi_programming_books()["train"]
-    print(tiny_textbooks)
-    input(tiny_orca_textbooks)
+
     # combine the dataset
     combined_dataset = concatenate_datasets([
         tiny_textbooks["text"],
