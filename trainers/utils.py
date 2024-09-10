@@ -262,7 +262,7 @@ def load_tiny_orca_textbooks():
     Load and format the tiny-orca dataset
     https://huggingface.co/datasets/nampdn-ai/tiny-orca-textbooks
     """
-    dataset = load_dataset("nampdn-ai/tiny-orca-textbooks")
+    dataset = load_dataset("nampdn-ai/tiny-orca-textbooks")["train"]
 
     # format the data
     dataset = dataset.map(lambda x: {"text": f"{x['textbook']}\n Question: {x['question']}\nAnswer: {x['response']}"})
