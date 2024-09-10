@@ -212,7 +212,7 @@ def load_openphi_textbooks():
     Load and format the openphi textbooks dataset
     https://huggingface.co/datasets/open-phi/textbooks
     """
-    dataset = load_dataset("open-phi/textbooks")
+    dataset = load_dataset("open-phi/textbooks")["train"]
 
     # format the data 
     dataset = dataset.map(lambda x: {"text": x["markdown"]})
@@ -229,7 +229,7 @@ def load_openphi_programming_books():
     Load and format the openphi programming textbooks dataset
     https://huggingface.co/datasets/open-phi/programming_books_llama
     """
-    dataset = load_dataset("open-phi/programming_books_llama")
+    dataset = load_dataset("open-phi/programming_books_llama")["train"]
 
     # format the data
     dataset = dataset.map(lambda x: {"text": x["markdown"]})
@@ -321,8 +321,7 @@ def create_tiny_pile(verbose=False):
     textbooks_are_all_you_need_lite = load_textbooks_are_all_you_need_lite()["train"]
     openphi_textbooks = load_openphi_textbooks()["train"]
     openphi_programming_books = load_openphi_programming_books()["train"]
-    input(openphi_textbooks)
-    input(openphi_programming_books)
+
     # combine the dataset
     combined_dataset = concatenate_datasets([
         tiny_textbooks["text"],
