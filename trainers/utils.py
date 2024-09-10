@@ -303,7 +303,7 @@ def create_tiny_pile(verbose=False):
     3. tiny_orca_textbooks
     4. tiny_webtext (exclude for now)
     5. tiny_lessons
-    6. mini_fineweb
+    6. mini_fineweb (exclude for now)
     7. mini_cot
     8. mini_ultrachat
     9. textbooks_are_all_you_need_lite
@@ -314,7 +314,7 @@ def create_tiny_pile(verbose=False):
     tiny_codes = load_tiny_codes()["train"]
     tiny_orca_textbooks = load_dataset("nampdn-ai/tiny-orca-textbooks")["train"]
     tiny_lessons = load_tiny_lessons()["train"]
-    mini_fineweb = load_dataset("nampdn-ai/mini-fineweb")["train"]
+    #mini_fineweb = load_dataset("nampdn-ai/mini-fineweb")["train"]
     mini_cot = load_mini_cot()["train"]
     mini_ultrachat = load_mini_ultrachat()["train"]
     textbooks_are_all_you_need_lite = load_textbooks_are_all_you_need_lite()["train"]
@@ -327,7 +327,7 @@ def create_tiny_pile(verbose=False):
         tiny_codes,
         tiny_orca_textbooks,
         tiny_lessons,
-        mini_fineweb,
+        #mini_fineweb,
         mini_cot,
         mini_ultrachat,
         textbooks_are_all_you_need_lite,
@@ -345,7 +345,7 @@ def create_tiny_pile(verbose=False):
             "tiny_codes": get_dataset_byte_size(tiny_codes),
             "tiny_orca_textbooks": get_dataset_byte_size(tiny_orca_textbooks),
             "tiny_lessons": get_dataset_byte_size(tiny_lessons),
-            "mini_fineweb": get_dataset_byte_size(mini_fineweb),
+            #"mini_fineweb": get_dataset_byte_size(mini_fineweb),
             "mini_cot": get_dataset_byte_size(mini_cot),
             "mini_ultrachat": get_dataset_byte_size(mini_ultrachat),
             "textbooks_are_all_you_need_lite": get_dataset_byte_size(textbooks_are_all_you_need_lite),
