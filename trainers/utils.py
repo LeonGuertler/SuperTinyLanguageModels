@@ -312,16 +312,16 @@ def create_tiny_pile(verbose=True):
     10. openphi_textbooks
     11. openphi_programming_books
     """
-    tiny_textbooks = load_dataset("nampdn-ai/tiny-textbooks")["train"]
-    tiny_codes = load_tiny_codes()["train"]
-    tiny_orca_textbooks = load_tiny_orca_textbooks()["train"]
-    tiny_lessons = load_tiny_lessons()["train"]
+    tiny_textbooks = load_dataset("nampdn-ai/tiny-textbooks")["train"].remove_columns(["source", "s", "len", "idx", "textbook"])
+    tiny_codes = load_tiny_codes()["train"].remove_columns(["prompt", "main_topic", "subtopic", "adjective", "action_verb", "scenario", "target_audience","programming_language", "common_sense_topic", "idx", "response"])
+    tiny_orca_textbooks = load_tiny_orca_textbooks()["train"].remove_columns(["id", "prompt", "textbook", "question", "response"])
+    tiny_lessons = load_tiny_lessons()["train"].remove_columns(["source", "s", "len", "idx", "textbook"])
     #mini_fineweb = load_dataset("nampdn-ai/mini-fineweb")["train"]
-    mini_cot = load_mini_cot()["train"]
-    mini_ultrachat = load_mini_ultrachat()["train"]
-    textbooks_are_all_you_need_lite = load_textbooks_are_all_you_need_lite()["train"]
-    openphi_textbooks = load_openphi_textbooks()["train"]
-    openphi_programming_books = load_openphi_programming_books()["train"]
+    mini_cot = load_mini_cot()["train"].remove_columns(["source", "target", "rationale", "task", "type"])
+    mini_ultrachat = load_mini_ultrachat()["train"].remove_columns(["id", "data"])
+    textbooks_are_all_you_need_lite = load_textbooks_are_all_you_need_lite()["train"].remove_columns(["formatted_prompt", "completion", "fist_task", "second_task", "last_task", "notes", "title", "model", "temperature"])
+    openphi_textbooks = load_openphi_textbooks()["train"].remove_columns(["topic", "model", "concepts", "outline", "markdown", "field", "subfield", "rag"])
+    openphi_programming_books = load_openphi_programming_books()["train"].remove_columns(["topic", "outline", "concepts", "queries", "context", "markdown", "model"])
 
     # combine the dataset
     combined_dataset = concatenate_datasets([
