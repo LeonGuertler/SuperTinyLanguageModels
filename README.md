@@ -18,7 +18,8 @@ Please note that this repository is an evolving work in progress, reflecting the
 | Knowledge distillation  | `feature/knowledge-distillation/replace-teacher-tokenizer`|                  | [View preregistration](https://github.com/LeonGuertler/SuperTinyLanguageModels/blob/feature/knowledge-distillation/replace-teacher-tokenizer/reports/preregistration-knowledgedistillation.pdf)  | In progress  |
 | Byte Level             |        |                       | In progress  | In progress  |
 | Self Play Evals        |            |   [Join the room](https://discord.gg/hgVhe6Hp)                 | In progress| In progress  |
-| Optimizers   | `optimizers` | [Join the room](https://discord.gg/S5Q2ZmWY) | In progress | In progress
+| Optimizers   | `optimizers` | [Join the room](https://discord.gg/S5Q2ZmWY) | In progress | In progress |
+| Weight Sharing | `ffn-sharing` | |[View preregistration](https://github.com/LeonGuertler/SuperTinyLanguageModels/blob/ffn-sharing/pre_reports/weight_tying_prereport.pdf) | In progress |
 
 ## Download
 ### Access to Hugging Face
