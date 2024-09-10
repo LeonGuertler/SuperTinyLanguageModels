@@ -291,6 +291,21 @@ def load_tiny_lessons():
 
     return dataset
 
+def load_natural_instructions():
+    """
+    Load and format the natural-instructions dataset
+    huggingface.co/datasets/Muennighoff/natural-instructions
+    """
+    dataset = load_dataset("Muennighoff/natural-instructions")["train"]
+
+    # format the data
+    dataset = dataset.map(lambda x: {"text": f"Task: Definition: {x['definition']}\nQuestion: {x['inputs']}\nAnswer: {x['targets']}"})
+
+    dataset = DatasetDict({
+        "train": dataset,
+    })
+
+    return dataset
 
 def get_dataset_byte_size(dataset):
     """
@@ -323,13 +338,17 @@ def create_tiny_pile(verbose=True):
     textbooks_are_all_you_need_lite = load_textbooks_are_all_you_need_lite()["train"].remove_columns(["formatted_prompt", "completion", "first_task", "second_task", "last_task", "notes", "title", "model", "temperature"])
     openphi_textbooks = load_openphi_textbooks()["train"].remove_columns(["topic", "model", "concepts", "outline", "markdown", "field", "subfield", "rag"])
     openphi_programming_books = load_openphi_programming_books()["train"].remove_columns(["topic", "outline", "concepts", "queries", "context", "markdown", "model"])
-
-
+    simple_en_wiki = load_dataset("wikimedia/wikipedia", "20231101.simple")["train"].remove_columns(["title", "url", "id"])
+    natural_instructions = load_natural_instructions()["train"].remove_columns(["task_name", "id", "definition", "inputs", "targets"])
+    openhermes = load_open_hermes()["train"].remove_columns(["id", "title", "topic", "language", "conversations", "avatarUrl", "custom_instruction", "system_prompt", "views", "category", "idx", "model_name", "source", "skip_prompt_formatiing", "hash"])
+    
+    
     # Ensure all datasets have the same column type
     datasets = [
         tiny_textbooks, tiny_codes, tiny_orca_textbooks, tiny_lessons,
         mini_cot, mini_ultrachat, textbooks_are_all_you_need_lite,
-        openphi_textbooks, openphi_programming_books
+        openphi_textbooks, openphi_programming_books, simple_en_wiki,
+        natural_instructions, openhermes
     ]
 
     # Create a feature schema with "large_string" for the "text" column
@@ -359,6 +378,9 @@ def create_tiny_pile(verbose=True):
             "textbooks_are_all_you_need_lite": get_dataset_byte_size(textbooks_are_all_you_need_lite),
             "openphi_textbooks": get_dataset_byte_size(openphi_textbooks),
             "openphi_programming_books": get_dataset_byte_size(openphi_programming_books),
+            "simple_en_wiki": get_dataset_byte_size(simple_en_wiki),
+            "natural_instructions": get_dataset_byte_size(natural_instructions),
+            "openhermes": get_dataset_byte_size(openhermes)
         }
 
         total_size = sum(dataset_sizes.values())
@@ -404,6 +426,7 @@ DATASET_DICT = {
     "openphi_textbooks": lambda: load_openphi_textbooks(),
     "openphi_programming_books": lambda: load_openphi_programming_books(),
     "tiny_pile": lambda: create_tiny_pile(),
+    "natural_instructions": lambda: load_natural_instructions()
 
 
 }

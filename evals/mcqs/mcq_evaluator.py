@@ -7,8 +7,8 @@ import tqdm
 
 from evals import eval_wrapper
 from evals.evaluator_interface import EvaluationInterface
-from evals.mcqs.load_benchmarks import load_benchmark
-from evals.metrics import MCQ_METRIC_DICT
+from evals.mcqs.load_benchmarks import load_benchmark 
+from evals.metrics import MCQ_METRIC_DICT 
 
 
 class MCQEvaluator(EvaluationInterface):
@@ -23,7 +23,7 @@ class MCQEvaluator(EvaluationInterface):
         self.num_samples = num_samples
         self.benchmarks = benchmarks
         # make sure the model is in eval model
-        self.model.eval()
+        #self.model.eval()
 
     @torch.no_grad()
     def predict(self, prefix, ground_truth, false_options):
