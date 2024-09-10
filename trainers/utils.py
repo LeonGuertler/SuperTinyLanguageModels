@@ -289,6 +289,21 @@ def load_tiny_lessons():
 
     return dataset
 
+def load_tiny_orca_textbooks():
+    """
+    
+    """
+    dataset = load_dataset("nampdn-ai/tiny-orca-textbooks")["train"]
+
+    # format the data
+    dataset = dataset.map(lambda x: {"text": f"{x['textbook']}\n Question: {x['question']}\nAnswer: {x['response']}"})
+
+    dataset = DatasetDict({
+        "train": dataset,
+    })
+
+    return dataset
+
 def get_dataset_byte_size(dataset):
     """
     Get the byte size of a dataset
@@ -312,7 +327,7 @@ def create_tiny_pile(verbose=False):
     """
     tiny_textbooks = load_dataset("nampdn-ai/tiny-textbooks")["train"]
     tiny_codes = load_tiny_codes()["train"]
-    tiny_orca_textbooks = load_dataset("nampdn-ai/tiny-orca-textbooks")["train"]
+    tiny_orca_textbooks = load_tiny_orca_textbooks()["train"],
     tiny_lessons = load_tiny_lessons()["train"]
     #mini_fineweb = load_dataset("nampdn-ai/mini-fineweb")["train"]
     mini_cot = load_mini_cot()["train"]
@@ -386,7 +401,7 @@ DATASET_DICT = {
     "tiny_textbooks": lambda: load_dataset("nampdn-ai/tiny-textbooks"),
     "tiny_codes": lambda: load_tiny_codes(),
     #"tiny_math_textbooks": lambda: load_dataset("nampdn-ai/tiny-math-textbooks"),
-    "tiny_orca_textbooks": lambda: load_dataset("nampdn-ai/tiny-orca-textbooks"),
+    "tiny_orca_textbooks": lambda: load_tiny_orca_textbooks(),
     "tiny_webtext": lambda: load_dataset("nampdn-ai/tiny-webtext"),
     "tiny_lessons": lambda: load_tiny_lessons(),
     "tiny_bridgedict": lambda: load_dataset("nampdn-ai/tiny-bridgedict"),
