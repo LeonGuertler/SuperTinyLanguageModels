@@ -110,6 +110,7 @@ def load_competition_math_dataset():
     # format the problem and solution into a single "text" column
     dataset = dataset.map(lambda x: {"text": f"Problem: {x['problem']}\nSolution: {x['solution']}"})
 
+
     dataset = DatasetDict({
         "train": dataset,
     })
@@ -324,16 +325,16 @@ def create_tiny_pile(verbose=True):
 
     # combine the dataset
     combined_dataset = concatenate_datasets([
-        tiny_textbooks["text"],
-        tiny_codes["text"],
-        tiny_orca_textbooks["text"],
-        tiny_lessons["text"],
+        tiny_textbooks,
+        tiny_codes,
+        tiny_orca_textbooks,
+        tiny_lessons,
         #mini_fineweb,
-        mini_cot["text"],
-        mini_ultrachat["text"],
-        textbooks_are_all_you_need_lite["text"],
-        openphi_textbooks["text"],
-        openphi_programming_books["text"]
+        mini_cot,
+        mini_ultrachat,
+        textbooks_are_all_you_need_lite,
+        openphi_textbooks,
+        openphi_programming_books
     ])
 
     if verbose:
