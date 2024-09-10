@@ -36,7 +36,7 @@ class LoRA(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass through the linear layer with LoRA"""
-        return self.linear_layer(x) + (self.lora_B @ self.lora_A @ x.transponse(1,2)).transponse(1,2) * self.scaling
+        return self.linear_layer(x) + (self.lora_B @ self.lora_A @ x.transpose(1,2)).transpose(1,2) * self.scaling
 
 class SharedInteriorFFNLora(GenericTransformer):
     def __init__(self, model_cfg):
