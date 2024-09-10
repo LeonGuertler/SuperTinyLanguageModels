@@ -14,7 +14,7 @@ Please note that this repository is an evolving work in progress, reflecting the
 
 | Research Area               | Branch Name                    | Discord Channel     | Preregistration | Full Report  |
 |-----------------------------|--------------------------------|---------------------|-----------------|--------------|
-| Dropout | `dropout-sched-exp`   |                | [View preregistration](https://github.com/LeonGuertler/SuperTinyLanguageModels/blob/main/pre_reports/dropout_prereport.pdf) | In progress |
+| Dropout | `dropout-sched-exp`   |                | [View preregistration](https://github.com/LeonGuertler/SuperTinyLanguageModels/blob/main/pre_reports/dropout_prereport.pdf) | [View paper](http://arxiv.org/abs/2409.05423) |
 | Knowledge distillation  | `feature/knowledge-distillation/replace-teacher-tokenizer`|                  | [View preregistration](https://github.com/LeonGuertler/SuperTinyLanguageModels/blob/feature/knowledge-distillation/replace-teacher-tokenizer/reports/preregistration-knowledgedistillation.pdf)  | In progress  |
 | Byte Level             |        |                       | In progress  | In progress  |
 | Self Play Evals        |            |   [Join the room](https://discord.gg/hgVhe6Hp)                 | In progress| In progress  |
