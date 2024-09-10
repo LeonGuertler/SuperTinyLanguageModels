@@ -50,7 +50,7 @@ class SharedInteriorFFNLora(GenericTransformer):
         shared_weights = {name: module.weight for name, module in base_module.named_modules() if isinstance(module, nn.Linear)}
         
         for i in range(start_layer, end_layer):
-            input(self.transformer.h[i])
+            print(self.transformer.h[i])
             target_module = getattr(self.transformer.h[i], module_name)
             for name, module in target_module.named_modules():
                 if isinstance(module, nn.Linear):
