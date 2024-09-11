@@ -3,16 +3,13 @@ model:
   lora_rank: 64
   checkpoint_path: Null
   core_model:
-    core_model_type: ffn_lora_sharing_moe
-    num_layers: 10
+    core_model_type: generic
+    num_layers: 6
     ffn:
       ffn_type: swiglu
       ffn_dim: 1072
       normalization: rms_norm
       bias: false
-      lora_rank: 64
-      n_experts: 16
-      lora_alpha: 1.0
     attn:
       attn_type: generic
       num_heads: 16
@@ -38,11 +35,11 @@ trainer:
   dropout_scheduler:
     dropout_type: constant
     dropout: 0.0
-  dataset: pints
+  dataset: simple_en_wiki
   training:
     trainer_type: base_trainer
-    batch_size: 12
-    gradient_accumulation_steps: 40
+    batch_size: 24
+    gradient_accumulation_steps: 20
     max_iters: 80000
     lr_decay_iters: 80000
     warmup_iters: 10000
@@ -65,7 +62,7 @@ trainer:
     name: nanoGPTadamW
     lr: 0.0006
     min_lr: 6.0e-05
-    weight_decay: 0.01
+    weight_decay: 0.1
     beta1: 0.9
     beta2: 0.95
     grad_clip: 1.0
@@ -81,7 +78,7 @@ trainer:
     name: cross_entropy
 general:
   logging:
-    wandb_log: true
+    wandb_log: false
     wandb_project: SuperTinyLanguageModels
   paths:
     output_dir: outputs
