@@ -93,7 +93,7 @@ def main(cfg):
     )
 
     # get absolute path for checkpoint
-    if cfg["model"]["checkpoint_path"] is not None:
+    if "checkpoint_path" in cfg["model"]:
         cfg["model"]["checkpoint_path"] = hydra.utils.to_absolute_path(cfg["model"]["checkpoint_path"])
 
 
