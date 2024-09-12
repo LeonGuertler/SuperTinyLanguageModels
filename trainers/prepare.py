@@ -159,7 +159,7 @@ def prepare_data(cfg):
     tokenized_data_folder = os.path.join(
         cfg["general"]["paths"]["data_dir"],
         dataset_name,
-        f'{cfg["model"]["embedder"]["tokenizer_type"]}-{cfg["model"]["vocab_size"]}-{cfg["trainer"]["dataloader"]["name"]}',
+        f'{cfg["model"]["tokenizer_type"]}-{cfg["model"]["vocab_size"]}-{cfg["trainer"]["dataloader"]["name"]}',
     )
 
     # check if already exists (check len because some datasets use differen filenames
