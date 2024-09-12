@@ -1,10 +1,12 @@
 model:
+  k_interior_layers: 1
+  lora_rank: 64
   core_model:
-    core_model_type: generic
+    core_model_type: weight_sharing
     num_layers: 8
     ffn:
       ffn_type: swiglu
-      ffn_dim: 1320
+      ffn_dim: 1527
       normalization: rms_norm
       bias: false
     attn:
@@ -22,7 +24,7 @@ model:
     normalization: rms_norm
     bias: false
     lm_head_type: generic
-  hidden_dim: 512
+  hidden_dim: 592
   context_window: 512
   vocab_size: 50257
   model_shell_type: standard
@@ -31,7 +33,7 @@ model:
 trainer:
   dropout_scheduler:
     dropout_type: constant
-    dropout: 0.1
+    dropout: 0
   dataset: openwebtext
   training:
     trainer_type: base_trainer

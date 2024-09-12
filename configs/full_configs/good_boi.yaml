@@ -1,10 +1,12 @@
 model:
+  k_interior_layers: 2
+  lora_rank: 64
   core_model:
-    core_model_type: generic
-    num_layers: 8
+    core_model_type: weight_sharing
+    num_layers: 12
     ffn:
       ffn_type: swiglu
-      ffn_dim: 1320
+      ffn_dim: 1440
       normalization: rms_norm
       bias: false
     attn:
@@ -17,7 +19,7 @@ model:
   embedder:
     tokenizer_type: gpt2
     embedding_model_type: generic
-    dataset_name: stlm
+    dataset_name: simple_en_wiki
   lm_head:
     normalization: rms_norm
     bias: false
@@ -31,19 +33,19 @@ model:
 trainer:
   dropout_scheduler:
     dropout_type: constant
-    dropout: 0.1
+    dropout: 0
   dataset: openwebtext
   training:
     trainer_type: base_trainer
     batch_size: 24
     gradient_accumulation_steps: 20
-    max_iters: 30000
-    lr_decay_iters: 30000
+    max_iters: 150000
+    lr_decay_iters: 150000
     warmup_iters: 5000
     eval_interval: 2000
     log_interval: 10
     eval_iters: 500
-    checkpoint_interval: 1000000000.0
+    checkpoint_interval: 10000
     run_profiler: false
   eval:
     - benchmarks:

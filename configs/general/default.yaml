@@ -4,7 +4,7 @@ logging:
 
 paths:
   output_dir: "outputs"
-  data_dir: "data"
+  data_dir:"data"
   checkpoint_dir: "checkpoints"
 
 seed: 489

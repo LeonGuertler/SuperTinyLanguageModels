@@ -1,10 +1,12 @@
 model:
+  k_interior_layers: 2
+  lora_rank: 64
   core_model:
-    core_model_type: generic
-    num_layers: 8
+    core_model_type: weight_sharing
+    num_layers: 12
     ffn:
       ffn_type: swiglu
-      ffn_dim: 1320
+      ffn_dim: 1440
       normalization: rms_norm
       bias: false
     attn:
@@ -31,7 +33,7 @@ model:
 trainer:
   dropout_scheduler:
     dropout_type: constant
-    dropout: 0.1
+    dropout: 0
   dataset: openwebtext
   training:
     trainer_type: base_trainer
