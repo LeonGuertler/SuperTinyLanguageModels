@@ -1,4 +1,4 @@
 defaults:
   - generator: baseline
-model_ckpt: "checkpoints/...pt"
+model_ckpt: "outputs/2024-09-09/09-52-58/checkpoints/ckpt_149999.pt"
 
