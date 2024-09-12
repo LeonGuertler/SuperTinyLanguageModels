@@ -8,7 +8,7 @@ import hydra
 from models.build_models import build_model
 from trainers.build_trainers import build_trainer, ddp_setup
 from trainers import base_trainer
-from SuperTinyLanguageModels.trainers.data_utils import create_folder_structure, init_print_override, restore_print_override
+from trainers.data_utils import create_folder_structure, init_print_override, restore_print_override
 
 
 import torch
