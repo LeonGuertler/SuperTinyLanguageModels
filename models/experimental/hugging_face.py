@@ -4,7 +4,7 @@ This can be used for finetuning or training from scratch."""
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from models.components.tokenizers.base_class import Tokenizer
+from models.components.layers.tokenizers import TokenizerClass
 from models.embedding_models import EmbedderInterface
 from models.model_shell import ModelShell
 from trainers.base_trainer import BaseTrainer
@@ -34,7 +34,7 @@ def build_model(model_cfg):
     return model
 
 
-class HFTokenizerWrapper(Tokenizer):
+class HFTokenizerWrapper(TokenizerClass):
     def __init__(self, hf_tokenizer_name):
         self.hf_tokenizer = AutoTokenizer.from_pretrained(hf_tokenizer_name)
         self.eot_token = self.hf_tokenizer.eos_token_id
@@ -129,10 +129,11 @@ class HFTransformerCore(torch.nn.Module):
         super().__init__()
         self.model = build_model(model_cfg = model_cfg)
 
-        ## freeze the parameters
-        print("Note: Freezing the parameters of the hf_core model.")
-        for param in self.model.parameters():
-            param.requires_grad = False
+        if model_cfg.get("freeze", True):
+            ## freeze the parameters
+            print("Note: Freezing the parameters of the hf_core model.")
+            for param in self.model.parameters():
+                param.requires_grad = False
 
     def forward(self, x):
         """

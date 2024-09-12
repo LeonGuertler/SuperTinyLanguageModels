@@ -11,26 +11,32 @@ from models import core_models, embedding_models, model_heads
 
 class ModelShell(torch.nn.Module):
     """
-    Unify the embedding model, core model and LM head
+    Unify the embedding model, core model and LM head 
     into a single object; initializes the weights
     and prints basic model statistics.
     """
 
     def __init__(
         self,
+        model_cfg,
         embedding_model: embedding_models.EmbedderInterface,
         core_model: core_models.GenericTransformer,
         model_head: model_heads.AutoregressiveLMHead,
-        weight_init_func=None,
     ):
         super().__init__()
         self.embedding_model = embedding_model
         self.core_model = core_model
         self.model_head = model_head
 
-        # initialize model weights
-        if weight_init_func is not None:
-            self.apply(weight_init_func)
+
+        # check if embedding model weights are to be shared with the model head
+        if model_cfg.get("embedding_weight_tying", True):
+            # share the weights between the token embeddings and the final
+            # logit layer, following: https://paperswithcode.com/method/weight-tying
+            assert model_head.linear.weight.shape == embedding_model.token_embedder.weight.shape, \
+                "The embedding model and the model head should have the same output dimension."
+            embedding_model.token_embedder.weight = model_head.linear.weight
+
         self.device = ...
 
     # override to device to set the attribute
@@ -82,29 +88,6 @@ class ModelShell(torch.nn.Module):
         logits = self.model_head.inference(x)
 
         return logits, model_input
-    
-    @torch.no_grad()
-    def generate(self, model_input, max_length=100):
-        """
-        Generate a sequence of tokens given a prompt.
-        Args:
-            model_input: str or torch.tensor(B, S)
-            max_length: int
-        Returns:
-            tokens: list[int]
-        """
-        # tokenize the input 
-        tokens = self.embedding_model.tokenize_input(model_input, truncate=True, add_eot=False)
-
-        while len(tokens) < max_length:
-            # generate the next token
-            logits, _ = self.inference(tokens)
-            next_token = torch.argmax(logits[:, -1], dim=-1)
-            tokens.append(next_token.item())
-            if next_token == self.embedding_model.eot_token:
-                break
-
-        return tokens        
 
     @torch.no_grad()
     def loglikelihood(self, prefixes, continuations):

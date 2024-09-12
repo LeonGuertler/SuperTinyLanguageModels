@@ -5,7 +5,7 @@ import os
 import torch 
 import numpy as np 
 from tqdm import tqdm 
-from trainers.utils import load_data
+from trainers.data_utils import load_data
 
 from models.build_models import build_embedding_model 
 

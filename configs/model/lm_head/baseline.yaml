@@ -1,3 +1,0 @@
-normalization: "rms_norm"
-bias: False
-lm_head_type: "generic"

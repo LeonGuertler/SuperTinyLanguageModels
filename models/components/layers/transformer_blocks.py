@@ -36,7 +36,7 @@ class GenericTransformerBlock(torch.nn.Module):
 
         # build the ffn norm
         self.ffn_norm = build_normalization(
-            normalization_name=ffn_cfg["normalization"],
+            normalization_name=ffn_cfg.get("normalization", "rms_norm"), # Default: rms_norm
             dim=hidden_dim,
             bias=ffn_cfg["bias"],
         )

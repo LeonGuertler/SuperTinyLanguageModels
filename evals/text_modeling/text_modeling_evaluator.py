@@ -13,8 +13,9 @@ class TextModelingEvaluator(EvaluationInterface):
     Evaluator class that evaluates models on their language modeling 
     capabilities in a way that is agnostic to the tokenizer used, using byte-level accuracy.
     """
-    def __init__(self, model, eval_dir):
+    def __init__(self, model, topic_list, eval_dir):
         self.model = model 
+        self.topic_list = topic_list
 
         # Ensure the model is in evaluation mode
         self.model.eval()

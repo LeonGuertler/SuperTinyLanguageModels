@@ -13,9 +13,6 @@ from evals.text_modeling.text_modeling_evaluator import TextModelingEvaluator
 
 EVALUATORS_DICT = {
     "mcq": MCQEvaluator,
-    "glue": FinetuningEvaluator,
-    "ft_qa": FinetuningQA,
-    "prog": ProgressionEvaluator,
     "text_modeling": TextModelingEvaluator,
 }
 

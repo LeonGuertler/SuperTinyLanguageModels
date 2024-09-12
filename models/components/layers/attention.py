@@ -13,15 +13,18 @@ class Attention(torch.nn.Module):
     def __init__(
         self,
         hidden_dim,
-        num_heads,
+        num_q_heads,
+        num_kv_heads,
         bias,
         use_rope,
         context_window,
         is_causal,
-        group_size,
     ):
         super().__init__()
-        assert hidden_dim % num_heads == 0, "Hidden dim must be divisible by num heads"
+        assert hidden_dim % num_kv_heads == 0, "Hidden dim must be divisible by num heads"
+        assert num_kv_heads % num_q_heads == 0, "num_kv_heads must be divisible by num_q_heads"
+
+        group_size = num_kv_heads // num_q_heads
 
         # key, query, value projections for all heads
         self.c_attn = torch.nn.Linear(
@@ -34,7 +37,7 @@ class Attention(torch.nn.Module):
         # attention dropout
         self.attn_dropout = torch.nn.Dropout()
 
-        self.num_heads = num_heads
+        self.num_kv_heads = num_kv_heads
         self.group_size = group_size
         self.is_causal = is_causal
 
@@ -43,7 +46,7 @@ class Attention(torch.nn.Module):
         if self.use_rope:
             assert context_window % 2 == 0
             self.freqs_cis = compute_freqs_cis(
-                seq_len=context_window, head_dim=hidden_dim // num_heads
+                seq_len=context_window, head_dim=hidden_dim // num_kv_heads
             )
 
     def forward(self, x, attention_mask=None):
@@ -52,15 +55,15 @@ class Attention(torch.nn.Module):
         """
         assert attention_mask is None, "Not implemented yet"
         B, S, H = x.size()
-        num_grouped_heads = self.num_heads // self.group_size
+        num_grouped_heads = self.num_kv_heads // self.group_size
         group_hidden_dim = H // self.group_size
 
         # calculate query, key, values for all heads in batch
         # move head forward to be the batch dim
         q, k, v = self.c_attn(x).split([H, group_hidden_dim, group_hidden_dim], dim=-1)
-        k = k.view(B, S, num_grouped_heads, H // self.num_heads)  # (B, T, nh, hs)
-        q = q.view(B, S, self.num_heads, H // self.num_heads)  # (B, T, nh, hs)
-        v = v.view(B, S, num_grouped_heads, H // self.num_heads).transpose(
+        k = k.view(B, S, num_grouped_heads, H // self.num_kv_heads)  # (B, T, nh, hs)
+        q = q.view(B, S, self.num_kv_heads, H // self.num_kv_heads)  # (B, T, nh, hs)
+        v = v.view(B, S, num_grouped_heads, H // self.num_kv_heads).transpose(
             1, 2
         )  # (B, nh, T, hs)
 
@@ -127,14 +130,23 @@ def compute_freqs_cis(seq_len, head_dim):
 
 
 ATTENTION_DICT = {
-    "generic": lambda hidden_dim, context_window, use_rope, attn_cfg: Attention(
+    "causal": lambda hidden_dim, context_window, use_rope, attn_cfg: Attention(
         hidden_dim=hidden_dim,
-        num_heads=attn_cfg["num_heads"],
-        bias=attn_cfg["bias"],
+        num_kv_heads=attn_cfg["num_kv_heads"],
+        num_q_heads=attn_cfg.get("num_q_heads", attn_cfg["num_kv_heads"]),
+        bias=attn_cfg.get("bias", False), # Default to False
         use_rope=use_rope,
         context_window=context_window,
-        is_causal=attn_cfg["is_causal"],
-        group_size=attn_cfg["group_size"],
+        is_causal=True,
+    ),
+    "bidirectional": lambda hidden_dim, context_window, use_rope, attn_cfg: Attention(
+        hidden_dim=hidden_dim,
+        num_kv_heads=attn_cfg["num_kv_heads"],
+        num_q_heads=attn_cfg.get("num_q_heads", attn_cfg["num_kv_heads"]),
+        bias=attn_cfg.get("bias", False), # Default to False
+        use_rope=use_rope,
+        context_window=context_window,
+        is_causal=False,
     )
 }
 

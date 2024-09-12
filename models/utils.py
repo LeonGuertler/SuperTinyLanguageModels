@@ -64,3 +64,5 @@ def print_model_stats(model: ModelShell):
 
     # Print the table
     print(df.to_string(index=False))
+
+    return format_number(total_params)

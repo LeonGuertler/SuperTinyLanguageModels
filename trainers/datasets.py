@@ -10,7 +10,7 @@ from tqdm import tqdm
 import random
 
 from models.embedding_models import GenericEmbedder
-from trainers.utils import load_data
+from trainers.data_utils import load_data
 
 
 

@@ -8,13 +8,14 @@ import hydra
 from models.build_models import build_model
 from trainers.build_trainers import build_trainer, ddp_setup
 from trainers import base_trainer
-from trainers.utils import create_folder_structure, init_print_override, restore_print_override
-from models.utils import print_model_stats
+from SuperTinyLanguageModels.trainers.data_utils import create_folder_structure, init_print_override, restore_print_override
+
 
 import torch
 from torch.distributed import destroy_process_group
 import torch.multiprocessing as mp
 from trainers.prepare import prepare_data
+
 
 def ddp_main(rank, world_size, cfg):
     """
@@ -36,7 +37,6 @@ def ddp_main(rank, world_size, cfg):
         model.to(cfg["general"]["device"])
         model.train()
         print(f"Rank{rank} Model built")
-        print_model_stats(model)
         # load the relevant trainer
         trainer: base_trainer.BaseTrainer = build_trainer(
             cfg=cfg,
@@ -79,7 +79,7 @@ def basic_main(cfg):
     trainer.train()
 
 
-@hydra.main(config_path="configs", config_name="train")
+@hydra.main(config_path="configs/training_configs", config_name="baseline")
 def main(cfg):
     world_size = torch.cuda.device_count()
     
