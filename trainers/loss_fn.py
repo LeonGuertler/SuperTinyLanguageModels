@@ -73,7 +73,10 @@ def compute_perplexity(logits, y, char_lengths, mask=None):
     # B, S, 1
     # unflatten
     loss = loss.view(B, seq_len)
-    loss = loss * mask / torch.tensor(char_lengths).view(-1, 1)
+    if mask is not None:
+        loss = loss * mask / torch.tensor(char_lengths).view(-1, 1)
+    else:
+        loss = loss / torch.tensor(char_lengths).view(-1, 1)
     loss = loss.sum(dim=-1)
 
     return (torch.exp(loss)).mean().item()

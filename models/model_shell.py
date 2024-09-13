@@ -72,7 +72,11 @@ class ModelShell(torch.nn.Module):
         if isinstance(model_input, str):
             # use inference function of the embedding model
             model_input = self.embedding_model.tokenize_input(model_input, truncate=True, add_eot=False)
-        x = torch.tensor(model_input, device=self.device, dtype=torch.long).unsqueeze(0)
+            # model_input is a list of token ids
+            x = torch.tensor(model_input, device=self.device, dtype=torch.long).unsqueeze(0)
+        else:
+            # input is a tensor, so cloning it is better
+            x = model_input.clone().detach().to(device=self.device, dtype=torch.long).unsqueeze(0)
         x = self.embedding_model(model_input)
 
         # pass the embeddings through the core model
@@ -97,7 +101,7 @@ class ModelShell(torch.nn.Module):
         total_strings = [f"{prefix} {cont}" for prefix, cont in zip(prefixes, continuations)]
         input_tokens = [self.embedding_model.tokenize_input(string, truncate=True) for string in total_strings]
         padded_batch, mask = self.embedding_model.pad_batch(input_tokens, direction="right")
-        input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
+        input_tensor = padded_batch.clone().detach().to(device=self.device, dtype=torch.long)
         logits, _ = self.forward(input_tensor)
         logits = logits[:, :-1].reshape(-1, logits.size(-1))
         target_tensor = input_tensor[:, 1:].reshape(-1)
