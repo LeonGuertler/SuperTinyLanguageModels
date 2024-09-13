@@ -63,6 +63,9 @@ class BaseTrainer:
                 print("Loading the previous optimizer state")
                 self.optimizer.load_state_dict(loaded_train_config["optimizer"])
 
+        else:
+            self.current_iter = 0 
+
 
         # adjusting the correct batch-size accumulation step ratio for each node
         self.gradient_accumulation_steps = cfg["trainer"][

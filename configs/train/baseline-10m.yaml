@@ -4,7 +4,7 @@ model:
   
   ffn:
     ffn_type: generic
-    ffn_dim: 1536
+    ffn_dim: 2048
     activation: gelu
     normalization: rms_norm
     bias: true
@@ -24,7 +24,7 @@ model:
   tokenizer_simplify_data: true
   vocab_size: 4000
 
-  hidden_dim: 384
+  hidden_dim: 512
   context_window: 2048
 
   lm_head_type: generic
