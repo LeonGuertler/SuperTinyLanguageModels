@@ -39,7 +39,7 @@ model:
 
 trainer:
   trainer_type: base_trainer
-  dataset: pints
+  dataset: en_wiki
   batch_size: 24
   gradient_accumulation_steps: 10
 
