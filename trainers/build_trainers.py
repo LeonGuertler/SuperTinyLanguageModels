@@ -64,7 +64,7 @@ def build_optimizer(model, optimizer_config):
     """
     Given the optimizer config, build the optimizer
     """
-    return OPTIMIZER_DICT[optimizer_config["name"]](
+    return OPTIMIZER_DICT[optimizer_config["optimizer_name"]](
         model=model, trainer_cfg=optimizer_config
     )
 
