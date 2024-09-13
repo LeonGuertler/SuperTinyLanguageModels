@@ -148,13 +148,13 @@ def build_trainer(cfg, model, gpu_id, current_iter):
     # wrap in dataloaders
     train_dataloader = torch.utils.data.DataLoader(
         dataset=train_dataset,
-        batch_size=cfg["trainer"]["training"]["batch_size"],
+        batch_size=cfg["trainer"]["batch_size"],
         shuffle=False,
 
     )
     val_dataloader = torch.utils.data.DataLoader(
         dataset=val_dataset,
-        batch_size=cfg["trainer"]["training"]["batch_size"],
+        batch_size=cfg["trainer"]["batch_size"],
         shuffle=False,
     )
 
@@ -162,8 +162,8 @@ def build_trainer(cfg, model, gpu_id, current_iter):
     loss_fn = build_loss_fn(loss_fn_name=cfg.trainer["loss_fn"]["name"])
 
     # build the trainer
-    print(cfg.trainer["training"]["trainer_type"])
-    trainer = TRAINER_DICT[cfg.trainer["training"]["trainer_type"]](
+    print(cfg.trainer["trainer_type"])
+    trainer = TRAINER_DICT[cfg.trainer["trainer_type"]](
         cfg=cfg,
         model=model,
         optimizer=optimizer,
