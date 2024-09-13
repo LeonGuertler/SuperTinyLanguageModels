@@ -9,11 +9,16 @@ from transformers import AutoTokenizer
 from trainers.data_utils import load_data
 from models.components.layers import utils
 
+# text processing imports
+import re
+import string
+
 # Custom BPE tokenizer imports
 from tokenizers import Tokenizer
 from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
-from tokenizers.pre_tokenizers import Whitespace
+from tokenizers.pre_tokenizers import PreTokenizer, WhitespaceSplit, Sequence, Split
+from tokenizers.normalizers import NFD, StripAccents, Replace, Sequence as NormalizerSequence
 
 
 class TokenizerClass:
@@ -130,50 +135,89 @@ class TiktokenTokenizer(TokenizerClass):
 
 
 class BPETokenizer(TokenizerClass):
-    def __init__(self, vocab_size: int, dataset_name: str):
+    def __init__(self, vocab_size: int, dataset_name: str, simplify: bool = True):
         super().__init__()
         self.vocab_size = vocab_size
         self.dataset_name = dataset_name
+        self.simplify = simplify 
+
         if not utils.check_if_tokenizer_exists(
-            tokenizer_type="bpe", vocab_size=vocab_size, dataset_name=dataset_name
+            tokenizer_type="bpe", 
+            vocab_size=vocab_size, 
+            dataset_name=dataset_name,
+            simplify=simplify
         ):
             self._train_tokenizer()
             self._save()
         else:
             self._load()
         
-        self.pad_token = self.tokenizer.token_to_id("<|pad|>")
-        self.eot_token = self.tokenizer.token_to_id("<|endoftext|>")
-        self.unk_token = self.tokenizer.token_to_id("<|unk|>") # shouldn't be necessary, but just to be safe
+        self.pad_token = self.tokenizer.token_to_id("[PAD]")
+        self.eot_token = self.tokenizer.token_to_id("[EOT]")
+        self.unk_token = self.tokenizer.token_to_id("[UNK]") 
 
     def _train_tokenizer(self, verbose: bool = True):
         raw_datasets = load_data(dataset_name=self.dataset_name)
+
+        # Pattern string without compiling
+        non_english_char_pattern = r'[^a-zA-Z0-9\s' + re.escape(string.punctuation) + r']'
+
+        # Define special tokens
+        special_tokens = ["[PAD]", "[EOT]", "[UNK]"]
+
+        # Define initial alphabet, include digits to ensure they are treated as individual tokens
+        initial_alphabet = list(string.ascii_letters + string.digits + string.punctuation + ' \n\t')
+        
         
         # Initialize a new tokenizer
-        self.tokenizer = Tokenizer(BPE(unk_token="<|unk|>", dropout=0.1))
+        self.tokenizer = Tokenizer(BPE(unk_token="[UNK]", dropout=0.1))
         
-        # Define special tokens
-        special_tokens = ["<|pad|>", "<|endoftext|>", "<|unk|>"]
         
         # Initialize the trainer
         trainer = BpeTrainer(
             vocab_size=self.vocab_size,
             min_frequency=5,
-            limit_alphabet=1000,
             special_tokens=special_tokens,
+            initial_alphabet=initial_alphabet,
             show_progress=verbose
         )
+
+        if self.simplify:
+            # Set the normalizer to remove non-English characters
+            self.tokenizer.normalizer = NormalizerSequence([
+                NFD(),  # Decompose unicode characters
+                StripAccents(),  # Remove accents
+                Replace(non_english_char_pattern, ""),  # Use pattern string directly
+        ])
+
+            # Custom pre-tokenizer to split numbers into individual digits
+            self.tokenizer.pre_tokenizer = Sequence([
+                WhitespaceSplit(),  # Split on whitespace
+                # Split digits and isolate them
+                Split(r'\d', behavior='isolated'),  # Each digit is a separate token
+            ])
         
-        # Pre-tokenize using whitespace
-        self.tokenizer.pre_tokenizer = Whitespace()
-        
-        # Prepare the training data
+        # Prepare the training data with filtering
         def batch_iterator():
-            for i in range(0, len(raw_datasets["train"]), 1000):
-                yield raw_datasets["train"][i:i+1000]["text"]
+            batch_size = 1000
+            for i in range(0, len(raw_datasets["train"]), batch_size):
+                batch_texts = raw_datasets["train"][i:i+batch_size]["text"]
+                # Filter and clean texts
+                cleaned_texts = []
+                for text in batch_texts:
+                    text = text.strip()
+                    # Remove non-English characters
+                    cleaned_text = re.sub(non_english_char_pattern, '', text)
+                    if cleaned_text:
+                        cleaned_texts.append(cleaned_text)
+                if cleaned_texts:
+                    yield cleaned_texts
         
         # Train the tokenizer
-        self.tokenizer.train_from_iterator(batch_iterator(), trainer=trainer)
+        self.tokenizer.train_from_iterator(
+            batch_iterator(), 
+            trainer=trainer
+        )
 
         # print 
         if verbose:
@@ -220,29 +264,34 @@ class BPETokenizer(TokenizerClass):
 
 TOKENIZER_DICT = {
     # a number of standard tiktoken tokenizers
-    "o200k_base": lambda vocab_size, dataset_name: TiktokenTokenizer(tokenizer_name="o200k_base"),
-    "cl100k_base": lambda vocab_size, dataset_name: TiktokenTokenizer(tokenizer_name="cl100k_base"),
-    "p50k_base": lambda vocab_size, dataset_name: TiktokenTokenizer(tokenizer_name="p50k_base"),
-    "gpt2": lambda vocab_size, dataset_name: TiktokenTokenizer(tokenizer_name="gpt2"),
+    "o200k_base": lambda vocab_size, dataset_name, simplify: TiktokenTokenizer(tokenizer_name="o200k_base"),
+    "cl100k_base": lambda vocab_size, dataset_name, simplify: TiktokenTokenizer(tokenizer_name="cl100k_base"),
+    "p50k_base": lambda vocab_size, dataset_name, simplify: TiktokenTokenizer(tokenizer_name="p50k_base"),
+    "gpt2": lambda vocab_size, dataset_name, simplify: TiktokenTokenizer(tokenizer_name="gpt2"),
 
     # a number of standard huggingface tokenizers
-    "llama_32k": lambda vocab_size, dataset_name: HuggingfaceTokenizer(tokenizer_path="chavinlo/alpaca-native"),
-    "opt_50k": lambda vocab_size, dataset_name: HuggingfaceTokenizer(tokenizer_path="facebook/opt-1.3b"),
-    "mistral_32k": lambda vocab_size, dataset_name: HuggingfaceTokenizer(tokenizer_path="mistralai/Mistral-7B-v0.1"),
+    "llama_32k": lambda vocab_size, dataset_name, simplify: HuggingfaceTokenizer(tokenizer_path="chavinlo/alpaca-native"),
+    "opt_50k": lambda vocab_size, dataset_name, simplify: HuggingfaceTokenizer(tokenizer_path="facebook/opt-1.3b"),
+    "mistral_32k": lambda vocab_size, dataset_name, simplify: HuggingfaceTokenizer(tokenizer_path="mistralai/Mistral-7B-v0.1"),
 
     # a custom BPE tokenizer (using the HF implementation)
-    "bpe": lambda vocab_size, dataset_name: BPETokenizer(
-        vocab_size=vocab_size, dataset_name=dataset_name
+    "bpe": lambda vocab_size, dataset_name, simplify: BPETokenizer(
+        vocab_size=vocab_size, dataset_name=dataset_name, simplify=simplify
     ),
 }
 
 
-def build_tokenizer(tokenizer_type, vocab_size, dataset_name) -> TokenizerClass:
+def build_tokenizer(
+        tokenizer_type, 
+        vocab_size, 
+        dataset_name,
+        simplify,
+    ) -> TokenizerClass:
     """
     Build the tokenizer.
     """
     assert tokenizer_type in TOKENIZER_DICT, \
         f"Tokenizer type {tokenizer_type} not found. The available tokenizers are: {list(TOKENIZER_DICT.keys())}"
     return TOKENIZER_DICT[tokenizer_type](
-        vocab_size=vocab_size, dataset_name=dataset_name
+        vocab_size=vocab_size, dataset_name=dataset_name, simplify=simplify
     )

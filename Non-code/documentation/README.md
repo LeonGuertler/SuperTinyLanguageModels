@@ -42,6 +42,7 @@ The name of the tokenizer to be used. Depending on the tokenizer selected, addit
 - **bpe (link the code)**: A custom byte-pair encoding tokenizer using the hf library.
   - `vocab_size`: The size of the vocabulary
   - `tokenizer_dataset_name`: The name of the dataset used to train the tokenizer
+  - `tokenizer_simplify`: Whether to simplify the tokenizer by removing foreign symbols and forcing digits to be tokenized at an individual level _[default: true]_
 
 ## Hidden Dimension Size `hidden_dim`
 

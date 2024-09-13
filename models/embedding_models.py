@@ -102,6 +102,7 @@ class GenericEmbedder(EmbedderInterface):
             tokenizer_type=model_cfg["tokenizer_type"],
             vocab_size=model_cfg.get("vocab_size", None),
             dataset_name=model_cfg.get("tokenizer_dataset_name", None),
+            simplify=model_cfg.get("tokenizer_simplify", True), # Default True
         )
 
         # build the token embeddings

@@ -3,14 +3,14 @@ model:
   num_layers: 8
   ffn:
     ffn_type: generic
-    ffn_dim: 2048
+    ffn_dim: 1536
     activation: gelu
     normalization: rms_norm
     bias: true
     dropout: 0.0
   attn:
     attn_type: causal
-    num_kv_heads: 8
+    num_kv_heads: 12
     num_q_heads: 4
     normalization: rms_norm
     bias: true
@@ -20,7 +20,7 @@ model:
   tokenizer_dataset_name: en_wiki
   vocab_size: 4000
 
-  hidden_dim: 512
+  hidden_dim: 384
   context_window: 2048
 
   lm_head_type: generic
