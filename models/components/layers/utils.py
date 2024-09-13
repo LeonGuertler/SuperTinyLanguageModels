@@ -21,7 +21,6 @@ def get_tokenizer_path(tokenizer_type, vocab_size, dataset_name):
     tokenizer_full_path = os.path.join(
         tokenizer_folder, f"{tokenizer_type}_{dataset_name}_{vocab_size}.model"
     )
-    input(tokenizer_full_path)
     return tokenizer_folder, tokenizer_full_path
 
 def check_if_tokenizer_exists(tokenizer_type, vocab_size, dataset_name):
