@@ -52,7 +52,6 @@ class ModelShell(torch.nn.Module):
 
         # pass the token_ids through the embedding model
         # to get B, S, H (with pos encoding if necessary)
-        print(token_ids, token_ids.max(), token_ids.min())
         x = self.embedding_model(token_ids)
 
         # pass the embeddings through the core model
