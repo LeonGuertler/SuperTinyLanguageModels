@@ -48,7 +48,7 @@ trainer:
 
   eval:
       mcq_benchmarks:
-        - "winograd"
+        - "winogrande"
         - "hellaswag"
         - "arc_easy"
         - "blimp"

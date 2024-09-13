@@ -40,8 +40,12 @@ class MCQEvaluator(EvaluationInterface):
     def evaluate_benchmark(self, benchmark_name, num_samples=None):
         """Evaluate model performance on a specific benchmark"""
         # load the benchmark_loader
-        benchmark_loader = load_benchmark(benchmark_name)
+        benchmark_loader = load_benchmark(
+            benchmark_name=benchmark_name, 
+            num_samples=num_samples
+        )
         confidences = []
+        print(benchmark_loader)
         for i, (prefix, ground_truth, false_options) in tqdm.tqdm(
             enumerate(benchmark_loader)
         ):
@@ -55,6 +59,9 @@ class MCQEvaluator(EvaluationInterface):
             confidences[i] = torch.nn.functional.pad(
                 confidence, (0, max_length - len(confidence)), value=-1e10
             )
+
+        # Stack the tensor values to form a single 2D tensor
+        confidences = torch.stack(confidences)
 
         # calculate the accuracy and return it
         _, predicted = torch.max(confidences, 1)

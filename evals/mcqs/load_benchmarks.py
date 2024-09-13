@@ -15,7 +15,7 @@ def get_idx_list(dataset_length, num_samples):
         dataset_length,
         dataset_length if num_samples is None else min(num_samples, dataset_length),
         replace=False,
-    )
+    ).tolist()
 
 def load_arc_easy(version, num_samples=None):
     """ 
@@ -23,14 +23,18 @@ def load_arc_easy(version, num_samples=None):
     (https://huggingface.co/datasets/allenai/ai2_arc/viewer/ARC-Easy)
     """
     if version == "original":
-        dataset = load_dataset("ai2_arc", "ARC-Easy")["test"]
+        dataset = load_dataset("ai2_arc", "ARC-Easy", trust_remote_code=True)["test"]
     elif version == "stlm_eval":
         raise NotImplementedError("STLM eval version not implemented yet")
     
     index_list = get_idx_list(len(dataset), num_samples)
     for i in index_list:
         sample = dataset[i]
-        correct_idx = sample["choices"]["text"].find(sample["answerKey"])
+        correct_idx = sample["choices"]["label"].index(sample["answerKey"])
+        """correct_idx = next(
+            (i for i, choice in enumerate(sample["choices"]["text"]) if choice == sample["answerKey"]),
+            None
+        )"""
         yield (
             sample["question"],
             sample["choices"]["text"][correct_idx],
@@ -46,7 +50,7 @@ def load_blimp(num_samples=None):
     Load BLIMP eval set
     https://huggingface.co/datasets/WillHeld/blimp
     """
-    dataset = load_dataset("WillHeld/blimp")["train"]
+    dataset = load_dataset("WillHeld/blimp", trust_remote_code=True)["train"]
     index_list = get_idx_list(len(dataset), num_samples)
     for i in index_list:
         sample = dataset[i]
@@ -63,7 +67,7 @@ def load_hellaswag(version, num_samples=None):
     https://huggingface.co/datasets/Rowan/hellaswag
     """
     if version == "original":
-        dataset = load_dataset("Rowan/hellaswag")["validation"] # standard to use val
+        dataset = load_dataset("Rowan/hellaswag", trust_remote_code=True)["validation"] # standard to use val
     elif version == "stlm_eval":
         raise NotImplementedError("STLM eval version not implemented yet")
 
@@ -83,7 +87,7 @@ def load_mmlu(num_samples=None):
     Load MMLU eval set
     https://huggingface.co/datasets/cais/mmlu
     """
-    dataset = load_dataset("cais/mmlu", "all")["test"]
+    dataset = load_dataset("cais/mmlu", "all", trust_remote_code=True)["test"]
     index_list = get_idx_list(len(dataset), num_samples)
     for i in index_list:
         sample = dataset[i]
@@ -115,7 +119,7 @@ def load_winogrande(version, num_samples=None):
         yield (
             "",
             sample["sentence"].replace("_", sample[f"option{correct_opt_num}"]),
-            sample["sentence"].replace("_", sample[f"option{1 if correct_opt_num == 2 else 2}"])
+            [sample["sentence"].replace("_", sample[f"option{1 if correct_opt_num == 2 else 2}"])]
         )
 
 def load_truthful_qa_m2(version, num_samples=None):
@@ -124,7 +128,7 @@ def load_truthful_qa_m2(version, num_samples=None):
     https://huggingface.co/datasets/TruthfulQA
     """
     if version == "original":
-        dataset = load_dataset("truthful_qa", "multiple_choice")["validation"]
+        dataset = load_dataset("truthful_qa", "multiple_choice", trust_remote_code=True)["validation"]
     elif version == "stlm_eval":
         raise NotImplementedError("STLM eval version not implemented yet")
 
@@ -143,14 +147,14 @@ def load_piqa(num_samples=None):
     https://arxiv.org/abs/1911.11641
     https://huggingface.co/datasets/ybisk/piqa
     """
-    dataset = load_dataset("ybisk/piqa")["validation"]
+    dataset = load_dataset("ybisk/piqa", trust_remote_code=True)["validation"]
     index_list = get_idx_list(len(dataset), num_samples)
     for i in index_list:
         sample = dataset[i]
         yield (
             sample["goal"],
             sample[f"sol{sample['label']+1}"],
-            sample[f"sol{1 if sample['label'] == 2 else 2}"]
+            [sample[f"sol{1 if sample['label'] == 2 else 2}"]]
         )
 
 def load_boolq(num_samples=None):
@@ -159,14 +163,14 @@ def load_boolq(num_samples=None):
     https://arxiv.org/abs/1905.10044
     https://huggingface.co/datasets/google/boolq
     """
-    dataset = load_dataset("google/boolq")["validation"]
+    dataset = load_dataset("google/boolq", trust_remote_code=True)["validation"]
     index_list = get_idx_list(len(dataset), num_samples)
     for i in index_list:
         sample = dataset[i]
         yield (
             sample["question"],
-            "yes" if sample["label"] else "no",
-            "no" if sample["label"] else "yes"
+            "yes" if sample["answer"] else "no",
+            ["no"] if sample["answer"] else ["yes"]
         )
 
 def load_race(version, num_samples=None):
@@ -178,7 +182,8 @@ def load_race(version, num_samples=None):
     ANS_TO_IDX = {"A": 0, "B": 1, "C": 2, "D": 3}
     dataset = load_dataset(
         "ehovy/race",
-        version # middle or high school
+        version, # middle or high school
+        trust_remote_code=True
     )["validation"]
     index_list = get_idx_list(len(dataset), num_samples)
     for i in index_list:
@@ -187,7 +192,7 @@ def load_race(version, num_samples=None):
         yield (
             sample["article"] + f"Question: {sample['question']}",
             f"Answer: {sample['options'][correct_idx]}",
-            sample["options"][correct_idx],
+            #sample["options"][correct_idx],
             [option for i, option in enumerate(sample["options"]) if i != correct_idx]
         )
 
@@ -197,13 +202,13 @@ def load_openbook_qa(version, num_samples=None):
     https://huggingface.co/datasets/allenai/openbookqa
     """
     ANS_TO_IDX = {"A": 0, "B": 1, "C": 2, "D": 3}
-    dataset = load_dataset("allenqi/openbookqa")["validation"]
+    dataset = load_dataset("allenai/openbookqa", "additional", trust_remote_code=True)["validation"]
     index_list = get_idx_list(len(dataset), num_samples)
     for i in index_list:
         sample = dataset[i]
         correct_idx = ANS_TO_IDX[sample["answerKey"]]
         yield (
-            sample["question_stem"] if version=="closed" else f"{sample['fact1']} {sample['question']}",
+            sample["question_stem"] if version=="closed" else f"{sample['fact1']} {sample['question_stem']}",
             sample["choices"]["text"][correct_idx],
             [choice for i, choice in enumerate(sample["choices"]["text"]) if i != correct_idx]
         )
@@ -214,7 +219,7 @@ def load_copa(num_samples=None):
     https://aclanthology.org/S12-1052/
     https://huggingface.co/datasets/pkavumba/balanced-copa
     """
-    dataset = load_dataset("pkavumba/balanced-copa")["train"]
+    dataset = load_dataset("pkavumba/balanced-copa", trust_remote_code=True)["train"]
     index_list = get_idx_list(len(dataset), num_samples)
     for i in index_list:
         sample = dataset[i]
@@ -223,7 +228,7 @@ def load_copa(num_samples=None):
         yield (
             sample["premise"],
             sample[f"choice{correct_idx+1}"],
-            sample[f"choice{incorrect_idx+1}"],
+            [sample[f"choice{incorrect_idx+1}"]],
         )
 
 
@@ -235,11 +240,11 @@ def load_commonsense_qa(num_samples=None):
     """
     ANS_TO_IDX = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6, "H": 7}
 
-    dataset = load_dataset("tau/commonsense_qa")["validation"]
+    dataset = load_dataset("tau/commonsense_qa", trust_remote_code=True)["validation"]
     index_list = get_idx_list(len(dataset), num_samples)
     for i in index_list:
         sample = dataset[i]
-        correct_idx = sample["answerKey"]
+        correct_idx = ANS_TO_IDX[sample["answerKey"]]
         yield (
             sample["question"],
             f"Answer: {sample['choices']['text'][correct_idx]}",
@@ -257,9 +262,9 @@ EVALS_DICT = {
         version="stlm_eval",
         num_samples=num_samples
     ),
-    "hellaswag": lambda num_smaples: load_hellaswag(
+    "hellaswag": lambda num_samples: load_hellaswag(
         version="original",
-        num_samples=num_smaples
+        num_samples=num_samples
     ),
     "stlm_eval_hellaswag": lambda num_samples: load_hellaswag(
         version="stlm_eval",
@@ -301,8 +306,12 @@ EVALS_DICT = {
         version="closed",
         num_samples=num_samples
     ),
-    "copa": load_copa,
-    "commonsense_qa": load_commonsense_qa,
+    "copa": lambda num_samples: load_copa(
+        num_samples=num_samples
+    ),
+    "commonsense_qa": lambda num_samples: load_commonsense_qa(
+        num_samples=num_samples
+    ),
 }
 
 

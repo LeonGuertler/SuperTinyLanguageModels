@@ -134,10 +134,10 @@ def print_evaluation_results(iter_num, eval_results):
     headers = ['Metric', 'Value']
     table = PrettyTable(headers)
     table.add_row(
-        ['Val. Loss', eval_results['val_loss']]
+        ['Val. Loss', eval_results['Val. Loss']]
     )
     table.add_row(
-        ['Val. Perplexity', eval_results['val_perplexity']]
+        ['Val. Perplexity', eval_results['Val. Perplexity']]
     )
 
     print(f"Iteration {iter_num}")
