@@ -1,5 +1,6 @@
 """
-Evaluator class for evaluating models.
+Evaluator class for evaluating the models ability to answer
+different mcq style questions correctly.
 """
 
 import torch

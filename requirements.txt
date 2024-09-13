@@ -7,3 +7,5 @@ pre-commit
 prettytable
 levenshtein
 sentencepiece
+textstat
+language-tool-python

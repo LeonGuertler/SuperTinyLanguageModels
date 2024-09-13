@@ -244,6 +244,7 @@ class BPETokenizer(TokenizerClass):
             tokenizer_type="bpe",
             vocab_size=self.vocab_size,
             dataset_name=self.dataset_name,
+            simplify=self.simplify
         )
         self.tokenizer.save(str(tokenizer_path))
 
