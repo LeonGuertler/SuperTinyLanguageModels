@@ -56,7 +56,7 @@ class BaseTrainer:
         self.cfg = cfg
 
         # Load prev training parameters as necessary
-        if loaded_train_config not None:
+        if loaded_train_config is not None:
             self.current_iter = loaded_train_config["iter_num"]
 
             if self.cfg["trainer"].get("load_prev_optimizer_state", False):
