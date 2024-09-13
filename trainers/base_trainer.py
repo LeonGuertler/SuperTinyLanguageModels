@@ -6,7 +6,7 @@ from omegaconf import OmegaConf
 from contextlib import nullcontext
 
 # local imports
-from trainers import data_utils
+from trainers import utils, data_utils
 from trainers.evaluator import train_eval_mcq, train_eval_text_modeling
 from trainers.utils import aggregate_value, print_evaluation_results
 from models.utils import print_model_stats
@@ -307,5 +307,5 @@ class BaseTrainer:
 
     def train(self, seed=42):
         """Train the model"""
-        data_utils.set_seed(seed)
+        utils.set_seed(seed)
         self.run_training_loop()
