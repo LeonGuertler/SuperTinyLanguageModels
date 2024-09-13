@@ -71,7 +71,7 @@ def build_optimizer(model, optimizer_config):
 
 SCHEDULER_DICT = {
     "cosine": lambda trainer_cfg: CosineLRScheduler(
-        warmup_iters=trainer_cfg["training"]["warmup_iters"],
+        warmup_iters=trainer_cfg["lr_scheduler"]["warmup_iters"],
         decay_iters=trainer_cfg["lr_scheduler"].get(
             "lr_decay_iters", 
             trainer_cfg["training"]["total_iters"]
