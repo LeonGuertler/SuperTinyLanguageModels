@@ -79,7 +79,7 @@ def basic_main(cfg):
     trainer.train()
 
 
-@hydra.main(config_path="configs/training_configs", config_name="baseline")
+@hydra.main(config_path="configs/train", config_name="baseline")
 def main(cfg):
     world_size = torch.cuda.device_count()
     
