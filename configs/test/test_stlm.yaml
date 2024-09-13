@@ -1,0 +1,20 @@
+mcq_benchmarks:
+  - "winograd"
+  - "hellaswag"
+  - "arc_easy"
+  - "blimp"
+  - "piqa"
+  - "race_middle"
+  - "race_high"
+  - "boolq"
+  - "openbook_qa_closed"
+  - "openbook_qa_open"
+  - "copa"
+  - "commonsense_qa"
+  
+  
+model_ckpt: "checkpoints/..."
+generate_config:
+  temperature: 0.8
+  top_k: 10
+output_path: "results.json"

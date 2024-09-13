@@ -9,10 +9,12 @@ def get_idx_list(dataset_length, num_samples):
     Given the dataset length and the number of samples,
     return a list of indices to sample from the dataset
     """
+    # re-set seed every time for consistency
+    np.random.seed(42)
     return np.random.choice(
         dataset_length,
         dataset_length if num_samples is None else min(num_samples, dataset_length),
-        replace=False
+        replace=False,
     )
 
 def load_arc_easy(version, num_samples=None):

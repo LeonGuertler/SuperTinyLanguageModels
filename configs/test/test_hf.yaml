@@ -1,7 +1,17 @@
-defaults:
-  # - testing: "llm_harness"
-  - testing: "baseline"
-#model_ckpt: "checkpoints/..."
+mcq_benchmarks:
+  - "winograd"
+  - "hellaswag"
+  - "arc_easy"
+  - "blimp"
+  - "piqa"
+  - "race_middle"
+  - "race_high"
+  - "boolq"
+  - "openbook_qa_closed"
+  - "openbook_qa_open"
+  - "copa"
+  - "commonsense_qa"
+  
 model:
   model_string: "openai-community/gpt2"
   flash_attention: false

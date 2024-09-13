@@ -21,10 +21,10 @@ def main(cfg):
 
     # load checkpoint from the path
     device = "cpu" if not torch.cuda.is_available() else "cuda"
-    model = build_model(
+    model, _ = build_model(
         checkpoint_path=cfg["model_ckpt"],
         device=device
-    )[0]
+    )
                         
     # put model into eval mode
     model.eval()

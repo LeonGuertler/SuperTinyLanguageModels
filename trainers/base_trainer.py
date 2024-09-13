@@ -34,7 +34,7 @@ class BaseTrainer:
         loss_fn,
         gpu_id=None, 
         lr_scheduler=None,
-        current_iter=0,
+        loaded_train_config=None,
     ) -> None:
         self.model = model
         # print model stats and save them 
@@ -42,10 +42,11 @@ class BaseTrainer:
 
         if gpu_id is not None: # using ddp
             self.dist = True
-            self.DDP_model = DDP(self.model, device_ids=[gpu_id], find_unused_parameters=True)
+            self.DDP_model = DDP(self.model, device_ids=[gpu_id])
         else:
             self.dist = False
             self.DDP_model = model
+
         self.gpu_id = gpu_id 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
@@ -53,21 +54,30 @@ class BaseTrainer:
         self.val_dataloader = val_dataloader
         self.loss_fn = loss_fn
         self.cfg = cfg
-        self.current_iter = current_iter
-        #assert self.cfg["trainer"]["training"]["gradient_accumulation_steps"] % torch.cuda.device_count() == 0, "Gradient Accumulation Steps must be divisible by the number of GPUs"
+
+        # Load prev training parameters as necessary
+        if loaded_train_config not None:
+            self.current_iter = loaded_train_config["iter_num"]
+
+            if self.cfg["trainer"].get("load_prev_optimizer_state", False):
+                print("Loading the previous optimizer state")
+                self.optimizer.load_state_dict(loaded_train_config["optimizer"])
+
+
+        # adjusting the correct batch-size accumulation step ratio for each node
         self.gradient_accumulation_steps = cfg["trainer"][
             "gradient_accumulation_steps"
         ] // torch.cuda.device_count() if torch.cuda.is_available() else cfg["trainer"][
             "gradient_accumulation_steps"
         ]## divide by number of GPUs to maximise throughput
+
+
         self.scaler = None
+        self.ctx = self._setup_ctx()
+
         self.use_wandb = cfg["general"]["logging"]["wandb_log"]
         self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
         self.batch_size = cfg["trainer"]["batch_size"] 
-
-        # For training, always force the device to be cuda
-        #assert torch.cuda.is_available(), "CUDA must be available for training"
-        self.ctx = self._setup_ctx()
 
 
         if self.use_wandb and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU logs to wandb

@@ -1,6 +1,7 @@
 model:
   core_model_type: generic
   num_layers: 8
+  
   ffn:
     ffn_type: generic
     ffn_dim: 1536
@@ -8,6 +9,7 @@ model:
     normalization: rms_norm
     bias: true
     dropout: 0.0
+
   attn:
     attn_type: causal
     num_kv_heads: 12
@@ -15,9 +17,11 @@ model:
     normalization: rms_norm
     bias: true
     dropout: false
+
   embedding_model_type: generic
   tokenizer_type: bpe
   tokenizer_dataset_name: en_wiki
+  tokenizer_simplify_data: true
   vocab_size: 4000
 
   hidden_dim: 384
@@ -96,4 +100,4 @@ general:
     checkpoint_dir: checkpoints
     eval_dir: evals
   seed: 489
-  device: cuda
+  device: cpu

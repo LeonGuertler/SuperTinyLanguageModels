@@ -246,13 +246,14 @@ class BPETokenizer(TokenizerClass):
             dataset_name=self.dataset_name,
             simplify=self.simplify
         )
-        self.tokenizer.save(str(tokenizer_path))
+        self.tokenizer.save(str(tokenizer_path)) 
 
     def _load(self):
         _, tokenizer_path = utils.get_tokenizer_path(
             tokenizer_type="bpe",
             vocab_size=self.vocab_size,
             dataset_name=self.dataset_name,
+            simplify=self.simplify
         )
         self.tokenizer = Tokenizer.from_file(str(tokenizer_path))
         self.vocab = self.tokenizer.get_vocab()

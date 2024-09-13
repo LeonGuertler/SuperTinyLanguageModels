@@ -50,14 +50,19 @@ def build_model(model_cfg=None, checkpoint_path=None, device="cuda"):
 
         # load the model weights
         model.load_state_dict(checkpoint["model"])
-        current_iter = checkpoint["iter_num"]
+
+        loaded_train_config = {
+            "optimizer": checkpoint["optimizer"],
+            "iter_num": checkpoint["iter_num"],
+            "config": checkpoint["config"]
+        }
 
     else:
         # initialize model
         model = initialize_model(model_cfg)
-        current_iter = 0
+        loaded_train_config = None
 
-    return model, current_iter
+    return model, loaded_train_config
 
 
 EMBEDDING_MODEL_DICT = {

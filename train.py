@@ -29,7 +29,7 @@ def ddp_main(rank, world_size, cfg):
         print("Rank: ", rank, "World Size: ", world_size)
         ddp_setup(rank=rank, world_size=world_size)
 
-        model, current_iter = build_model(
+        model, loaded_train_config = build_model( # train_config is not None when loading checkpoints
             model_cfg=cfg["model"],
             checkpoint_path=cfg["model"].get("checkpoint_path", None),
         device=cfg["general"]["device"]
@@ -42,7 +42,7 @@ def ddp_main(rank, world_size, cfg):
             cfg=cfg,
             model=model,
             gpu_id=rank,
-            current_iter=current_iter
+            loaded_train_config=loaded_train_config
         )
         print(f"Rank{rank} Trainer built")
         # train the model
@@ -79,7 +79,7 @@ def basic_main(cfg):
     trainer.train()
 
 
-@hydra.main(config_path="configs/train", config_name="baseline")
+@hydra.main(config_path="configs/train", config_name="baseline-10m")
 def main(cfg):
     world_size = torch.cuda.device_count()
     

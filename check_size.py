@@ -9,7 +9,7 @@ from models.utils import print_model_stats
 def main(cfg):
     if "full_configs" in cfg:
         cfg = cfg["full_configs"]
-    model = build_model(model_cfg=cfg["model"])[0]
+    model, _ = build_model(model_cfg=cfg["model"])
 
     # print full parameter count
     print_model_stats(model)

@@ -1,3 +1,4 @@
+generator_type: beam_search
 temperature: 1.2
 top_k: 200
 max_new_tokens: 100
