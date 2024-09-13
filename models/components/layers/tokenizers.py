@@ -175,6 +175,10 @@ class BPETokenizer(TokenizerClass):
         # Train the tokenizer
         self.tokenizer.train_from_iterator(batch_iterator(), trainer=trainer)
 
+        # print 
+        if verbose:
+            print(f"Trained a BPE tokenizer with {self.vocab_size} tokens on the {self.dataset_name} dataset.")
+
     def encode(self, text: str) -> List[int]:
         return self.tokenizer.encode(text).ids
 
@@ -207,6 +211,9 @@ class BPETokenizer(TokenizerClass):
         )
         self.tokenizer = Tokenizer.from_file(str(tokenizer_path))
         self.vocab = self.tokenizer.get_vocab()
+
+        # print vocab size
+        print(f"Loaded a BPE tokenizer with {len(self.vocab)} tokens.")
 
 
 
