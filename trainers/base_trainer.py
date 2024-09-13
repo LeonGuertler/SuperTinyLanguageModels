@@ -249,6 +249,7 @@ class BaseTrainer:
 
     def run_training_loop(self):
         """Run the training loop"""
+        print("Training loop is starting")
         for iter_num in range(self.current_iter, self.cfg["trainer"]["max_iters"]):
             start_time = time.time()
             if self.lr_scheduler is not None:
