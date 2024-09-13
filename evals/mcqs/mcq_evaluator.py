@@ -40,7 +40,7 @@ class MCQEvaluator(EvaluationInterface):
     def evaluate_benchmark(self, benchmark_name, num_samples=None):
         """Evaluate model performance on a specific benchmark"""
         # load the benchmark_loader
-        benchmark_loader = load_benchmark(benchmark_name, split="test")
+        benchmark_loader = load_benchmark(benchmark_name)
         confidences = []
         for i, (prefix, ground_truth, false_options) in tqdm.tqdm(
             enumerate(benchmark_loader)

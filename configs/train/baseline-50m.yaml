@@ -44,10 +44,10 @@ trainer:
   eval_interval: 2000
   log_interval: 10
   checkpoint_interval: 20000
-  eval_iters: 250
+  eval_iters: 100
 
   eval:
-    - mcq_benchmarks:
+      mcq_benchmarks:
         - "winograd"
         - "hellaswag"
         - "arc_easy"
