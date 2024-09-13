@@ -12,7 +12,7 @@ model:
 
   attn:
     attn_type: causal
-    num_kv_heads: 12
+    num_kv_heads: 8
     num_q_heads: 4
     normalization: rms_norm
     bias: true
