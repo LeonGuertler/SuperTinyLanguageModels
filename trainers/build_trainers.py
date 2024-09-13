@@ -74,7 +74,7 @@ SCHEDULER_DICT = {
         warmup_iters=trainer_cfg["lr_scheduler"]["warmup_iters"],
         decay_iters=trainer_cfg["lr_scheduler"].get(
             "lr_decay_iters", 
-            trainer_cfg["training"]["total_iters"]
+            trainer_cfg["max_iters"]
         ),
         lr=trainer_cfg["optimizer"]["lr"],
         min_lr=trainer_cfg["optimizer"]["min_lr"],
