@@ -150,7 +150,7 @@ class BPETokenizer(TokenizerClass):
         raw_datasets = load_data(dataset_name=self.dataset_name)
         
         # Initialize a new tokenizer
-        self.tokenizer = Tokenizer(BPE(unk_token="<|unk|>"))
+        self.tokenizer = Tokenizer(BPE(unk_token="<|unk|>", dropout=0.1))
         
         # Define special tokens
         special_tokens = ["<|pad|>", "<|endoftext|>", "<|unk|>"]
@@ -158,6 +158,8 @@ class BPETokenizer(TokenizerClass):
         # Initialize the trainer
         trainer = BpeTrainer(
             vocab_size=self.vocab_size,
+            min_frequency=5,
+            limit_alphabet=1000,
             special_tokens=special_tokens,
             show_progress=verbose
         )
