@@ -55,15 +55,15 @@ class BaseTrainer:
         self.cfg = cfg
         self.current_iter = current_iter
         #assert self.cfg["trainer"]["training"]["gradient_accumulation_steps"] % torch.cuda.device_count() == 0, "Gradient Accumulation Steps must be divisible by the number of GPUs"
-        self.gradient_accumulation_steps = cfg["trainer"]["training"][
+        self.gradient_accumulation_steps = cfg["trainer"][
             "gradient_accumulation_steps"
-        ] // torch.cuda.device_count() if torch.cuda.is_available() else cfg["trainer"]["training"][
+        ] // torch.cuda.device_count() if torch.cuda.is_available() else cfg["trainer"][
             "gradient_accumulation_steps"
         ]## divide by number of GPUs to maximise throughput
         self.scaler = None
         self.use_wandb = cfg["general"]["logging"]["wandb_log"]
         self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
-        self.batch_size = cfg["trainer"]["training"]["batch_size"] ## new
+        self.batch_size = cfg["trainer"]["batch_size"] 
 
         # For training, always force the device to be cuda
         #assert torch.cuda.is_available(), "CUDA must be available for training"
@@ -121,7 +121,7 @@ class BaseTrainer:
     def estimate_performance(self, eval_iters=None):
         """Estimate the loss"""
         if eval_iters is None:
-            eval_iters = self.cfg.trainer.training.eval_iters
+            eval_iters = self.cfg["trainer"]["eval_iters"]
         eval_results = {}
         self.model.eval()
 
@@ -236,7 +236,7 @@ class BaseTrainer:
 
     def run_training_loop(self):
         """Run the training loop"""
-        for iter_num in range(self.current_iter, self.cfg.trainer.training.max_iters):
+        for iter_num in range(self.current_iter, self.cfg["trainer"]["max_iters"]):
             start_time = time.time()
             if self.lr_scheduler is not None:
                 lr = self.lr_scheduler.step(self.optimizer, iter_num)
@@ -245,7 +245,7 @@ class BaseTrainer:
 
             # estimate the loss on the train/val sets
             if (
-                not iter_num % self.cfg.trainer.training.eval_interval
+                not iter_num % self.cfg["trainer"]["eval_interval"]
             ): # run on first iter to prevent bugs causing it to crash
                 eval_results = self.estimate_performance()
 
@@ -271,7 +271,7 @@ class BaseTrainer:
 
             # save checkpoints
             if (
-                not iter_num % self.cfg.trainer.training.checkpoint_interval
+                not iter_num % self.cfg["trainer"]["checkpoint_interval"]
                 and iter_num > 0
                 and (
                     self.gpu_id == 0
@@ -283,12 +283,12 @@ class BaseTrainer:
 
             lossf = self._run_step() 
             end_time = time.time()
-            if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
+            if not iter_num % self.cfg["trainer"]["log_interval"] and iter_num > 0:
                 ## uncomment the following line to print the loss on all GPUs
                 # print(f"GPU {self.gpu_id}: step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
 
                 ## aggregate the loss across all GPUs
-                lossf = aggregate_value(lossf, self.cfg.general.device)
+                lossf = aggregate_value(lossf, self.cfg["general"]["device"])
 
                 ## print and log the result only on the first GPU after aggregation
                 print(f"All GPU(s): step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
