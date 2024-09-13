@@ -59,7 +59,7 @@ def basic_main(cfg):
     """
     Main function for single GPU training
     """
-    model, current_iter = build_model(
+    model, loaded_train_config = build_model(
         model_cfg=cfg["model"],
         checkpoint_path=cfg["model"].get("checkpoint_path", None),
         device=cfg["general"]["device"]
@@ -72,7 +72,7 @@ def basic_main(cfg):
         cfg=cfg,
         model=model,
         gpu_id=None, # disables DDP
-        current_iter=current_iter
+        loaded_train_config=loaded_train_config
     )
 
     # train the model
