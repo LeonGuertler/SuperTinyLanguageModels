@@ -26,14 +26,35 @@ class GenericTransformer(torch.nn.Module):
                             hidden_dim=model_cfg["hidden_dim"],
                             context_window=model_cfg["context_window"],
                             use_rope=model_cfg["positional_encoding_type"] == "rope",
-                            ffn_cfg=model_cfg["core_model"]["ffn"],
-                            attn_cfg=model_cfg["core_model"]["attn"],
+                            ffn_cfg=model_cfg["ffn"],
+                            attn_cfg=model_cfg["attn"],
                         )
-                        for _ in range(model_cfg["core_model"]["num_layers"])
+                        for _ in range(model_cfg["num_layers"])
                     ]
                 ),
             }
         )
+
+        if model_cfg.get("ffn_weight_tying", False): # Default: False
+            # Share the weights between all FFN blocks, similar to:
+            # https://arxiv.org/abs/2402.16840
+            ffn_0 = self.transformer.h[0].ffn
+            for i in range(1, len(self.transformer.h)):
+                for name, module in ffn_0.named_modules():
+                    if isinstance(module, torch.nn.Linear):
+                        target_module = dict(self.transformer.h[i].ffn.named_modules())[name]
+                        target_module.weight = module.weight
+                        target_module.bias = module.bias
+
+        if model_cfg.get("cproj_weight_tying", False): # Default: False
+            # Share the weights between all CProj blocks
+            cproj_0 = self.transformer.h[0].attn.c_proj
+            for i in range(1, len(self.transformer.h)):
+                for name, module in cproj_0.named_modules():
+                    if isinstance(module, torch.nn.Linear):
+                        target_module = dict(self.transformer.h[i].attn.c_proj.named_modules())[name]
+                        target_module.weight = module.weight
+                        target_module.bias = module.bias
 
     def forward(self, x):
         """
@@ -54,25 +75,3 @@ class GenericTransformer(torch.nn.Module):
         return x
 
 
-class GenericFFNSharedTransfomer(GenericTransformer):
-    """
-    Generic Transformer Class that shares the weights
-    between all FFN blocks (similar to
-    https://arxiv.org/abs/2402.16840).
-    """
-
-    def __init__(self, model_cfg):
-        super().__init__(model_cfg=model_cfg)
-
-        # share the weights between transformer blocks
-        ffn_0 = self.transformer.h[0].ffn
-
-        for i in range(1, len(self.transformer.h)):
-            # find all linear layers in the ffn subnets and tie them to the first layer
-            for name, module in ffn_0.named_modules():
-                if isinstance(module, torch.nn.Linear):
-                    target_module = dict(self.transformer.h[i].ffn.named_modules())[
-                        name
-                    ]
-                    target_module.weight = module.weight
-                    target_module.bias = module.bias

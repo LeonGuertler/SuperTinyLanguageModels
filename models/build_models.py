@@ -2,8 +2,9 @@
 Contains the build functions for the embedder,
 core model, lm head and the model shell.
 """
+import torch
 
-from models.core_models import GenericFFNSharedTransfomer, GenericTransformer
+from models.core_models import GenericTransformer
 from models.embedding_models import GenericEmbedder
 from models.experimental.byte_level.embedding_model import ByteLevelEmbedder
 from models.experimental.byte_level.model_heads import ByteLevelDecoder
@@ -15,8 +16,17 @@ from models.experimental.next_thought.core_models import BaselineCoreModel, Conv
 from models.model_heads import AutoregressiveLMHead
 from models.model_shell import ModelShell
 
+from models.experimental.weight_sharing import (
+    SharedInteriorFFNLoraAndCProj,
+    SharedInteriorFFNLora,
+)
 
-def build_model(model_cfg=None, checkpoint=None):
+from models.experimental.moe_weight_sharing import (
+    SharedMoE
+)
+
+
+def build_model(model_cfg=None, checkpoint_path=None, device="cuda"):
     """
     Either initialize or load a model, depending on
     whether a config or checkpoint was provided
@@ -30,18 +40,29 @@ def build_model(model_cfg=None, checkpoint=None):
     """
 
     # check if model is to be loaded
-    if checkpoint is not None:
+    if checkpoint_path is not None:
         # load model with the correct architecture
+        checkpoint = torch.load(
+            checkpoint_path,
+            map_location=torch.device(device),
+        )
         model = initialize_model(checkpoint["config"]["model"])
 
         # load the model weights
         model.load_state_dict(checkpoint["model"])
 
+        loaded_train_config = {
+            "optimizer": checkpoint["optimizer"],
+            "iter_num": checkpoint["iter_num"],
+            "config": checkpoint["config"]
+        }
+
     else:
         # initialize model
         model = initialize_model(model_cfg)
+        loaded_train_config = None
 
-    return model
+    return model, loaded_train_config
 
 
 EMBEDDING_MODEL_DICT = {
@@ -60,17 +81,21 @@ def build_embedding_model(model_cfg):
     Returns:
         embedding_model: embedding_model_instance
     """
-    return EMBEDDING_MODEL_DICT[model_cfg["embedder"]["embedding_model_type"]](
+    return EMBEDDING_MODEL_DICT[model_cfg["embedding_model_type"]](
         model_cfg=model_cfg
     )
 
 
 CORE_MODEL_DICT = {
     "generic": GenericTransformer,
-    "generic_ffn_sharing": GenericFFNSharedTransfomer,
     "hf_core": HFTransformerCore,
+
+    # experimental
+    "ffn_lora_sharing": SharedInteriorFFNLora,
+    "ffn_lora_sharing": SharedInteriorFFNLoraAndCProj,
+    "ffn_lora_sharing_moe": SharedMoE,
     "next_thought_baseline": BaselineCoreModel,
-    "conv": Conv1dCoreModel
+    "conv": Conv1dCoreModel,
 }
 
 
@@ -82,7 +107,7 @@ def build_core_model(model_cfg):
     Returns:
         core_model: core_model_instance
     """
-    return CORE_MODEL_DICT[model_cfg["core_model"]["core_model_type"]](
+    return CORE_MODEL_DICT[model_cfg["core_model_type"]](
         model_cfg=model_cfg
     )
 
@@ -106,7 +131,7 @@ def build_model_head(model_cfg, embedding_model=None):
     Returns:
         model_head: model_head_instance
     """
-    return MODEL_HEAD_DICT[model_cfg["lm_head"]["lm_head_type"]](
+    return MODEL_HEAD_DICT[model_cfg["lm_head_type"]](
         model_cfg=model_cfg, 
         embedding_model=embedding_model
     )
@@ -127,8 +152,25 @@ def build_model_shell(model_cfg, embedding_model, core_model, model_head):
         model_shell: model_shell_instance
     """
     return MODEL_SHELL_DICT[model_cfg["model_shell_type"]](
-        embedding_model=embedding_model, core_model=core_model, model_head=model_head
+        model_cfg=model_cfg,
+        embedding_model=embedding_model, 
+        core_model=core_model, 
+        model_head=model_head,
     )
+
+
+MODEL_WEIGHT_INIT_DICT = {
+    "xavier": torch.nn.init.xavier_normal_,
+    "kaiming": torch.nn.init.kaiming_normal_,
+    "none": None,
+}
+def build_model_initialization_function(model_cfg):
+    """
+    Given the model initialiation config, build it.
+    """
+    return MODEL_WEIGHT_INIT_DICT[
+        model_cfg.get("initialization_fn", "kaiming")
+    ]
 
 
 def initialize_model(model_cfg):
@@ -151,11 +193,6 @@ def initialize_model(model_cfg):
         embedding_model=embedding_model
     )
 
-    # check if embedding model weights are to be shared with the model head
-    if model_cfg["embedding_weight_tying"]:
-        # share the weights between the token embeddings and the final
-        # logit layer, following: https://paperswithcode.com/method/weight-tying
-        embedding_model.token_embedder.weight = model_head.linear.weight
 
     # build the model shell
     model = build_model_shell(
@@ -164,5 +201,19 @@ def initialize_model(model_cfg):
         core_model=core_model,
         model_head=model_head,
     )
+
+    # initialize the model weights
+    init_fn_type = model_cfg.get("initialization_fn", "kaiming")
+    if init_fn_type != None:
+        init_fn = build_model_initialization_function(model_cfg)
+
+        def init_weights(m):
+            if isinstance(m, (torch.nn.Linear, torch.nn.Conv2d, torch.nn.Conv1d)):
+                init_fn(m.weight)
+                if m.bias is not None:
+                    torch.nn.init.zeros_(m.bias)
+        
+        model.apply(init_weights)
+
 
     return model

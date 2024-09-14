@@ -1,0 +1,106 @@
+model:
+  core_model_type: generic
+  num_layers: 12
+  
+  ffn:
+    ffn_type: generic
+    ffn_dim: 2048
+    activation: gelu
+    normalization: rms_norm
+    bias: true
+    dropout: 0.0
+
+  attn:
+    attn_type: causal
+    num_kv_heads: 16
+    num_q_heads: 4
+    normalization: rms_norm
+    bias: true
+    dropout: false
+
+  embedding_model_type: generic
+  tokenizer_type: bpe
+  tokenizer_dataset_name: en_wiki
+  tokenizer_simplify_data: true
+  vocab_size: 10000
+
+  hidden_dim: 512
+  context_window: 1024
+
+  lm_head_type: generic
+  lm_head_normalization: rms_norm
+  lm_head_bias: false
+  lm_head_dropout: 0.0
+
+  model_shell_type: standard
+  embedding_weight_tying: true
+  ffn_weight_tying: true
+  positional_encoding_type: rope
+
+trainer:
+  trainer_type: base_trainer
+  dataset: pints
+  batch_size: 24
+  gradient_accumulation_steps: 20
+
+  max_iters: 80000
+  eval_interval: 5000
+  log_interval: 10
+  checkpoint_interval: 10000
+  eval_iters: 100
+
+  eval:
+    mcq_benchmarks:
+      - "winogrande"
+      - "hellaswag"
+      - "arc_easy"
+      - "blimp"
+      - "piqa"
+      - "race_middle"
+      - "race_high"
+      - "boolq"
+      - "openbook_qa_closed"
+      - "openbook_qa_open"
+      - "copa"
+      - "commonsense_qa"
+    mcq_num_samples: 500
+    eval_byte_metrics: true 
+    text_modeling_eval: true 
+    text_generation_eval: true
+
+  optimizer:
+    optimizer_name: adamW
+    lr: 6.0e-4
+    min_lr: 6.0e-6
+    weight_decay: 0.01
+    beta1: 0.9
+    beta2: 0.999
+    grad_clip: 1.0
+
+  lr_scheduler:
+    name: cosine
+    warmup_iters: 10000
+
+  dataloader:
+    name: standard
+
+  datasampling:
+    name: standard
+
+  loss_fn:
+    name: cross_entropy
+
+general:
+  logging:
+    wandb_log: true
+    wandb_project: SuperTinyLanguageModels
+    wandb_run_name: Null
+    group_name: base_group
+
+  paths:
+    output_dir: outputs
+    data_dir: data
+    checkpoint_dir: checkpoints
+    eval_dir: evals
+  seed: 489
+  device: cuda

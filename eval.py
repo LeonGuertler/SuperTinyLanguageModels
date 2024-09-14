@@ -18,10 +18,11 @@ def main(cfg):
         # set the checkpoint path to absolute path
         cfg["model_ckpt"] = hydra.utils.to_absolute_path(cfg["model_ckpt"])
 
-        model = build_model(checkpoint=torch.load(cfg["model_ckpt"]))
+        model, _ = build_model(checkpoint=torch.load(cfg["model_ckpt"]))
     # otherwise build the model from scratch (e.g. for external pretrained models)
     else:
-        model = build_model(model_cfg=cfg["model"])
+        model, _ = build_model(model_cfg=cfg["model"])
+
     model.eval()
 
     # load the evaluator

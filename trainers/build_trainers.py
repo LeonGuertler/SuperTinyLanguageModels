@@ -18,16 +18,12 @@ from trainers.datasets import (
 )
 from trainers.loss_fn import (
     cross_entropy_loss_fn,
-    masked_cross_entropy_loss_fn,
     next_token_mlm_loss_fn,
 )
 from trainers.optimizer import configure_nanoGPT_optimizer
 from trainers.scheduler import (
     CosineLRScheduler,
-    DropoutScheduler,
-    LinearDropoutScheduler,
     LRScheduler,
-    TriangleDropoutScheduler,
 )
 
 
@@ -68,15 +64,18 @@ def build_optimizer(model, optimizer_config):
     """
     Given the optimizer config, build the optimizer
     """
-    return OPTIMIZER_DICT[optimizer_config["name"]](
+    return OPTIMIZER_DICT[optimizer_config["optimizer_name"]](
         model=model, trainer_cfg=optimizer_config
     )
 
 
 SCHEDULER_DICT = {
     "cosine": lambda trainer_cfg: CosineLRScheduler(
-        warmup_iters=trainer_cfg["training"]["warmup_iters"],
-        decay_iters=trainer_cfg["training"]["lr_decay_iters"],
+        warmup_iters=trainer_cfg["lr_scheduler"]["warmup_iters"],
+        decay_iters=trainer_cfg["lr_scheduler"].get(
+            "lr_decay_iters", 
+            trainer_cfg["max_iters"]
+        ),
         lr=trainer_cfg["optimizer"]["lr"],
         min_lr=trainer_cfg["optimizer"]["min_lr"],
     ),
@@ -93,29 +92,6 @@ def build_lr_scheduler(trainer_cfg):
     return SCHEDULER_DICT[trainer_cfg["lr_scheduler"]["name"]](trainer_cfg=trainer_cfg)
 
 
-def build_dropout_scheduler(trainer_cfg):
-    """
-    Given the trainer config, build the dropout scheduler.
-    """
-    if trainer_cfg["dropout_scheduler"]["dropout_type"] == "constant":
-        return DropoutScheduler(trainer_cfg["dropout_scheduler"]["dropout"])
-    if trainer_cfg["dropout_scheduler"]["dropout_type"] == "linear":
-        return LinearDropoutScheduler(
-            start_dropout_p=trainer_cfg["dropout_scheduler"]["start_dropout_p"],
-            end_dropout_p=trainer_cfg["dropout_scheduler"]["end_dropout_p"],
-            start_iter=trainer_cfg["dropout_scheduler"]["start_iter"],
-            end_iter=trainer_cfg["dropout_scheduler"]["end_iter"],
-        )
-    if trainer_cfg["dropout_scheduler"]["dropout_type"] == "triangle":
-        return TriangleDropoutScheduler(
-            dropout_trough=trainer_cfg["dropout_scheduler"]["dropout_trough"],
-            dropout_peak=trainer_cfg["dropout_scheduler"]["dropout_peak"],
-            num_iterations=trainer_cfg["dropout_scheduler"]["num_iterations"],
-            num_cycles=trainer_cfg["dropout_scheduler"]["num_cycles"],
-        )
-    raise NotImplementedError(
-        f"dropout scheduler {trainer_cfg['dropout_scheduler']['dropout_type']} not implemented."
-    )
 
 
 DATASET_DICT: dict[str, DatasetInterface] = {
@@ -136,7 +112,6 @@ def build_dataset(cfg, split):
 LOSS_FN_DICT = {
     "cross_entropy": cross_entropy_loss_fn,
     "next_token_mlm": next_token_mlm_loss_fn,
-    "masked_cross_entropy": masked_cross_entropy_loss_fn,
 }
 
 
@@ -153,7 +128,7 @@ TRAINER_DICT = {
 }
 
 
-def build_trainer(cfg, model, gpu_id):
+def build_trainer(cfg, model, gpu_id, loaded_train_config):
     """
     Given a config, this function builds a trainer
     and all relevant components of it.
@@ -165,9 +140,6 @@ def build_trainer(cfg, model, gpu_id):
     # build LR scheduler
     lr_scheduler = build_lr_scheduler(trainer_cfg=cfg.trainer)
 
-    # build dropout scheduler
-    dropout_scheduler = build_dropout_scheduler(trainer_cfg=cfg.trainer)
-
     # build dataloder
     train_dataset = build_dataset(cfg=cfg, split="train")
     val_dataset = build_dataset(cfg=cfg, split="val")
@@ -176,13 +148,13 @@ def build_trainer(cfg, model, gpu_id):
     # wrap in dataloaders
     train_dataloader = torch.utils.data.DataLoader(
         dataset=train_dataset,
-        batch_size=cfg["trainer"]["training"]["batch_size"],
+        batch_size=cfg["trainer"]["batch_size"],
         shuffle=False,
 
     )
     val_dataloader = torch.utils.data.DataLoader(
         dataset=val_dataset,
-        batch_size=cfg["trainer"]["training"]["batch_size"],
+        batch_size=cfg["trainer"]["batch_size"],
         shuffle=False,
     )
 
@@ -190,17 +162,17 @@ def build_trainer(cfg, model, gpu_id):
     loss_fn = build_loss_fn(loss_fn_name=cfg.trainer["loss_fn"]["name"])
 
     # build the trainer
-    print(cfg.trainer["training"]["trainer_type"])
-    trainer = TRAINER_DICT[cfg.trainer["training"]["trainer_type"]](
+    print(cfg.trainer["trainer_type"])
+    trainer = TRAINER_DICT[cfg.trainer["trainer_type"]](
         cfg=cfg,
         model=model,
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
-        dropout_scheduler=dropout_scheduler,
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader,
         loss_fn=loss_fn,
         gpu_id=gpu_id,
+        loaded_train_config=loaded_train_config,
     )
 
     return trainer

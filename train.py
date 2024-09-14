@@ -9,12 +9,13 @@ from models.build_models import build_model
 from trainers.build_trainers import build_trainer, ddp_setup
 from trainers import base_trainer
 from trainers.utils import create_folder_structure, init_print_override, restore_print_override
-from models.utils import print_model_stats
+
 
 import torch
 from torch.distributed import destroy_process_group
 import torch.multiprocessing as mp
 from trainers.prepare import prepare_data
+
 
 def ddp_main(rank, world_size, cfg):
     """
@@ -28,16 +29,20 @@ def ddp_main(rank, world_size, cfg):
         print("Rank: ", rank, "World Size: ", world_size)
         ddp_setup(rank=rank, world_size=world_size)
 
-        model = build_model(model_cfg=cfg["model"])
+        model, loaded_train_config = build_model( # train_config is not None when loading checkpoints
+            model_cfg=cfg["model"],
+            checkpoint_path=cfg["model"].get("checkpoint_path", None),
+        device=cfg["general"]["device"]
+        )
         model.to(cfg["general"]["device"])
         model.train()
         print(f"Rank{rank} Model built")
-        print_model_stats(model)
         # load the relevant trainer
         trainer: base_trainer.BaseTrainer = build_trainer(
             cfg=cfg,
             model=model,
-            gpu_id=rank
+            gpu_id=rank,
+            loaded_train_config=loaded_train_config
         )
         print(f"Rank{rank} Trainer built")
         # train the model
@@ -54,7 +59,11 @@ def basic_main(cfg):
     """
     Main function for single GPU training
     """
-    model = build_model(model_cfg=cfg["model"])
+    model, loaded_train_config = build_model(
+        model_cfg=cfg["model"],
+        checkpoint_path=cfg["model"].get("checkpoint_path", None),
+        device=cfg["general"]["device"]
+    )
     model.to(cfg["general"]["device"])
     model.train()
     print("Model built")
@@ -62,14 +71,15 @@ def basic_main(cfg):
     trainer = build_trainer(
         cfg=cfg,
         model=model,
-        gpu_id=None # disables DDP
+        gpu_id=None, # disables DDP
+        loaded_train_config=loaded_train_config
     )
 
     # train the model
     trainer.train()
 
 
-@hydra.main(config_path="configs", config_name="train")
+@hydra.main(config_path="configs/train", config_name="baseline-10m")
 def main(cfg):
     world_size = torch.cuda.device_count()
     
@@ -78,6 +88,14 @@ def main(cfg):
     cfg["general"]["paths"]["data_dir"] = hydra.utils.to_absolute_path(
         cfg["general"]["paths"]["data_dir"]
     ) # must be done before multiprocessing or else the path is wrong?
+    cfg["general"]["paths"]["eval_dir"] = hydra.utils.to_absolute_path(
+        cfg["general"]["paths"]["eval_dir"]
+    )
+
+    # get absolute path for checkpoint
+    if "checkpoint_path" in cfg["model"]:
+        cfg["model"]["checkpoint_path"] = hydra.utils.to_absolute_path(cfg["model"]["checkpoint_path"])
+
 
     create_folder_structure(path_config=cfg["general"]["paths"])
 

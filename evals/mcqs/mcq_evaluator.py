@@ -1,5 +1,6 @@
 """
-Evaluator class for evaluating models.
+Evaluator class for evaluating the models ability to answer
+different mcq style questions correctly.
 """
 
 import torch
@@ -7,9 +8,8 @@ import tqdm
 
 from evals import eval_wrapper
 from evals.evaluator_interface import EvaluationInterface
-from evals.mcqs.load_benchmarks import load_benchmark
-from evals.metrics import MCQ_METRIC_DICT
-
+from evals.mcqs.load_benchmarks import load_benchmark 
+from trainers.utils import aggregate_value
 
 class MCQEvaluator(EvaluationInterface):
     """
@@ -17,11 +17,11 @@ class MCQEvaluator(EvaluationInterface):
     and prints/logs the results.
     """
 
-    def __init__(self, model, num_samples=None, benchmarks=None):
+    def __init__(self, model, num_samples=None, benchmark_list=None):
         self.model = model
         self.wrapper = eval_wrapper.EvalWrapper(model)
         self.num_samples = num_samples
-        self.benchmarks = benchmarks
+        self.benchmark_list = benchmark_list
         # make sure the model is in eval model
         self.model.eval()
 
@@ -37,21 +37,13 @@ class MCQEvaluator(EvaluationInterface):
         loglikelihoods = torch.tensor(loglikelihoods)
         return loglikelihoods
 
-    def _calculate_metrics(self, confidences):
-        """
-        Calculate the metrics for the model
-        """
-        score_dict = {}
-
-        for metric_name, metric in MCQ_METRIC_DICT.items():
-            score_dict[metric_name] = metric(confidences)
-
-        return score_dict
-
     def evaluate_benchmark(self, benchmark_name, num_samples=None):
         """Evaluate model performance on a specific benchmark"""
         # load the benchmark_loader
-        benchmark_loader = load_benchmark(benchmark_name, split="test")
+        benchmark_loader = load_benchmark(
+            benchmark_name=benchmark_name, 
+            num_samples=num_samples
+        )
         confidences = []
         for i, (prefix, ground_truth, false_options) in tqdm.tqdm(
             enumerate(benchmark_loader)
@@ -67,27 +59,24 @@ class MCQEvaluator(EvaluationInterface):
                 confidence, (0, max_length - len(confidence)), value=-1e10
             )
 
-        score_dict = self._calculate_metrics(torch.stack(confidences))
+        # Stack the tensor values to form a single 2D tensor
+        confidences = torch.stack(confidences)
 
-        return score_dict
+        # calculate the accuracy and return it
+        _, predicted = torch.max(confidences, 1)
+        # aggregate the tensor values
+        return aggregate_value((predicted == 0).float().mean())
 
     def evaluate(self):
         """Given a list of benchmark names, load and evaluate them
 
         Only do so on  {num_samples} for each benchmark"""
         results = {}
-        for benchmark_name in self.benchmarks:
+        for benchmark_name in self.benchmark_list:
             print(f"evalling benchmark {benchmark_name}")
-            score_dict = self.evaluate_benchmark(
+            accuracy = self.evaluate_benchmark(
                 benchmark_name=benchmark_name, num_samples=self.num_samples
             )
-            results[benchmark_name] = score_dict
+            results[f"MCQ/{benchmark_name}"] = accuracy.item()
 
         return results
-
-    def _pretty_print_results(self, results):
-        """Pretty print the results"""
-        for benchmark_name, score_dict in results.items():
-            print(f"{benchmark_name}:")
-            for metric_name, score in score_dict.items():
-                print(f"\t{metric_name}: {score}")

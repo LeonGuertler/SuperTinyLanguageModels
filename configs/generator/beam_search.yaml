@@ -1,0 +1,9 @@
+generator_type: beam_search
+temperature: 1.2
+top_k: 200
+max_new_tokens: 100
+beam_width: 15
+use_sampling: true
+repetition_penalty: 1.2
+repetition_window: 32
+input_text: "Let's consider a simple Python program that adds two integers."

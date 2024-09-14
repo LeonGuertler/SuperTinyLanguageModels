@@ -1,26 +1,24 @@
 """Trainer class for training models with Next Token Prediction"""
 
 import time
-
-import torch
 import wandb
 from omegaconf import OmegaConf
-from torch.profiler import ProfilerActivity, profile, record_function
-from copy import deepcopy
 from contextlib import nullcontext
 
-from models import model_shell
-from trainers import datasets as train_dataloader
-from trainers import utils
-
-from trainers.evaluator import train_eval
+# local imports
+from trainers import utils, data_utils
+from trainers.evaluator import (
+    train_eval_mcq, 
+    train_eval_text_modeling,
+    train_eval_text_generation
+)
+from trainers.utils import aggregate_value, print_evaluation_results
+from models.utils import print_model_stats
 
 import numpy as np
 from itertools import islice
+import torch
 from torch.nn.parallel import DistributedDataParallel as DDP 
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import SequentialSampler
-from trainers.utils import aggregate_value, print_evaluation_results
 
 
 # pylint: disable invalid-name
@@ -33,66 +31,100 @@ class BaseTrainer:
     def __init__(
         self,
         cfg,
-        model: model_shell.ModelShell,
+        model,
         optimizer,
         train_dataloader,
         val_dataloader,
         loss_fn,
         gpu_id=None, 
         lr_scheduler=None,
-        dropout_scheduler=None,
+        loaded_train_config=None,
     ) -> None:
         self.model = model
+        # print model stats and save them 
+        total_params_formated = print_model_stats(model)
+
         if gpu_id is not None: # using ddp
             self.dist = True
             self.DDP_model = DDP(self.model, device_ids=[gpu_id])
         else:
             self.dist = False
             self.DDP_model = model
+
         self.gpu_id = gpu_id 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
-        self.dropout_scheduler = dropout_scheduler
         self.train_dataloader_iter = iter(train_dataloader)
         self.val_dataloader = val_dataloader
         self.loss_fn = loss_fn
         self.cfg = cfg
-        #assert self.cfg["trainer"]["training"]["gradient_accumulation_steps"] % torch.cuda.device_count() == 0, "Gradient Accumulation Steps must be divisible by the number of GPUs"
-        self.gradient_accumulation_steps = cfg["trainer"]["training"][
+
+        # Load prev training parameters as necessary
+        if loaded_train_config is not None:
+            self.current_iter = loaded_train_config["iter_num"]
+
+            if self.cfg["trainer"].get("load_prev_optimizer_state", False):
+                print("Loading the previous optimizer state")
+                self.optimizer.load_state_dict(loaded_train_config["optimizer"])
+
+        else:
+            self.current_iter = 0 
+
+
+        # adjusting the correct batch-size accumulation step ratio for each node
+        self.gradient_accumulation_steps = cfg["trainer"][
             "gradient_accumulation_steps"
-        ] // torch.cuda.device_count() if torch.cuda.is_available() else cfg["trainer"]["training"][
+        ] // torch.cuda.device_count() if torch.cuda.is_available() else cfg["trainer"][
             "gradient_accumulation_steps"
         ]## divide by number of GPUs to maximise throughput
+
+
         self.scaler = None
+        self.ctx = self._setup_ctx()
+
         self.use_wandb = cfg["general"]["logging"]["wandb_log"]
         self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
-        self.cached_sets = {"train": {}, "val": {}}
-        self.batch_size = cfg["trainer"]["training"]["batch_size"] ## new
+        self.batch_size = cfg["trainer"]["batch_size"] 
+        self.evaluate_byte_metrics = self.cfg["trainer"]["eval"].get("eval_byte_metrics", False)
 
-        # For training, always force the device to be cuda
-        #assert torch.cuda.is_available(), "CUDA must be available for training"
-        self.ctx = self._setup_ctx()
+
         if self.use_wandb and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU logs to wandb
-            self._setup_logging()
-        if cfg.trainer.training.run_profiler and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU runs the profiler
-            self.run_profile()
-            raise SystemExit
+            self._setup_logging(
+                total_parameter_count_str=total_params_formated
+            )
 
-    def _setup_logging(self):
-        # set run name
-        run_name = (
-            f"{self.cfg.model['model_shell_type']}"
-            f"_{self.cfg.model['core_model']['core_model_type']}"
-            f"_{self.cfg.trainer['dataset']}_{self.cfg.model['embedder']['embedding_model_type']}"
-            f"_{self.cfg.model['vocab_size']}"
-        )
+
+    def _setup_logging(self, total_parameter_count_str=None):
+        # check if run_name was provided
+        if self.cfg["general"]["logging"].get("run_name", None) is not None:
+            run_name = self.cfg["general"]["logging"]["run_name"] + f" (Size: {total_parameter_count_str})"
+        else:
+            # provide a generic (hopefully descriptive) run name if none was provided
+            run_name = (
+                f"Unname_Model_{self.cfg.trainer['dataset']}"
+                f"_{self.cfg.model['vocab_size']}"
+                f"_Parameters_{total_parameter_count_str}"
+            )
+
+        # Specific the tags
+        tags = [
+            f"Core-{self.cfg.model.get('core_model_type', None)}",
+            f"Shell-{self.cfg.model.get('model_shell_type', None)}",
+            f"Embebdding-{self.cfg.model.get('embedding_model_type', None)}",
+            f"LM_Head-{self.cfg.model.get('lm_head_type', None)}",
+            f"Dataset-{self.cfg.model.get('dataset', None)}",
+            f"Vocab_size-{self.cfg.model.get('vocab_size', None)}",
+            f"Parameters-{total_parameter_count_str.split('.')[0]}"
+        ]
+
+
         wandb.init(
-            project=self.cfg.general.logging.wandb_project,
+            project=self.cfg["general"]["logging"].get("wandb_project", "SuperTinyLanguageModels"), 
             config=OmegaConf.to_container(self.cfg),
             name=run_name,
+            tags=tags
         )
-        wandb.init(project=self.cfg.general.logging.wandb_project)
-        print("wand_b_initted")
+        print("Weight and Biases Initialized")
 
     def _setup_ctx(self):
         """Get the context manager"""
@@ -113,54 +145,126 @@ class BaseTrainer:
 
 
     @torch.no_grad()
-    def estimate_performance(self, eval_iters=None):
+    def estimate_performance(self, iter_num, eval_iters=None):
         """Estimate the loss"""
-        if eval_iters is None:
-            eval_iters = self.cfg.trainer.training.eval_iters
-        eval_results = {}
+        # initialize eval results
+        eval_results = {
+            "iter": iter_num,
+            "token_num": self.batch_size*self.gradient_accumulation_steps*iter_num*self.cfg.model["context_window"], 
+        }
+
+
+        # make sure the model is in eval mode
         self.model.eval()
 
-        # eval on val set 
-        losses = []
-        perplexities = []
+        # initialize accumulators
+        total_loss = 0
+        total_bytes = 0
+        total_token_count = 0 # For regular loass and perplexity
+
+        # Initialize accumulators for byte-level metrics
+        total_byte_loss = 0.0
+        total_byte_log_probs = 0.0 # For perplexity calculation
+
         for i, (x, y) in enumerate(self.val_dataloader):
             x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
             y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
             with self.ctx:
                 output, _ = self.model(x)
+                loss = torch.nn.functional.cross_entropy(
+                    output.view(-1, output.size(-1)),
+                    y.view(-1),
+                    reduction='sum'
+                )
+                loss = self.loss_fn(output, y) # will average loss per token
 
-                # compute loss
-                loss = self.loss_fn(output, y)
-                losses.append(loss.item())
+            # Accumulate token-level metrics
+            total_loss += loss.item()
+            total_token_count += y.size(0)
 
-                # compute perplexity
-                perplexity = torch.exp(loss) # since seq len is always the same during training anyway
-                perplexities.append(perplexity.item())
+            if self.evaluate_byte_metrics:
+                # Compute byte counts for current batch
+                y_tokens = y.view(-1).cpu().numpy()
+                byte_counts = self.model.embedding_model.get_byte_lengths(y_tokens)
+                batch_byte_count = byte_counts.sum()
+                total_bytes += batch_byte_count
 
-
+                # Accumulate byte-level loss
+                total_byte_loss += loss/y.size(0) * batch_byte_count
 
             if i >= eval_iters:
                 break
         
-        avg_loss = aggregate_value(np.mean(losses), self.cfg.general.device)
-        eval_results["Loss"] = avg_loss
-
-        avg_perplexity = aggregate_value(np.mean(perplexities), self.cfg.general.device)
-        eval_results["Perplexity"] = avg_perplexity
+        # Calculate average metrics
+        avg_loss = total_loss / total_token_count if total_token_count > 0 else float('inf')
+        avg_perplexity = np.exp(avg_loss)
 
 
-        evaluator_results = {}
-        for evaluator in self.cfg.trainer["eval"]:
-            evaluator_results[evaluator["evaluator"]] = train_eval(evaluator, self.model)
-            # recurse over metrics to prepend the evaluator name as a prefix
-            relabeled_results = {}
-            for metric in evaluator_results[evaluator["evaluator"]]:
-                relabeled_results[f"{evaluator['evaluator']}/{metric}"] = evaluator_results[evaluator["evaluator"]][metric]
-            evaluator_results[evaluator["evaluator"]] = relabeled_results
+
+        # Store in eval_results
+        eval_results["Validation/Loss"] = aggregate_value(avg_loss, self.cfg.general.device)
+        eval_results["Validation/Perplexity"] = aggregate_value(avg_perplexity, self.cfg.general.device)
+
+        if self.evaluate_byte_metrics:
+            # Byte-normalized metrics
+            byte_avg_loss = total_byte_loss / total_bytes if total_bytes > 0 else float('inf')
+            byte_avg_perplexity = np.exp(byte_avg_loss.cpu()) if byte_avg_loss < 100 else float('inf')  # Avoid overflow
+            
+            # Store byte-level metrics
+            eval_results["Validation/Loss (Bytes)"] = aggregate_value(byte_avg_loss, self.cfg.general.device).item()
+            eval_results["Validation/Perplexity (Bytes)"] = aggregate_value(byte_avg_perplexity, self.cfg.general.device).item()
+        
+
+        # get the mcq eval results
+        eval_results.update(
+            train_eval_mcq(
+                model=self.model,
+                num_samples=self.cfg["trainer"]["eval"].get("mcq_num_samples", None),
+                benchmark_list=self.cfg["trainer"]["eval"].get("mcq_benchmarks", []),
+            )
+        )
+        # get the text modeling eval results
+        if self.cfg["trainer"]["eval"].get("text_modeling_eval", False):
+            eval_results.update(
+                train_eval_text_modeling(
+                    model=self.model,
+                    topic_list=self.cfg["trainer"]["eval"].get("text_modeling_topics", []),
+                )
+            )
+
+        if self.cfg["trainer"]["eval"].get("text_generation_eval", False):
+            text_generation_results, text_generation_sample_html = train_eval_text_generation(
+                model=self.model
+            )
+            eval_results.update(text_generation_results)
+
+            # log the generated text
+            wandb.log(
+                {
+                    "Generated Text": wandb.Html(
+                        text_generation_sample_html
+                    )
+                },
+                step=eval_results["token_num"]
+            )
+
+        # set model back into train mode
         self.model.train()
-        return eval_results, evaluator_results
 
+        # print the eval results
+        print_evaluation_results(
+            iter_num=iter_num,
+            eval_results=eval_results
+        )
 
+        # log the evaluation results
+        if (self.gpu_id==0 or self.gpu_id is None) and self.use_wandb: # ensure only the first GPU logs
+            wandb.log(
+                eval_results,
+                step=eval_results["token_num"]
+            )
+
+        return eval_results
 
 
     def _run_step(self):
@@ -206,42 +310,6 @@ class BaseTrainer:
 
         return accumulated_loss
 
-    def run_profile(self):
-        """Run the profiler"""
-        utils.profilize(self.model)
-        with profile(
-            activities=[
-                ProfilerActivity.CPU,
-                ProfilerActivity.CUDA,
-            ],
-            record_shapes=True,
-            profile_memory=True,
-            with_stack=True,
-        ) as prof:
-            for i in range(10):
-                if i <= 3:
-                    self._run_step() ## set the 'epoch' to ensure shuffle
-                else:
-                    with record_function("_run_step"):
-                        self._run_step() ## set the 'epoch' to ensure shuffle
-            # place profile in dictionary
-        backwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
-        print(backwards_prof)
-        with profile(
-            activities=[
-                ProfilerActivity.CPU,
-                ProfilerActivity.CUDA,
-            ],
-            record_shapes=True,
-            profile_memory=True,
-            with_stack=True,
-        ) as prof:
-            self.estimate_performance(eval_iters=1)
-            with record_function("estimate_performance"):
-                self.estimate_performance(eval_iters=10)
-            # place profile in dictionary
-        forwards_prof = prof.key_averages().table(sort_by="self_cpu_time_total")
-        print(forwards_prof)
 
     def _save_model(self, iter_num=0):
         """
@@ -259,38 +327,26 @@ class BaseTrainer:
 
     def run_training_loop(self):
         """Run the training loop"""
-        for iter_num in range(self.cfg.trainer.training.max_iters):
+        print("Training loop is starting")
+        for iter_num in range(self.current_iter, self.cfg["trainer"]["max_iters"]):
             start_time = time.time()
             if self.lr_scheduler is not None:
                 lr = self.lr_scheduler.step(self.optimizer, iter_num)
             else:
                 lr = self.optimizer.param_groups[0]["lr"]
-            dropout = self.dropout_scheduler.step(self.model, iter_num)
+
             # estimate the loss on the train/val sets
             if (
-                not iter_num % self.cfg.trainer.training.eval_interval
+                not iter_num % self.cfg["trainer"]["eval_interval"]
             ): # run on first iter to prevent bugs causing it to crash
-                eval_results, benchmark_results = self.estimate_performance()
-
-                # print the evals as table
-                # evals format is d1: type d2: train/val
-                print_evaluation_results(
-                    iter_num=iter_num, 
-                    eval_results=eval_results, 
-                    benchmark_results=benchmark_results
+                self.estimate_performance(
+                    iter_num=iter_num,
+                    eval_iters=self.cfg["trainer"].get("eval_iters", 100)
                 )
-
-                # Log to wandb
-                if (self.gpu_id == 0 or self.gpu_id is None) and self.use_wandb:  # ensure only the first GPU logs
-                    log_dict = {"iter": iter_num, "lr": lr, "dropout": dropout}
-                    log_dict.update(eval_results)  # Directly add evals to the log dictionary
-                    log_dict.update({k:v for k,v in benchmark_results.items()}) # Add benchmark results to the log dictionary
-
-                    wandb.log(log_dict)
 
             # save checkpoints
             if (
-                not iter_num % self.cfg.trainer.training.checkpoint_interval
+                not iter_num % self.cfg["trainer"]["checkpoint_interval"]
                 and iter_num > 0
                 and (
                     self.gpu_id == 0
@@ -300,29 +356,31 @@ class BaseTrainer:
                 self._save_model(iter_num)
 
 
-            lossf = self._run_step() ## set the 'epoch' to ensure shuffle
+            lossf = self._run_step() 
             end_time = time.time()
-            if not iter_num % self.cfg.trainer.training.log_interval and iter_num > 0:
+            if not iter_num % self.cfg["trainer"]["log_interval"] and iter_num > 0:
                 ## uncomment the following line to print the loss on all GPUs
                 # print(f"GPU {self.gpu_id}: step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
 
                 ## aggregate the loss across all GPUs
-                lossf = aggregate_value(lossf, self.cfg.general.device)
+                lossf = aggregate_value(lossf, self.cfg["general"]["device"])
 
                 ## print and log the result only on the first GPU after aggregation
                 print(f"All GPU(s): step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
                 if (self.gpu_id == 0 or self.gpu_id is None) and self.use_wandb:
+                    token_num = self.batch_size*self.gradient_accumulation_steps*iter_num*self.cfg["model"]["context_window"]
                     wandb.log(
                         {
                             "iter": iter_num,
                             "loss": lossf,
                             "lr": lr,
-                            "dropout": dropout,
-                        }
+                            "token_num": token_num,
+                        },
+                        step=token_num
                     )
         # save the final model
         if self.gpu_id == 0 or self.gpu_id is None: ## ensure only the first GPU saves the model
-            self._save_model(iter_num)
+            self._save_model(iter_num+1) # just so it looks nicer
 
     def train(self, seed=42):
         """Train the model"""

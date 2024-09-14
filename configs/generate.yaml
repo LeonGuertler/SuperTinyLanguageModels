@@ -1,4 +1,5 @@
 defaults:
-  - generator: baseline
+  - generator
 model_ckpt: "checkpoints/...pt"
-
+max_new_tokens: 200
+input_text: "Earth is the third planet from the Sun and the only astronomical object known to harbor life. This is enabled by Earth being an ocean world, the only one in the Solar System sustaining liquid surface water."

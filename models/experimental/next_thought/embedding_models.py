@@ -7,7 +7,7 @@ from models.embedding_models import GenericEmbedder
 from models.components.layers.transformer_blocks import GenericTransformerBlock
 
 from models.components.positional_encoding import build_positional_encodings
-from models.components.tokenizers import build_tokenizer
+from models.components.layers.tokenizers import build_tokenizer
 
 
 # import local components

@@ -11,26 +11,32 @@ from models import core_models, embedding_models, model_heads
 
 class ModelShell(torch.nn.Module):
     """
-    Unify the embedding model, core model and LM head
+    Unify the embedding model, core model and LM head 
     into a single object; initializes the weights
     and prints basic model statistics.
     """
 
     def __init__(
         self,
+        model_cfg,
         embedding_model: embedding_models.EmbedderInterface,
         core_model: core_models.GenericTransformer,
         model_head: model_heads.AutoregressiveLMHead,
-        weight_init_func=None,
     ):
         super().__init__()
         self.embedding_model = embedding_model
         self.core_model = core_model
         self.model_head = model_head
 
-        # initialize model weights
-        if weight_init_func is not None:
-            self.apply(weight_init_func)
+
+        # check if embedding model weights are to be shared with the model head
+        if model_cfg.get("embedding_weight_tying", True):
+            # share the weights between the token embeddings and the final
+            # logit layer, following: https://paperswithcode.com/method/weight-tying
+            assert model_head.linear.weight.shape == embedding_model.token_embedder.weight.shape, \
+                "The embedding model and the model head should have the same output dimension."
+            embedding_model.token_embedder.weight = model_head.linear.weight
+
         self.device = ...
 
     # override to device to set the attribute
@@ -106,3 +112,66 @@ class ModelShell(torch.nn.Module):
         ll = ll * mask
         ll = ll.view(input_tensor.size(0), -1).sum(dim=1)
         return -ll
+
+
+    @torch.no_grad()
+    def generate(self, 
+        prompt: str, 
+        max_new_tokens: int=100, 
+        temperature: float=1.0, 
+        top_k: int=None, 
+        repetition_penalty: float=None, 
+        repetition_window: int=None
+    ):
+        """ Basic text generation function. """
+
+        # tokenize input tokens
+        idx = self.embedding_model.tokenize_input(
+            input_string=prompt,
+            add_eot=False,
+            truncate=True
+        )
+
+        # push to device
+        idx = torch.tensor(idx).unsqueeze(0).to(torch.device(self.device))
+        for _ in range(max_new_tokens):
+            # forward the model to get the logits for th index in the sequence
+            logits, _ = self.inference(idx)
+
+            # scale by temp
+            logits = logits / temperature
+
+
+            # apply repetition penalty
+            if repetition_penalty is not None:
+                # Get the most recent tokens within the window
+                recent_tokens = idx[0, -repetition_window:]
+                # Count the occurrences of each token
+                unique_tokens, counts = torch.unique(
+                    recent_tokens,
+                    return_counts=True
+                )
+                # Apply penalty to the logits of repeated tokens
+                logits[0, unique_tokens] /= repetition_penalty ** counts.float()
+
+
+            # crop logits to top_k
+            if top_k is not None:
+                v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
+                logits[logits < v[:, [-1]]] = -float("Inf")
+
+
+            # apply softmax to convert logits to (normalized) probabilities
+            probs = torch.nn.functional.softmax(logits, dim=-1)
+            # sample from the disstribution
+            idx_next = torch.multinomial(probs, num_samples=1)
+
+            # check if end of text
+            if idx_next == self.embedding_model.eot_token:
+                break 
+
+            # otherwaise append
+            idx = torch.cat((idx, idx_next), dim=1)
+
+        # return back as string
+        return self.embedding_model.decode(idx.tolist())

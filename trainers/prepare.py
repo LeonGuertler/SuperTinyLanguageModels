@@ -5,7 +5,7 @@ import os
 import torch 
 import numpy as np 
 from tqdm import tqdm 
-from trainers.utils import load_data
+from trainers.data_utils import load_data
 
 from models.build_models import build_embedding_model 
 
@@ -146,8 +146,6 @@ DATALOADER_PROCESSORS = {
 
 
 
-
-
 def prepare_data(cfg):
     """
     Split the data, process & tokenize it, and store 
@@ -159,7 +157,7 @@ def prepare_data(cfg):
     tokenized_data_folder = os.path.join(
         cfg["general"]["paths"]["data_dir"],
         dataset_name,
-        f'{cfg["model"]["embedder"]["tokenizer_type"]}-{cfg["model"]["vocab_size"]}-{cfg["trainer"]["dataloader"]["name"]}',
+        f'{cfg["model"]["tokenizer_type"]}-{cfg["model"]["vocab_size"]}-{cfg["trainer"]["dataloader"]["name"]}',
     )
 
     # check if already exists (check len because some datasets use differen filenames
@@ -190,7 +188,7 @@ def prepare_data(cfg):
         # Get the maximum number of processors
         max_procs = os.cpu_count()
         # cap at 12 to reduce memory usage
-        max_procs = 1 #min(max_procs, 12) # TODO properly fix this
+        max_procs = min(max_procs, 12) # TODO properly fix this
         print(f"Using {max_procs} processors")
 
         # tokenize the dataset

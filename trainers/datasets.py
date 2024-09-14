@@ -10,7 +10,7 @@ from tqdm import tqdm
 import random
 
 from models.embedding_models import GenericEmbedder
-from trainers.utils import load_data
+from trainers.data_utils import load_data
 
 
 
@@ -30,7 +30,7 @@ class DatasetInterface(torch.utils.data.IterableDataset):
         self.data_path = os.path.join(
             self.cfg["general"]["paths"]["data_dir"],
             self.dataset_name,
-            f'{self.cfg["model"]["embedder"]["tokenizer_type"]}-{self.cfg["model"]["vocab_size"]}-{self.cfg["trainer"]["dataloader"]["name"]}',
+            f'{self.cfg["model"]["tokenizer_type"]}-{self.cfg["model"]["vocab_size"]}-{self.cfg["trainer"]["dataloader"]["name"]}',
             f"{split}.bin"
         )
 

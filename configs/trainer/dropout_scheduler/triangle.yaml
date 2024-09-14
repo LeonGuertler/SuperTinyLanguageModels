@@ -1,4 +1,0 @@
-dropout_type: "triangle"
-dropout_trough: 0.0
-dropout_peak: 0.1
-cycle_factor: 4.0

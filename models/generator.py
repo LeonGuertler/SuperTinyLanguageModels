@@ -3,16 +3,106 @@ Generator Base Wrapper
 """
 
 import torch
+import torch.nn.functional as F
 
+class BeamSearchGenerator(torch.nn.Module):
+    def __init__(self, model, generate_cfg, device="cuda"):
+        super().__init__()
+        self.model = model
+        self.device = device
+        self.model = self.model.to(torch.device(self.device))
+        self.generate_config = generate_cfg
+
+    def default_generate(self, input_text):
+        return self.generate(
+            input_text,
+            self.generate_config["max_new_tokens"],
+            self.generate_config["temperature"],
+            self.generate_config["top_k"],
+            self.generate_config.get("beam_width", 5),
+            self.generate_config.get("use_sampling", False),
+            self.generate_config.get("repetition_penalty", 1.2),
+            self.generate_config.get("repetition_window", 32)
+        )
+
+    @torch.no_grad()
+    def generate(self, input_text, max_new_tokens, temperature=1.0, top_k=None, beam_width=5, 
+                 use_sampling=False, repetition_penalty=1.2, repetition_window=32):
+        idx = self.model.embedding_model.tokenize_input(input_string=input_text, add_eot=False, truncate=True)
+        idx = torch.tensor(idx).unsqueeze(0).to(torch.device(self.device))
+
+        # Initialize beam with the input sequence
+        beam = [(idx, 0.0)]
+
+        for _ in range(max_new_tokens):
+            all_candidates = []
+            for seq, score in beam:
+                # Get logits for the entire sequence
+                logits = self.model.inference(seq)[0]
+                # Consider only the last token's logits
+                last_token_logits = logits / temperature
+
+                # Apply repetition penalty
+                if repetition_penalty > 1.0:
+                    self.apply_repetition_penalty(last_token_logits, seq, repetition_penalty, repetition_window)
+
+                if top_k is not None:
+                    v, _ = torch.topk(last_token_logits, min(top_k, last_token_logits.size(-1)))
+                    last_token_logits[last_token_logits < v[:, [-1]]] = -float("Inf")
+
+                probs = F.softmax(last_token_logits, dim=-1)
+
+                if use_sampling:
+                    # Sampling
+                    sampled_indices = torch.multinomial(probs, num_samples=beam_width)
+                    top_indices = sampled_indices[0]
+                    top_probs = probs[0, top_indices]
+                else:
+                    # Greedy selection
+                    top_probs, top_indices = torch.topk(probs, k=beam_width)
+                    top_probs = top_probs[0]
+                    top_indices = top_indices[0]
+
+                for prob, idx_next in zip(top_probs, top_indices):
+                    new_seq = torch.cat([seq, idx_next.unsqueeze(0).unsqueeze(0)], dim=1)
+                    new_score = score - torch.log(prob).item()
+                    all_candidates.append((new_seq, new_score))
+
+            # Select top beam_width candidates
+            beam = sorted(all_candidates, key=lambda x: x[1])[:beam_width]
+
+            # Check if any beam has generated EOT token
+            #if any(seq[0, -1] == self.model.embedding_model.eot_token for seq, _ in beam):
+            #    break
+
+        # Return the sequence with the best score
+        best_seq, _ = min(beam, key=lambda x: x[1])
+        return self.model.embedding_model.decode(best_seq[0].tolist())
+
+    def apply_repetition_penalty(self, logits, sequence, penalty, window):
+        # Get the most recent tokens within the window
+        recent_tokens = sequence[0, -window:]
+        
+        # Count the occurrences of each token
+        unique_tokens, counts = torch.unique(recent_tokens, return_counts=True)
+        
+        # Apply penalty to the logits of repeated tokens
+        logits[0, unique_tokens] /= penalty ** counts.float()
+
+
+
+def build_generator(model, generate_cfg):
+    return BeamSearchGenerator(model, generate_cfg)
 
 class StandardGenerator(torch.nn.Module):
     """Standard Generator Wrapper for GPT models"""
 
-    def __init__(self, model, generate_cfg):
+    def __init__(self, model, generate_cfg, device="cuda"):
         """Initialize the model and the configuration"""
         super().__init__()
         self.model = model
-        self.model = self.model.to(torch.device("cuda"))
+        self.device = device 
+        self.model = self.model.to(torch.device(device))
         self.generate_config = generate_cfg
 
     def default_generate(self, input_text):
@@ -33,48 +123,33 @@ class StandardGenerator(torch.nn.Module):
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
         Most likely you'll want to make sure to be in model.eval() mode of operation for this.
         """
-        idx = self.model.embedding_model.tokenize_input(input_string=input_text,
-                                                        add_eot=False,
-                                                        truncate=True)
+        idx = self.model.embedding_model.tokenize_input(
+            input_string=input_text,
+            add_eot=False,
+            truncate=True
+        )
         # push to device
-        idx = torch.tensor(idx).unsqueeze(0).to(torch.device("cuda"))
+        idx = torch.tensor(idx).unsqueeze(0).to(torch.device(self.device))
         for _ in range(max_new_tokens):
             # forward the model to get the logits for the index in the sequence
-            logits = self.model.inference(idx)
+            logits, _ = self.model.inference(idx)
             # pluck the logits at the final step and scale by desired temperature
             logits = logits / temperature
             # logits have shape (b,t,v)
             # optionally crop the logits to only the top k options
             if top_k is not None:
                 v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
-                # check for dim
-                if len(v.size()) == 3:
-                    logits[logits < v[:, :, [-1]]] = -float("Inf")
-                else:
-                    logits[logits < v[:, [-1]]] = -float("Inf")
+                logits[logits < v[:, :, [-1]]] = -float("Inf")
+
             # apply softmax to convert logits to (normalized) probabilities
             probs = torch.nn.functional.softmax(logits, dim=-1)
-            # sample from the distribution
-            # check if byte-level and if so, flatten 
-            if len(probs.size()) == 4:
-                B, S, S_c, H = probs.size()
-                probs = probs.view(B* S * S_c, H)
-                flattened = True
-            else:
-                flattened = False
-
-
             
             idx_next = torch.multinomial(probs, num_samples=1)
 
-            # check if byte-level and if so, unflatten
-            if flattened:
-                idx_next = idx_next.view(B, S)
-            elif idx_next == self.model.embedding_model.eot_token:
+            # check if done
+            if idx_next == self.model.embedding_model.eot_token:
                 break
 
-            if flattened:
-                idx_next = idx_next.unsqueeze(0)
             idx = torch.cat((idx, idx_next), dim=1)
 
         return self.model.embedding_model.decode(idx.tolist())

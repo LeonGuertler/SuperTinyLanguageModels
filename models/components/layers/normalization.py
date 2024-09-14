@@ -53,4 +53,6 @@ def build_normalization(normalization_name, dim, bias=None):
     Available options: rmsnorm, layernorm
         - Bias is ignored for RMSNorm
     """
+    assert normalization_name in NORMALIZATION_DICT, \
+        f"Normalization {normalization_name} not found! Available options: {NORMALIZATION_DICT.keys()}"
     return NORMALIZATION_DICT[normalization_name](dim=dim, bias=bias)

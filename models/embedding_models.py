@@ -5,9 +5,10 @@ the tokenizer(s), token embeddings and positional encodings
 """
 
 import torch
+import numpy as np 
 
 from models.components.positional_encoding import build_positional_encodings
-from models.components.tokenizers import build_tokenizer
+from models.components.layers.tokenizers import build_tokenizer
 
 
 class EmbedderInterface(torch.nn.Module):
@@ -99,9 +100,10 @@ class GenericEmbedder(EmbedderInterface):
         super().__init__()
         # build the tokenizer
         self.tokenizer = build_tokenizer(
-            tokenizer_type=model_cfg["embedder"]["tokenizer_type"],
-            vocab_size=model_cfg["vocab_size"],
-            dataset_name=model_cfg["embedder"]["dataset_name"],
+            tokenizer_type=model_cfg["tokenizer_type"],
+            vocab_size=model_cfg.get("vocab_size", None),
+            dataset_name=model_cfg.get("tokenizer_dataset_name", None),
+            simplify=model_cfg.get("tokenizer_simplify", True), # Default True
         )
 
         # build the token embeddings
@@ -114,6 +116,30 @@ class GenericEmbedder(EmbedderInterface):
         self.positional_encodings = build_positional_encodings(model_cfg=model_cfg)
         self.eot_token = self.tokenizer.eot_token
         self.model_cfg = model_cfg
+
+        self.dropout = torch.nn.Dropout(p=model_cfg.get("embedding_dropout", 0.0))
+
+        self.token_byte_length_cache = self._precompute_byte_lengths()
+
+    def _precompute_byte_lengths(self):
+        """
+        Precompute byte lengths for all tokens in the vocabulary.
+        """
+        vocab_size = self.tokenizer.vocab_size
+        token_byte_lengths = np.zeros(vocab_size, dtype=np.int32)
+        for token in range(vocab_size):
+            token_str = self.tokenizer.decode([token])
+            token_bytes = token_str.encode('utf-8')
+            token_byte_lengths[token] = len(token_bytes)
+        return token_byte_lengths
+
+    def get_byte_lengths(self, tokens):
+        """
+        Given a list/array of tokens, return a NumPy array of byte lengths using the cache.
+        """
+        tokens = np.array(tokens)
+        byte_lengths = self.token_byte_length_cache[tokens]
+        return byte_lengths
 
     def forward(self, token_ids):
         """
