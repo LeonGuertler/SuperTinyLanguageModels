@@ -81,6 +81,7 @@ class BaseTrainer:
         self.use_wandb = cfg["general"]["logging"]["wandb_log"]
         self.checkpoint_dir = cfg["general"]["paths"]["checkpoint_dir"]
         self.batch_size = cfg["trainer"]["batch_size"] 
+        self.evaluate_byte_metrics = self.cfg["trainer"]["eval"].get("eval_byte_metrics", False)
 
 
         if self.use_wandb and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU logs to wandb
@@ -138,33 +139,63 @@ class BaseTrainer:
         eval_results = {}
         self.model.eval()
 
-        # eval on val set 
-        losses = []
-        perplexities = []
+        # initialize accumulators
+        total_loss = 0
+        total_bytes = 0
+        total_token_count = 0 # For regular loass and perplexity
+
+        # Initialize accumulators for byte-level metrics
+        total_byte_loss = 0.0
+        total_byte_log_probs = 0.0 # For perplexity calculation
+
         for i, (x, y) in enumerate(self.val_dataloader):
             x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
             y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
             with self.ctx:
                 output, _ = self.model(x)
+                loss = torch.nn.functional.cross_entropy(
+                    output.view(-1, output.size(-1)),
+                    y.view(-1),
+                    reduction='sum'
+                )
+                loss = self.loss_fn(output, y) # will average loss per token
 
-                # compute loss
-                loss = self.loss_fn(output, y)
-                losses.append(loss.item())
+            # Accumulate token-level metrics
+            total_loss += loss.item()
+            total_token_count += y.size(0)
 
-                # compute perplexity
-                perplexity = torch.exp(loss) # since seq len is always the same during training anyway
-                perplexities.append(perplexity.item())
+            if self.evaluate_byte_metrics:
+                # Compute byte counts for current batch
+                y_tokens = y.view(-1).cpu().numpy()
+                byte_counts = self.model.embedding_model.get_byte_lengths(y_tokens)
+                batch_byte_count = byte_counts.sum()
+                total_bytes += batch_byte_count
 
-
+                # Accumulate byte-level loss
+                total_byte_loss += loss_value * batch_byte_count
 
             if i >= eval_iters:
                 break
         
-        avg_loss = aggregate_value(np.mean(losses), self.cfg.general.device)
-        eval_results["Val. Loss"] = avg_loss
+        # Calculate average metrics
+        avg_loss = total_loss / total_token_count if total_token_count > 0 else float('inf')
+        avg_perplexity = np.exp(avg_loss)
 
-        avg_perplexity = aggregate_value(np.mean(perplexities), self.cfg.general.device)
-        eval_results["Val. Perplexity"] = avg_perplexity
+
+
+        # Store in eval_results
+        eval_results["Val. Loss"] = aggregate_value(avg_loss, self.cfg.general.device)
+        eval_results["Val. Perplexity"] = aggregate_value(avg_perplexity, self.cfg.general.device)
+
+        if self.evaluate_byte_metrics:
+            # Byte-normalized metrics
+            byte_avg_loss = total_byte_loss / total_bytes if total_bytes > 0 else float('inf')
+            byte_avg_perplexity = np.exp(byte_avg_loss) if byte_avg_loss < 100 else float('inf')  # Avoid overflow
+            
+            # Store byte-level metrics
+            eval_results["Val. Loss (Bytes)"] = aggregate_value(byte_avg_loss, self.cfg.general.device)
+            eval_results["Val. Perplexity (Bytes)"] = aggregate_value(byte_avg_perplexity, self.cfg.general.device)
+        
 
         # get the mcq eval results
         eval_results.update(

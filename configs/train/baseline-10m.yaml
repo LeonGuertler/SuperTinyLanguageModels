@@ -64,6 +64,7 @@ trainer:
       - "copa"
       - "commonsense_qa"
     mcq_num_samples: 500
+    eval_byte_metrics: true 
 
   optimizer:
     optimizer_name: adamW

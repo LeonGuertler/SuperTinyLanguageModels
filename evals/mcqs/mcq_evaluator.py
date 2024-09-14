@@ -45,7 +45,6 @@ class MCQEvaluator(EvaluationInterface):
             num_samples=num_samples
         )
         confidences = []
-        print(benchmark_loader)
         for i, (prefix, ground_truth, false_options) in tqdm.tqdm(
             enumerate(benchmark_loader)
         ):

@@ -131,14 +131,14 @@ def restore_print_override(original_print):
 
 # Function to print evaluation results and benchmark results
 def print_evaluation_results(iter_num, eval_results):
+    table_1_keys = ["Val. Loss", "Val. Perplexity", "Val. Loss (Bytes)", "Val. Perplexity (Bytes)"]
     headers = ['Metric', 'Value']
     table = PrettyTable(headers)
-    table.add_row(
-        ['Val. Loss', eval_results['Val. Loss']]
-    )
-    table.add_row(
-        ['Val. Perplexity', eval_results['Val. Perplexity']]
-    )
+    for t1k in table_1_keys:
+        if t1k in eval_results:
+            table.add_row(
+                [t1k, eval_results[t1k]]
+            )
 
     print(f"Iteration {iter_num}")
     print(table)
