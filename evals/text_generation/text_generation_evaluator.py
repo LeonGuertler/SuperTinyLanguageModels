@@ -2,43 +2,57 @@
 Evaluator class for evaluating the models ability to generate 
 error-free gramatically correct and non-repetitive text.
 """
-
+import math
+import json
+import numpy as np 
 import language_tool_python
 import textstat
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 from collections import Counter
-import math
-import json
 
-class TextEvaluator:
-    def __init__(self, model, prompts, references=None):
+# import the prompts
+from evals.text_generation.prompts import GENERATION_PROMPTS
+
+
+class TextGenerationEvaluator:
+    def __init__(self, model, references=None):
         """
         Initializes the TextEvaluator.
 
         :param model: The language model to evaluate.
-        :param prompts: A list of prompts to generate text from.
         :param references: A list of reference texts corresponding to the prompts (optional).
         """
         self.model = model
-        with open('prompts.json', 'r') as f:
-            self.prompts = f.read()
-        self.references = references if references else ["" for _ in prompts]
+        self.prompts = GENERATION_PROMPTS
+        self.references = references if references else ["" for _ in self.prompts]
         self.generated_texts = []
         self.results = []
+        self.text_samples = []
 
         # Initialize the grammar checker
-        self.grammar_tool = language_tool_python.LanguageTool('en-US')
+        self.grammar_tool = language_tool_python.LanguageToolPublicAPI('en-US')
 
     def generate_texts(self):
         """Generates texts from the prompts using the model."""
-        for i in self.prompts:
+        for i in range(len(self.prompts)):
 
             # Generate text using your model (placeholder code)
             generated_text = self.model.generate(
-                prompt_item["prompt"],
-            )
-            self.p
+                prompt=self.prompts[i]["prompt"],
+                max_new_tokens=250,
+                temperature=0.7,
+                top_k=200,
+                repetition_penalty=1.5,
+                repetition_window=64
+            )[0]
             self.generated_texts.append(generated_text)
+
+            self.text_samples.append(
+                [
+                    self.prompts[i]["prompt"],
+                    generated_text
+                ]
+            )
 
     def calculate_metrics(self):
         """Calculates the specified metrics for the generated texts."""
@@ -64,8 +78,9 @@ class TextEvaluator:
 
             # Store the results
             self.results.append({
-                'prompt': self.prompts[idx],
-                'generated_text': text,
+                #'prompt': self.prompts[idx],
+                #'generated_text': text,
+                'generation_length': len(text),
                 'errors_per_100_words': errors_per_100_words,
                 'readability': readability,
                 'distinct_1': distinct_1,
@@ -103,6 +118,56 @@ class TextEvaluator:
         """Runs the full evaluation."""
         self.generate_texts()
         self.calculate_metrics()
+        return self._process_results()
+
+
+    def _process_results(self):
+        """ Process and clean results for wandb logging """
+
+        # save generated text as html
+        html_content = """
+        <style>
+            table {
+                color: gray;
+                border-collapse: collapse;
+                width: 100%;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+            }
+            pre {
+                margin: 0;
+            }
+        </style>
+        <table>
+            <tr><th>Prompt</th><th>Generated Text</th></tr>
+        """
+        for prompt, generated_text in self.text_samples:
+            html_content += f"""
+            <tr>
+                <td><pre>{prompt}</pre></td>
+                <td><pre>{generated_text}</pre></td>
+            </tr>
+            """
+        html_content += "</table>"
+
+        # process the quantitative outputs
+        performance_dict = {}
+        for i in range(len(self.results)):
+            for key in self.results[i].keys():
+                if key not in performance_dict:
+                    performance_dict[key] = []
+                performance_dict[key].append(
+                    self.results[i][key]
+                )
+        
+        # average 
+        return_dict = {}
+        for key in performance_dict:
+            return_dict[f"Text Generation/{key}"] = np.mean(performance_dict[key])
+        return return_dict, html_content
+
 
     def report_results(self):
         """Returns the evaluation results."""

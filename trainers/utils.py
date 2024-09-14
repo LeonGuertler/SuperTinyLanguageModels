@@ -131,25 +131,69 @@ def restore_print_override(original_print):
 
 # Function to print evaluation results and benchmark results
 def print_evaluation_results(iter_num, eval_results):
-    table_1_keys = ["Val. Loss", "Val. Perplexity", "Val. Loss (Bytes)", "Val. Perplexity (Bytes)"]
-    headers = ['Metric', 'Value']
-    table = PrettyTable(headers)
-    for t1k in table_1_keys:
-        if t1k in eval_results:
-            table.add_row(
-                [t1k, eval_results[t1k]]
+    val_table = PrettyTable(["Metric", "Value"])
+    mcq_table = PrettyTable(["Benchmark", "Accuracy"])
+    text_modeling_table = PrettyTable(
+        [
+            "Topic", "Difficulty", "Byte Acc.", 
+            "Byte Lev. Dist.", "Byte Perplexity"
+        ]
+    )
+    text_generation_table = PrettyTable(
+        [
+            "Metric", "Value"
+        ]
+    )
+
+    text_modeling_struct = {}
+    for eval_name in eval_results.keys():
+        if "Validation" in eval_name:
+            val_table.add_row(
+                [eval_name, eval_results[eval_name]]
+            )
+        elif "Text Modeling" in eval_name:
+            metric = eval_name.split(")/")[0].replace(
+                "Text Modeling (", ""
+            )
+            category = eval_name.split("/")[1].split("-")[0]
+            difficulty = eval_name.split("/")[1].split("-")[1]
+            if category not in text_modeling_struct:
+                text_modeling_struct[category] = {}
+            if difficulty not in text_modeling_struct[category]:
+                text_modeling_struct[category][difficulty] = {}
+            text_modeling_struct[category][difficulty][metric] = eval_results[eval_name]
+        elif "MCQ" in eval_name:
+            mcq_table.add_row(
+                [eval_name, eval_results[eval_name]]
+            )
+        elif "Text Generation" in eval_name:
+            text_generation_table.add_row(
+                [eval_name.replace('Text Generation/',''), eval_results[eval_name]]
+            )
+        elif eval_name in ["iter", "token_num"]:
+            continue # skip these
+        else:
+            print(f"Eval pretty print received: {eval_name} metric without printing it. It'll still be logged in wandb")
+
+    # populate text modeling table
+    for category in text_modeling_struct.keys():
+        for difficulty in text_modeling_struct[category].keys():
+            text_modeling_table.add_row(
+                [
+                    category, 
+                    difficulty,
+                    text_modeling_struct[category][difficulty]["Byte Acc."],
+                    text_modeling_struct[category][difficulty]["Byte Lev. Dist."],
+                    text_modeling_struct[category][difficulty]["Byte Perplexity"]
+                ]
             )
 
-    print(f"Iteration {iter_num}")
-    print(table)
 
-    ignore = ["Val. Loss", "Val. Perplexity"]
-    benchmark_table = PrettyTable(["Benchmark", "Accuracy"])
-    for benchmark, value in eval_results.items():
-        if benchmark in ignore:
-            continue
-        benchmark_table.add_row([benchmark, value])
-
-    print("Benchmark Results")
-    print(benchmark_table)
-    print("\n\n")
+    print(f"Token Num: {eval_results['token_num']}\tIteration {iter_num} - Validation Results")
+    print(val_table)
+    print(f"\n MCQ Results")
+    print(mcq_table)
+    print(f"\n Text-Modeling Results")
+    print(text_modeling_table)
+    print(f"\n Text-Generation Results")
+    print(text_generation_table)

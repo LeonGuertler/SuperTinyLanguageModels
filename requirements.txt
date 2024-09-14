@@ -9,3 +9,4 @@ levenshtein
 sentencepiece
 textstat
 language-tool-python
+nltk

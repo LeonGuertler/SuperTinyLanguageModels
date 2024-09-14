@@ -4,6 +4,8 @@ Evaluator class for evaluating models.
 import os
 import torch
 import torch.nn.functional as F
+import numpy as np 
+from datasets import load_dataset
 from Levenshtein import distance as levenshtein_distance
 from evals.evaluator_interface import EvaluationInterface
 
@@ -13,35 +15,16 @@ class TextModelingEvaluator(EvaluationInterface):
     Evaluator class that evaluates models on their language modeling 
     capabilities in a way that is agnostic to the tokenizer used, using byte-level accuracy.
     """
-    def __init__(self, model, topic_list, eval_dir):
+    def __init__(self, model, topic_list):
         self.model = model 
         self.topic_list = topic_list
 
         # Ensure the model is in evaluation mode
         self.model.eval()
 
-        self.modeling_topics = os.listdir(
-            os.path.join(eval_dir, "text_modeling", "test_data")
-        )
-        self.modeling_difficulties = ["easy", "medium", "hard"]
-        self.eval_dir = eval_dir
-
         # Load the text data
-        self._load_data()
+        self.data = load_dataset("SuperTinyLanguageModels/text-modeling-eval")["train"]
 
-    def _load_data(self):
-        """
-        Load all modeling texts into a dictionary.
-        """
-        self.data = {}
-        for topic in self.modeling_topics:
-            self.data[topic] = {}
-            for difficulty in self.modeling_difficulties:
-                file_path = os.path.join(
-                        self.eval_dir, "text_modeling", "test_data", topic, f"{difficulty}.txt"
-                    )
-                with open(file_path, "r") as f:
-                    self.data[topic][difficulty] = f.read()
 
     def _split_into_chunks(self, text, chunk_size=100):
         """
@@ -79,59 +62,76 @@ class TextModelingEvaluator(EvaluationInterface):
         Evaluate the model on text modeling capabilities.
         """
         results = {} 
-        for topic in self.modeling_topics:
-            for difficulty in self.modeling_difficulties:
-                reference_text = self.data[topic][difficulty]
+        for i in range(len(self.data)):
+            reference_text = self.data[i]["text"]
+            category = self.data[i]["topic"]
+            difficulty = self.data[i]["difficulty"]
 
-                # Split the text into chunks
-                chunks = self._split_into_chunks(reference_text)
-                # TODO the chunks should be stacked and run simulataneously
-                total_edit_distance = 0
-                count = 0
-                byte_correct = 0
-                byte_count = 0
+            # Split the text into chunks
+            chunks = self._split_into_chunks(reference_text)
 
-                byte_perplexity_total = 0
+            # TODO the chunks should be stacked and run simulataneously
+            total_edit_distance = 0
+            count = 0
+            byte_correct = 0
+            byte_count = 0
 
-                for chunk in chunks:
-                    input_ids, predicted_ids, predicted_token_logits = self._process_chunk(chunk)
+            byte_perplexity_total = 0
 
-                    for input_id, predicted_id, pred_logits in zip(input_ids[0], predicted_ids[0], predicted_token_logits[0]):
-                        input_text = self.model.embedding_model.decode([[input_id.item()]])# , skip_special_tokens=True)
-                        predicted_text = self.model.embedding_model.decode([[predicted_id.item()]]) #, skip_special_tokens=True)
-                        input_text_enc = input_text[0].encode("utf-8")
-                        total_edit_distance += levenshtein_distance(
-                            input_text_enc, 
-                            predicted_text[0].encode("utf-8")
+            for chunk in chunks:
+                input_ids, predicted_ids, predicted_token_logits = self._process_chunk(chunk)
+
+                for input_id, predicted_id, pred_logits in zip(input_ids[0], predicted_ids[0], predicted_token_logits[0]):
+                    input_text = self.model.embedding_model.decode([[input_id.item()]])# , skip_special_tokens=True)
+                    predicted_text = self.model.embedding_model.decode([[predicted_id.item()]]) #, skip_special_tokens=True)
+                    input_text_enc = input_text[0].encode("utf-8")
+                    total_edit_distance += levenshtein_distance(
+                        input_text_enc, 
+                        predicted_text[0].encode("utf-8")
+                    )
+                    # increment count by num bytes
+                    count += len(input_text_enc)
+
+                    # calculate byte accuracy
+                    for byte_idx in range(len(input_text_enc)):
+                        if byte_idx < len(predicted_text[0].encode("utf-8")):
+                            if input_text_enc[byte_idx] == predicted_text[0].encode("utf-8")[byte_idx]:
+                                byte_correct += 1
+                            byte_count += 1
+
+                    # calculate byte perplexity
+                    byte_perplexity_total += torch.exp(
+                        F.cross_entropy(
+                            pred_logits.unsqueeze(0).softmax(dim=-1),
+                            input_id.unsqueeze(0)
                         )
-                        # increment count by num bytes
-                        count += len(input_text_enc)
+                    ).item()*len(input_text_enc)
 
-                        # calculate byte accuracy
-                        for byte_idx in range(len(input_text_enc)):
-                            if byte_idx < len(predicted_text[0].encode("utf-8")):
-                                if input_text_enc[byte_idx] == predicted_text[0].encode("utf-8")[byte_idx]:
-                                    byte_correct += 1
-                                byte_count += 1
+            if category not in results:
+                results[category] = {}
 
-                        # calculate byte perplexity
-                        byte_perplexity_total += torch.exp(
-                            F.cross_entropy(
-                                pred_logits.unsqueeze(0).softmax(dim=-1),
-                                input_id.unsqueeze(0)
-                            )
-                        ).item()*len(input_text_enc)
+            if difficulty not in results[category]:
+                results[category][difficulty] = {
+                    'Byte Acc.': [],
+                    'Norm. Lev. Dist': [],
+                    'Byte Perplexity': []
+                }
 
 
-                if topic not in results:
-                    results[topic] = {
-                        "easy": {},
-                        "medium": {},
-                        "hard": {}
-                    }
+            results[category][difficulty]['Norm. Lev. Dist'].append(total_edit_distance / count)
+            results[category][difficulty]["Byte Acc."].append(byte_correct / byte_count)
+            results[category][difficulty]["Byte Perplexity"].append(byte_perplexity_total / count)
 
-                results[topic][difficulty]['Norm. Lev. Dist.'] = total_edit_distance / count
-                results[topic][difficulty]["Byte Acc."] = byte_correct / byte_count
-                results[topic][difficulty]["Byte Perplexity"] = byte_perplexity_total / count
+        structured_output = {}
+        for category in results.keys():
+            for difficulty in results[category].keys():
+                structured_output[f"Text Modeling (Byte Acc.)/{category}-{difficulty}"] = np.mean(results[category][difficulty]["Byte Acc."])
+                structured_output[f"Text Modeling (Byte Lev. Dist.)/{category}-{difficulty}"] = np.mean(results[category][difficulty]["Norm. Lev. Dist"])
+                structured_output[f"Text Modeling (Byte Perplexity)/{category}-{difficulty}"] = np.mean(results[category][difficulty]["Byte Perplexity"])
 
-        return results
+
+                #structured_output[f"{category}/Byte Acc./{difficulty}"] = np.mean(results[category][difficulty]["Byte Acc."])
+                #structured_output[f"{category}/Norm. Lev. Dist/{difficulty}"] = np.mean(results[category][difficulty]["Norm. Lev. Dist"])
+                #structured_output[f"{category}/Byte Perplexity/{difficulty}"] = np.mean(results[category][difficulty]["Byte Perplexity"])
+
+        return structured_output

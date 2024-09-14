@@ -7,7 +7,11 @@ from contextlib import nullcontext
 
 # local imports
 from trainers import utils, data_utils
-from trainers.evaluator import train_eval_mcq, train_eval_text_modeling
+from trainers.evaluator import (
+    train_eval_mcq, 
+    train_eval_text_modeling,
+    train_eval_text_generation
+)
 from trainers.utils import aggregate_value, print_evaluation_results
 from models.utils import print_model_stats
 
@@ -97,21 +101,30 @@ class BaseTrainer:
         else:
             # provide a generic (hopefully descriptive) run name if none was provided
             run_name = (
-                f"{self.cfg.model['model_shell_type']}"
-                f"_{self.cfg.model['embedding_model_type']}"
-                f"_{self.cfg.model['core_model_type']}"
-                f"_{self.cfg.model['lm_head_type']}"
-                f"_{self.cfg.trainer['dataset']}"
+                f"Unname_Model_{self.cfg.trainer['dataset']}"
                 f"_{self.cfg.model['vocab_size']}"
                 f"_Parameters_{total_parameter_count_str}"
             )
 
+        # Specific the tags
+        tags = [
+            f"Core-{self.cfg.model.get('core_model_type', None)}",
+            f"Shell-{self.cfg.model.get('model_shell_type', None)}",
+            f"Embebdding-{self.cfg.model.get('embedding_model_type', None)}",
+            f"LM_Head-{self.cfg.model.get('lm_head_type', None)}",
+            f"Dataset-{self.cfg.model.get('dataset', None)}",
+            f"Vocab_size-{self.cfg.model.get('vocab_size', None)}",
+            f"Parameters-{total_parameter_count_str.split('.')[0]}"
+        ]
+
+
         wandb.init(
-            project=self.cfg.general.logging.wandb_project, 
+            project=self.cfg["general"]["logging"].get("wandb_project", "SuperTinyLanguageModels"), 
             config=OmegaConf.to_container(self.cfg),
             name=run_name,
+            tags=tags
         )
-        print("wand_b_initted")
+        print("Weight and Biases Initialized")
 
     def _setup_ctx(self):
         """Get the context manager"""
@@ -132,11 +145,16 @@ class BaseTrainer:
 
 
     @torch.no_grad()
-    def estimate_performance(self, eval_iters=None):
+    def estimate_performance(self, iter_num, eval_iters=None):
         """Estimate the loss"""
-        if eval_iters is None:
-            eval_iters = self.cfg["trainer"]["eval_iters"]
-        eval_results = {}
+        # initialize eval results
+        eval_results = {
+            "iter": iter_num,
+            "token_num": self.batch_size*self.gradient_accumulation_steps*iter_num*self.cfg.model["context_window"], 
+        }
+
+
+        # make sure the model is in eval mode
         self.model.eval()
 
         # initialize accumulators
@@ -184,8 +202,8 @@ class BaseTrainer:
 
 
         # Store in eval_results
-        eval_results["Val. Loss"] = aggregate_value(avg_loss, self.cfg.general.device)
-        eval_results["Val. Perplexity"] = aggregate_value(avg_perplexity, self.cfg.general.device)
+        eval_results["Validation/Loss"] = aggregate_value(avg_loss, self.cfg.general.device)
+        eval_results["Validation/Perplexity"] = aggregate_value(avg_perplexity, self.cfg.general.device)
 
         if self.evaluate_byte_metrics:
             # Byte-normalized metrics
@@ -193,8 +211,8 @@ class BaseTrainer:
             byte_avg_perplexity = np.exp(byte_avg_loss.cpu()) if byte_avg_loss < 100 else float('inf')  # Avoid overflow
             
             # Store byte-level metrics
-            eval_results["Val. Loss (Bytes)"] = aggregate_value(byte_avg_loss, self.cfg.general.device)
-            eval_results["Val. Perplexity (Bytes)"] = aggregate_value(byte_avg_perplexity, self.cfg.general.device)
+            eval_results["Validation/Loss (Bytes)"] = aggregate_value(byte_avg_loss, self.cfg.general.device).item()
+            eval_results["Validation/Perplexity (Bytes)"] = aggregate_value(byte_avg_perplexity, self.cfg.general.device).item()
         
 
         # get the mcq eval results
@@ -206,16 +224,45 @@ class BaseTrainer:
             )
         )
         # get the text modeling eval results
-        eval_results.update(
-            train_eval_text_modeling(
-                model=self.model,
-                topic_list=self.cfg["trainer"]["eval"].get("text_modeling_topics", []),
-                eval_dir=self.cfg["general"]["paths"]["eval_dir"],
+        if self.cfg["trainer"]["eval"].get("text_modeling_eval", False):
+            eval_results.update(
+                train_eval_text_modeling(
+                    model=self.model,
+                    topic_list=self.cfg["trainer"]["eval"].get("text_modeling_topics", []),
+                )
             )
-        )
+
+        if self.cfg["trainer"]["eval"].get("text_generation_eval", False):
+            text_generation_results, text_generation_sample_html = train_eval_text_generation(
+                model=self.model
+            )
+            eval_results.update(text_generation_results)
+
+            # log the generated text
+            wandb.log(
+                {
+                    "Generated Text": wandb.Html(
+                        text_generation_sample_html
+                    )
+                },
+                step=eval_results["token_num"]
+            )
 
         # set model back into train mode
         self.model.train()
+
+        # print the eval results
+        print_evaluation_results(
+            iter_num=iter_num,
+            eval_results=eval_results
+        )
+
+        # log the evaluation results
+        if (self.gpu_id==0 or self.gpu_id is None) and self.use_wandb: # ensure only the first GPU logs
+            wandb.log(
+                eval_results,
+                step=eval_results["token_num"]
+            )
 
         return eval_results
 
@@ -292,27 +339,10 @@ class BaseTrainer:
             if (
                 not iter_num % self.cfg["trainer"]["eval_interval"]
             ): # run on first iter to prevent bugs causing it to crash
-                eval_results = self.estimate_performance()
-
-                # print the evals as table
-                # evals format is d1: type d2: train/val
-                print_evaluation_results(
-                    iter_num=iter_num, 
-                    eval_results=eval_results, 
+                self.estimate_performance(
+                    iter_num=iter_num,
+                    eval_iters=self.cfg["trainer"].get("eval_iters", 100)
                 )
-
-                # extend eval results with general information
-                eval_results.update(
-                    {
-                        "iter": iter_num,
-                        "lr": lr,
-                        "token_num": self.batch_size*self.gradient_accumulation_steps*iter_num*self.cfg.model["context_window"],                        
-                    }
-                )
-
-                # Log to wandb
-                if (self.gpu_id == 0 or self.gpu_id is None) and self.use_wandb:  # ensure only the first GPU logs
-                    wandb.log(eval_results)
 
             # save checkpoints
             if (
@@ -338,13 +368,15 @@ class BaseTrainer:
                 ## print and log the result only on the first GPU after aggregation
                 print(f"All GPU(s): step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
                 if (self.gpu_id == 0 or self.gpu_id is None) and self.use_wandb:
+                    token_num = self.batch_size*self.gradient_accumulation_steps*iter_num*self.cfg["model"]["context_window"]
                     wandb.log(
                         {
                             "iter": iter_num,
                             "loss": lossf,
                             "lr": lr,
-                            "token_num": self.batch_size*self.gradient_accumulation_steps*iter_num*self.cfg.model["context_window"],
-                        }
+                            "token_num": token_num,
+                        },
+                        step=token_num
                     )
         # save the final model
         if self.gpu_id == 0 or self.gpu_id is None: ## ensure only the first GPU saves the model

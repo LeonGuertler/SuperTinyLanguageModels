@@ -1,6 +1,7 @@
 model:
   core_model_type: generic
-  num_layers: 8
+  num_layers: 12
+  
   ffn:
     ffn_type: generic
     ffn_dim: 2048
@@ -8,6 +9,7 @@ model:
     normalization: rms_norm
     bias: true
     dropout: 0.0
+
   attn:
     attn_type: causal
     num_kv_heads: 16
@@ -15,6 +17,7 @@ model:
     normalization: rms_norm
     bias: true
     dropout: false
+
   embedding_model_type: generic
   tokenizer_type: bpe
   tokenizer_dataset_name: en_wiki
@@ -38,29 +41,32 @@ trainer:
   trainer_type: base_trainer
   dataset: pints
   batch_size: 24
-  gradient_accumulation_steps: 10
+  gradient_accumulation_steps: 20
 
   max_iters: 80000
-  eval_interval: 2000
+  eval_interval: 5000
   log_interval: 10
-  checkpoint_interval: 20000
+  checkpoint_interval: 10000
   eval_iters: 100
 
   eval:
-      mcq_benchmarks:
-        - "winogrande"
-        - "hellaswag"
-        - "arc_easy"
-        - "blimp"
-        - "piqa"
-        - "race_middle"
-        - "race_high"
-        - "boolq"
-        - "openbook_qa_closed"
-        - "openbook_qa_open"
-        - "copa"
-        - "commonsense_qa"
-      mcq_num_samples: 1000
+    mcq_benchmarks:
+      - "winogrande"
+      - "hellaswag"
+      - "arc_easy"
+      - "blimp"
+      - "piqa"
+      - "race_middle"
+      - "race_high"
+      - "boolq"
+      - "openbook_qa_closed"
+      - "openbook_qa_open"
+      - "copa"
+      - "commonsense_qa"
+    mcq_num_samples: 500
+    eval_byte_metrics: true 
+    text_modeling_eval: true 
+    text_generation_eval: true
 
   optimizer:
     optimizer_name: adamW
@@ -74,7 +80,6 @@ trainer:
   lr_scheduler:
     name: cosine
     warmup_iters: 10000
-    lr_decay_iters:
 
   dataloader:
     name: standard
@@ -87,9 +92,10 @@ trainer:
 
 general:
   logging:
-    wandb_log: false
+    wandb_log: true
     wandb_project: SuperTinyLanguageModels
     wandb_run_name: Null
+    group_name: base_group
 
   paths:
     output_dir: outputs

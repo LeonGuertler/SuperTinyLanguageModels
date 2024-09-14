@@ -44,7 +44,7 @@ trainer:
   gradient_accumulation_steps: 10
 
   max_iters: 50000
-  eval_interval: 2000
+  eval_interval: 5000
   log_interval: 10
   checkpoint_interval: 10000
   eval_iters: 100
@@ -65,6 +65,8 @@ trainer:
       - "commonsense_qa"
     mcq_num_samples: 500
     eval_byte_metrics: true 
+    text_modeling_eval: true 
+    text_generation_eval: true
 
   optimizer:
     optimizer_name: adamW
@@ -78,7 +80,6 @@ trainer:
   lr_scheduler:
     name: cosine
     warmup_iters: 5000
-    lr_decay_iters:
 
   dataloader:
     name: standard
@@ -91,9 +92,10 @@ trainer:
 
 general:
   logging:
-    wandb_log: false
+    wandb_log: true
     wandb_project: SuperTinyLanguageModels
     wandb_run_name: Null
+    group_name: base_group
 
   paths:
     output_dir: outputs
