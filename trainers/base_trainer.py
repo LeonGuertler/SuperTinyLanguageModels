@@ -172,7 +172,7 @@ class BaseTrainer:
                 total_bytes += batch_byte_count
 
                 # Accumulate byte-level loss
-                total_byte_loss += loss_value/y.size(0) * batch_byte_count
+                total_byte_loss += loss/y.size(0) * batch_byte_count
 
             if i >= eval_iters:
                 break
