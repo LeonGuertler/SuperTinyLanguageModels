@@ -92,7 +92,7 @@ class BaseTrainer:
 
     def _setup_logging(self, total_parameter_count_str=None):
         # check if run_name was provided
-        if self.cfg["general"]["logging"]["run_name"] is not None:
+        if self.cfg["general"]["logging"].get("run_name", None) is not None:
             run_name = self.cfg["general"]["logging"]["run_name"] + f" (Size: {total_parameter_count_str})"
         else:
             # provide a generic (hopefully descriptive) run name if none was provided
