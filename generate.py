@@ -18,13 +18,14 @@ def main(cfg):
 
     # load checkpoint from the path
     model = build_model(checkpoint=torch.load(cfg["model_ckpt"]))
+    model.eval()
 
     generator = StandardGenerator(model=model, generate_cfg=cfg["generator"])
 
     while True:
         # generate the text
         generated_text = generator.default_generate(
-            input_text=input("Enter the input text: ")
+            input_text=cfg.generator['input_text']
         )
         print(generated_text)
 
