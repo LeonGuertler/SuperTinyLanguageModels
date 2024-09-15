@@ -17,8 +17,10 @@ import string
 from tokenizers import Tokenizer
 from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
-from tokenizers.pre_tokenizers import PreTokenizer, WhitespaceSplit, Sequence, Split
+from tokenizers.pre_tokenizers import PreTokenizer, WhitespaceSplit, Sequence, Split, ByteLevel
 from tokenizers.normalizers import NFD, StripAccents, Replace, Sequence as NormalizerSequence
+from tokenizers import decoders
+
 
 
 class TokenizerClass:
@@ -172,6 +174,8 @@ class BPETokenizer(TokenizerClass):
         # Initialize a new tokenizer
         self.tokenizer = Tokenizer(BPE(unk_token="[UNK]", dropout=0.1))
         
+        # Set the decoder to ByteLevel
+        self.tokenizer.decoder = decoders.ByteLevel() 
         
         # Initialize the trainer
         trainer = BpeTrainer(
@@ -195,6 +199,7 @@ class BPETokenizer(TokenizerClass):
                 WhitespaceSplit(),  # Split on whitespace
                 # Split digits and isolate them
                 Split(r'\d', behavior='isolated'),  # Each digit is a separate token
+                ByteLevel()  # Byte-level encoding
             ])
         
         # Prepare the training data with filtering

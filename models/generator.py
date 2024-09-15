@@ -139,7 +139,7 @@ class StandardGenerator(torch.nn.Module):
             # optionally crop the logits to only the top k options
             if top_k is not None:
                 v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
-                logits[logits < v[:, :, [-1]]] = -float("Inf")
+                logits[logits < v[:, [-1]]] = -float("Inf") # logits[logits < v[:, :, [-1]]] = -float("Inf")
 
             # apply softmax to convert logits to (normalized) probabilities
             probs = torch.nn.functional.softmax(logits, dim=-1)
