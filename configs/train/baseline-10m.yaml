@@ -1,6 +1,6 @@
 model:
   core_model_type: generic
-  num_layers: 6
+  num_layers: 5
   
   ffn:
     ffn_type: generic

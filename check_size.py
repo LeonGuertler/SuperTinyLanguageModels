@@ -5,7 +5,7 @@ import hydra
 from models.build_models import build_model
 from models.utils import print_model_stats
 
-@hydra.main(config_path="configs/train", config_name="baseline")
+@hydra.main(config_path="configs/train", config_name="baseline-10m")
 def main(cfg):
     if "full_configs" in cfg:
         cfg = cfg["full_configs"]
