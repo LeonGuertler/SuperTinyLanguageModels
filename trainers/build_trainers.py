@@ -144,7 +144,6 @@ def build_trainer(cfg, model, gpu_id, loaded_train_config):
     train_dataset = build_dataset(cfg=cfg, split="train")
     val_dataset = build_dataset(cfg=cfg, split="val")
 
-
     # wrap in dataloaders
     train_dataloader = torch.utils.data.DataLoader(
         dataset=train_dataset,
