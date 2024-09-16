@@ -48,7 +48,7 @@ trainer:
   eval_interval: 5000
   log_interval: 10
   checkpoint_interval: 10000
-  eval_iters: 100
+  eval_iters: 1000
 
   eval:
     mcq_benchmarks:
@@ -64,7 +64,7 @@ trainer:
       - "openbook_qa_open"
       - "copa"
       - "commonsense_qa"
-    mcq_num_samples: 500
+    mcq_num_samples: 1000
     eval_byte_metrics: true 
     text_modeling_eval: true 
     text_generation_eval: true
