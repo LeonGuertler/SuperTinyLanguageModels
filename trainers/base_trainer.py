@@ -88,23 +88,39 @@ class BaseTrainer:
         self.evaluate_byte_metrics = self.cfg["trainer"]["eval"].get("eval_byte_metrics", False)
 
 
+        # print training statistics
+        train_token_count = f"{len(train_dataloader.dataset)/1e9:.2f}B"
+        val_token_count = f"{len(val_dataloader.dataset)/1e9:.2f}B"
+
+        print(f"Training the model on {train_token_count} tokens.")
+
         if self.use_wandb and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU logs to wandb
             self._setup_logging(
-                total_parameter_count_str=total_params_formated
+                total_parameter_count_str=total_params_formated,
+                train_token_count=train_token_count,
+                val_token_count=val_token_count
             )
 
 
-    def _setup_logging(self, total_parameter_count_str=None):
+    def _setup_logging(
+        self, 
+        total_parameter_count_str=None,
+        train_token_count=None,
+        val_token_count=None
+    ):
         # check if run_name was provided
         if self.cfg["general"]["logging"].get("run_name", None) is not None:
-            run_name = self.cfg["general"]["logging"]["run_name"] + f" (Size: {total_parameter_count_str})"
+            run_name = self.cfg["general"]["logging"]["run_name"] + \
+                f" (Size: {total_parameter_count_str})"
         else:
             # provide a generic (hopefully descriptive) run name if none was provided
             run_name = (
                 f"Unname_Model_{self.cfg.trainer['dataset']}"
                 f"_{self.cfg.model['vocab_size']}"
                 f"_Parameters_{total_parameter_count_str}"
+                f"_TrainTokens_{train_token_count}"
             )
+
 
         # Specific the tags
         tags = [
@@ -114,7 +130,9 @@ class BaseTrainer:
             f"LM_Head-{self.cfg.model.get('lm_head_type', None)}",
             f"Dataset-{self.cfg.model.get('dataset', None)}",
             f"Vocab_size-{self.cfg.model.get('vocab_size', None)}",
-            f"Parameters-{total_parameter_count_str.split('.')[0]}"
+            f"Parameters-{total_parameter_count_str.split('.')[0]}",
+            f"TrainTokens-{train_token_count}",
+            f"ValTokens-{val_token_count}"
         ]
 
 
@@ -176,7 +194,6 @@ class BaseTrainer:
                     y.view(-1),
                     reduction='sum'
                 )
-                loss = self.loss_fn(output, y) # will average loss per token
 
             # Accumulate token-level metrics
             total_loss += loss.item()
@@ -309,7 +326,6 @@ class BaseTrainer:
         self.optimizer.zero_grad()  # Reset gradients after update
 
         return accumulated_loss
-
 
     def _save_model(self, iter_num=0):
         """
