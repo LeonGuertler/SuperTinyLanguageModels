@@ -225,7 +225,7 @@ class BaseTrainer:
         if self.evaluate_byte_metrics:
             # Byte-normalized metrics
             eval_results["Validation/Loss (Bytes)"] = aggregate_value(total_byte_loss, self.cfg.general.device).item() / total_bytes if total_bytes > 0 else float('inf')
-            eval_results["Validation/Perplexity (Bytes)"] = np.exp(aggregate_value(byte_avg_loss, self.cfg.general.device).cpu().item()) if byte_avg_loss < 100 else float('inf')  # Avoid overflow
+            eval_results["Validation/Perplexity (Bytes)"] = np.exp(eval_results["Validation/Loss (Bytes)"]) if eval_results["Validation/Loss (Bytes)"] < 100 else float('inf')  # Avoid overflow
             
             # Store byte-level metrics
             #eval_results["Validation/Loss (Bytes)"] = aggregate_value(byte_avg_loss, self.cfg.general.device).item()
