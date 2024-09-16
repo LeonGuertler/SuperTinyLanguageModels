@@ -4,7 +4,7 @@ model:
   
   ffn:
     ffn_type: generic
-    ffn_dim: 1408
+    ffn_dim: 1536
     activation: gelu
     normalization: rms_norm
     bias: false
@@ -12,8 +12,8 @@ model:
 
   attn:
     attn_type: causal
-    num_kv_heads: 12
-    num_q_heads: 4
+    num_kv_heads: 8
+    num_q_heads: 8
     normalization: rms_norm
     bias: false
     dropout: false
@@ -71,16 +71,16 @@ trainer:
 
   optimizer:
     optimizer_name: adamW
-    lr: 6.0e-4
-    min_lr: 6.0e-6
+    lr: 1.0e-3
+    min_lr: 1.0e-5
     weight_decay: 0.01
     beta1: 0.9
-    beta2: 0.999
+    beta2: 0.98
     grad_clip: 1.0
 
   lr_scheduler:
     name: cosine
-    warmup_iters: 5000
+    warmup_iters: 2500
 
   dataloader:
     name: standard
