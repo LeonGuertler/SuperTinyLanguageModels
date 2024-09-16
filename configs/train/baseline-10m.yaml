@@ -1,13 +1,13 @@
 model:
   core_model_type: generic
-  num_layers: 19
+  num_layers: 6
   
   ffn:
     ffn_type: generic
-    ffn_dim: 1536
+    ffn_dim: 1408
     activation: gelu
     normalization: rms_norm
-    bias: true
+    bias: false
     dropout: 0.0
 
   attn:
@@ -15,7 +15,7 @@ model:
     num_kv_heads: 12
     num_q_heads: 4
     normalization: rms_norm
-    bias: true
+    bias: false
     dropout: false
 
   embedding_model_type: generic
@@ -34,7 +34,7 @@ model:
 
   model_shell_type: standard
   embedding_weight_tying: true
-  ffn_weight_tying: true
+  ffn_weight_tying: false
   cproj_weight_tying: false
   positional_encoding_type: rope
 
