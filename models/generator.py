@@ -77,7 +77,7 @@ class BeamSearchGenerator(torch.nn.Module):
 
         # Return the sequence with the best score
         best_seq, _ = min(beam, key=lambda x: x[1])
-        return self.model.embedding_model.decode(best_seq[0].tolist())
+        return self.model.embedding_model.decode(best_seq.tolist())
 
     def apply_repetition_penalty(self, logits, sequence, penalty, window):
         # Get the most recent tokens within the window
@@ -91,8 +91,7 @@ class BeamSearchGenerator(torch.nn.Module):
 
 
 
-def build_generator(model, generate_cfg):
-    return BeamSearchGenerator(model, generate_cfg)
+
 
 class StandardGenerator(torch.nn.Module):
     """Standard Generator Wrapper for GPT models"""
@@ -163,6 +162,13 @@ class StandardGenerator(torch.nn.Module):
         return self.model.embed(x)
 
 
-def build_generator(model, generate_cfg):
-    """Build the generator"""
-    return StandardGenerator(model, generate_cfg)
+GENERATOR_DICT = {
+    "standard": lambda model, generate_cfg, device: StandardGenerator(model=model, generate_cfg=generate_cfg, device=device), 
+    "beam_search": lambda model, generate_cfg, device: BeamSearchGenerator(model=model, generate_cfg=generate_cfg, device=device), 
+    }
+
+def build_generator(model, generate_cfg, device):
+    """
+    Build the generator
+    """
+    return GENERATOR_DICT[generate_cfg['generator_type']](model, generate_cfg, device)
