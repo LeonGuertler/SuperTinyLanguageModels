@@ -140,7 +140,8 @@ class BaseTrainer:
             project=self.cfg["general"]["logging"].get("wandb_project", "SuperTinyLanguageModels"), 
             config=OmegaConf.to_container(self.cfg),
             name=run_name,
-            tags=tags
+            tags=tags,
+            group=self.cfg["general"]["logging"].get("group_name", "General")
         )
         print("Weight and Biases Initialized")
 
