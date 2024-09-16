@@ -54,5 +54,5 @@ def train_eval_text_generation(model):
         return evaluator.evaluate()
     except Exception as exc:
         print(f"The MCQ evaluator failed vai: {exc}")
-        return {}
+        return {}, ""
 
