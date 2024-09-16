@@ -92,7 +92,7 @@ class BaseTrainer:
         train_token_count = f"{len(train_dataloader.dataset)/1e9:.2f}B"
         val_token_count = f"{len(val_dataloader.dataset)/1e9:.2f}B"
 
-        print(f"Training the model on {train_token_count} tokens.")
+        print(f"Training the model on {self.cfg.model.get('dataset', None)} with {train_token_count} tokens.")
 
         if self.use_wandb and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU logs to wandb
             self._setup_logging(
