@@ -72,6 +72,7 @@ class BaseDatasetRandom(DatasetInterface):
         """
         Get a batch of random data points in an infinite loop.
         """
+        while True:
             # Get a random index
             idx = random.randint(0, self.dataset_len - 1) 
         

@@ -51,31 +51,31 @@ trainer:
   eval_iters: 100
 
   eval:
-    mcq_benchmarks:
-      - "winogrande"
-      - "hellaswag"
-      - "arc_easy"
-      - "blimp"
-      - "piqa"
-      - "race_middle"
-      - "race_high"
-      - "boolq"
-      - "openbook_qa_closed"
-      - "openbook_qa_open"
-      - "copa"
-      - "commonsense_qa"
-    mcq_num_samples: 500
-    eval_byte_metrics: true 
-    text_modeling_eval: true 
-    text_generation_eval: true
+    #mcq_benchmarks:
+    #  - "winogrande"
+    #  - "hellaswag"
+    #  - "arc_easy"
+    #  - "blimp"
+    #  - "piqa"
+    #  - "race_middle"
+    #  - "race_high"
+    #  - "boolq"
+    #  - "openbook_qa_closed"
+    #  - "openbook_qa_open"
+    #  - "copa"
+    #  - "commonsense_qa"
+    #mcq_num_samples: 500
+    eval_byte_metrics: false 
+    text_modeling_eval: false 
+    text_generation_eval: false
 
   optimizer:
     optimizer_name: adamW
-    lr: 6.0e-4
-    min_lr: 6.0e-6
-    weight_decay: 0.01
+    lr: 6.0e-6
+    min_lr: 6.0e-8
+    weight_decay: 0.1
     beta1: 0.9
-    beta2: 0.999
+    beta2: 0.95
     grad_clip: 1.0
 
   lr_scheduler:

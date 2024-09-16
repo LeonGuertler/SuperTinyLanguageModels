@@ -166,28 +166,36 @@ class BaseTrainer:
     @torch.no_grad()
     def estimate_performance(self, iter_num, eval_iters=None):
         """Estimate the loss"""
-        # initialize eval results
+        # Initialize eval results
         eval_results = {
             "iter": iter_num,
-            "token_num": self.batch_size*self.gradient_accumulation_steps*iter_num*self.cfg.model["context_window"], 
+            "token_num": (
+                self.batch_size
+                * self.gradient_accumulation_steps
+                * iter_num
+                * self.cfg.model["context_window"]
+            ),
         }
 
-
-        # make sure the model is in eval mode
+        # Make sure the model is in eval mode
         self.model.eval()
 
-        # initialize accumulators
-        total_loss = 0
+        # Initialize accumulators
+        total_loss = 0.0
         total_bytes = 0
-        total_token_count = 0 # For regular loass and perplexity
+        total_token_count = 0  # For regular loss and perplexity
 
         # Initialize accumulators for byte-level metrics
         total_byte_loss = 0.0
-        total_byte_log_probs = 0.0 # For perplexity calculation
+
+        # Determine the device
+        device = self.gpu_id if self.gpu_id is not None else self.model.device
 
         for i, (x, y) in enumerate(self.val_dataloader):
-            x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
-            y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+            # Move tensors to the appropriate device
+            x = x.to(device)
+            y = y.to(device)
+
             with self.ctx:
                 output, _ = self.model(x)
                 loss = torch.nn.functional.cross_entropy(
@@ -198,7 +206,7 @@ class BaseTrainer:
 
             # Accumulate token-level metrics
             total_loss += loss.item()
-            total_token_count += y.size(0)
+            total_token_count += y.numel()  # Use numel() for total tokens
 
             if self.evaluate_byte_metrics:
                 # Compute byte counts for current batch
@@ -208,30 +216,32 @@ class BaseTrainer:
                 total_bytes += batch_byte_count
 
                 # Accumulate byte-level loss
-                total_byte_loss += loss/y.size(0) * batch_byte_count
+                avg_loss_per_token = loss.item() / y.numel()
+                total_byte_loss += avg_loss_per_token * batch_byte_count
 
-            if i >= eval_iters:
+            # Check if we've reached the evaluation iteration limit
+            if eval_iters is not None and i >= eval_iters:
                 break
-        
+
         # Calculate average metrics
         avg_loss = total_loss / total_token_count if total_token_count > 0 else float('inf')
-        avg_perplexity = np.exp(avg_loss)
-
-
+        avg_perplexity = np.exp(avg_loss) if avg_loss < 100 else float('inf')  # Avoid overflow
 
         # Store in eval_results
         eval_results["Validation/Loss"] = aggregate_value(avg_loss, self.cfg.general.device)
         eval_results["Validation/Perplexity"] = aggregate_value(avg_perplexity, self.cfg.general.device)
 
         if self.evaluate_byte_metrics:
+            if total_bytes > 0:
+                avg_byte_loss = aggregate_value(total_byte_loss, self.cfg.general.device).item() / total_bytes
+                avg_byte_perplexity = np.exp(avg_byte_loss) if avg_byte_loss < 100 else float('inf')  # Avoid overflow
+            else:
+                avg_byte_loss = float('inf')
+                avg_byte_perplexity = float('inf')
+
             # Byte-normalized metrics
-            eval_results["Validation/Loss (Bytes)"] = aggregate_value(total_byte_loss, self.cfg.general.device).item() / total_bytes if total_bytes > 0 else float('inf')
-            eval_results["Validation/Perplexity (Bytes)"] = np.exp(eval_results["Validation/Loss (Bytes)"]) if eval_results["Validation/Loss (Bytes)"] < 100 else float('inf')  # Avoid overflow
-            
-            # Store byte-level metrics
-            #eval_results["Validation/Loss (Bytes)"] = aggregate_value(byte_avg_loss, self.cfg.general.device).item()
-            #eval_results["Validation/Perplexity (Bytes)"] = aggregate_value(byte_avg_perplexity, self.cfg.general.device).item()
-        
+            eval_results["Validation/Loss (Bytes)"] = avg_byte_loss
+            eval_results["Validation/Perplexity (Bytes)"] = avg_byte_perplexity
 
         # get the mcq eval results
         eval_results.update(
