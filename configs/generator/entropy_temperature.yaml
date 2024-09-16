@@ -1,0 +1,6 @@
+generator_type: entropy_temperature
+temperature: 0.95
+temperature_scaling_factor: 0.1
+top_k: 200
+max_new_tokens: 100
+input_text: "Let's consider a simple Python program that adds two integers."
