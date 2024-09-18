@@ -176,7 +176,8 @@ class GPT4Agent:
         # append valid actions
         if valid_actions:
             messages.append({"role": "user", "content": f"\nValid actions: {', '.join(valid_actions)}\n"})
-        messages.append({"role": "user", "content": state+"\nNext Action:"})
+        if len(state) > 0:
+            messages.append({"role": "user", "content": state})
 
         ###################################
         #prompt = ""
@@ -207,7 +208,7 @@ class GPT4Agent:
         # Add to history
         self.history.append((
             state,
-            f"Previous Action: {action}"
+            f"{action}"
         ))
 
         # convert the messages to a single string

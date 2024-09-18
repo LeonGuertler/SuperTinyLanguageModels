@@ -10,7 +10,7 @@ keep system prompts seperately (might be editable by agents)
 Notes:
     - Worth restricting reply lengths for all.
     - Maybe worth giving the counter for how many terms are left. (taboo)
-
+    - perhaps a small instruction following dataset for each game would be great to fine-tune the models first
 
 
 

@@ -1,9 +1,13 @@
 import os 
 from evals.text_games.llm_wrapper import LLMWrapper
 from evals.text_games.human_agent import HumanAgent
-from evals.text_games.game_collection.taboo import TabooGame
-from evals.text_games.game_collection.chess import ChessGame
-from evals.text_games.game_collection.negotiation import NegotiationGame
+from evals.text_games.game_collection import (
+    TabooGame,
+    ChessGame,
+    NegotiationGame,
+    TruthAndDeceptionGame,
+    PokerGame
+)
 from evals.text_games.two_player_game_wrapper import TwoPlayerGameWrapper
 from evals.text_games.llm_wrapper import GPT4Agent
 
@@ -14,7 +18,7 @@ def main():
     if not api_key:
         raise ValueError("OpenAI API key not found. Please set the OPENAI_API_KEY environment variable.")
 
-    gpt_4_agent = GPT4Agent(agent_id=0, api_key=api_key, model_name="gpt-3.5-turbo")
+    gpt_4_agent = GPT4Agent(agent_id=0, api_key=api_key, model_name="gpt-4")
     gpt_4_agent2 = GPT4Agent(agent_id=1, api_key=api_key, model_name="gpt-4o-mini")
     # human_agent = HumanAgent(agent_id=1)
 
@@ -29,7 +33,7 @@ def main():
     """# Define game parameters
     game_kwargs = {
         'turn_limit': 6,
-        'data_path': "evals/text_games/game_collection/data/taboo/"
+        'render': True,
     }
 
     # Initialize the TwoPlayerGameWrapper for Taboo
@@ -88,7 +92,7 @@ def main():
     print("Chess Closed Game Results:")
     print(agent_logs)
     print(agent_scores)
-    input()"""
+    input()
 
     # Initialize the TwoPlayerGameWrapper for Negotiation Game
     negotiation_game_kwargs = {
@@ -110,6 +114,46 @@ def main():
     print("\n\n")
     print(agent_scores)
 
+    # initialize the game wrapper for truth and deception
+    tad_game_kwargs = {
+        'max_turns': 3, # uneven number is required
+        'render': True
+    }
+
+    tad_game_wrapper = TwoPlayerGameWrapper(
+        game_class = TruthAndDeceptionGame,
+        agents=agents,
+        num_games=1,
+        **tad_game_kwargs
+    )
+
+    # Play the game
+    agent_logs, agent_scores = tad_game_wrapper.play_game()
+    print("Truth And Deception Game Results:")
+    print(agent_logs)
+    print("\n\n")
+    print(agent_scores)
+    #"""
+
+
+    # initialize the game wrapper for poker
+    poker_game_kwargs = {
+        'render': True
+    }
+
+    poker_game_wrapper = TwoPlayerGameWrapper(
+        game_class = PokerGame,
+        agents=agents,
+        num_games=10,
+        **poker_game_kwargs
+    )
+
+    # Play the game
+    agent_logs, agent_scores = poker_game_wrapper.play_game()
+    print("Truth And Deception Game Results:")
+    print(agent_logs)
+    print("\n\n")
+    print(agent_scores)
     
 
 if __name__ == "__main__":

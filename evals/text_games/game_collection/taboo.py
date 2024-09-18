@@ -9,9 +9,11 @@ class TabooGame(GameInterface):
             self, 
             rounds_per_player=1, 
             turn_limit=10, 
+            render=False,
             data_path="evals/text_games/game_collection/data/taboo/"
         ):
         self.name = "Taboo"
+        self.render = render
         self.rounds_per_player = rounds_per_player
         self.turn_limit = turn_limit
         self.data_path = data_path
@@ -65,6 +67,10 @@ class TabooGame(GameInterface):
     def step(self, player_id, action):
         # Increment the turn counter
         self.turn_count += 1
+
+        if self.render:
+            # print the actions
+            print(f"[Player {player_id}, Role: {self.role[player_id]}] {action}")
 
         if self.role[player_id] == "Clue Giver":
             # Clue giver provides a clue; check for taboo words & legal word
