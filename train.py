@@ -82,7 +82,9 @@ def basic_main(cfg):
 @hydra.main(config_path="configs/train", config_name="baseline-10m")
 def main(cfg):
     world_size = torch.cuda.device_count()
-    
+    if len(cfg) == 1:
+        # TODO: this is a hot-fix for sub-folder configs. Fix later
+        cfg = cfg[list(cfg.keys())[0]]
     if "full_configs" in cfg:
         cfg = cfg["full_configs"]
     cfg["general"]["paths"]["data_dir"] = hydra.utils.to_absolute_path(

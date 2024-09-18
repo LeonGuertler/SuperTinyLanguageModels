@@ -128,7 +128,7 @@ class BaseTrainer:
             f"Shell-{self.cfg.model.get('model_shell_type', None)}",
             f"Embebdding-{self.cfg.model.get('embedding_model_type', None)}",
             f"LM_Head-{self.cfg.model.get('lm_head_type', None)}",
-            f"Dataset-{self.cfg.model.get('dataset', None)}",
+            f"Dataset-{self.cfg.trainer.get('dataset', None)}",
             f"Vocab_size-{self.cfg.model.get('vocab_size', None)}",
             f"Parameters-{total_parameter_count_str.split('.')[0]}",
             f"TrainTokens-{train_token_count}",

@@ -76,7 +76,8 @@ DATASET_DICT = {
     "natural_instructions": lambda: load_general_dataset(
         dataset_name="Muennighoff/natural-instructions",
         lambda_fn=lambda x: {"text": f"Task: Definition: {x['definition']}\nQuestion: {x['inputs']}\nAnswer: {x['targets']}"}
-    )
+    ),
+    "fineweb_edu_100B": lambda: load_dataset("HuggingFaceFW/fineweb-edu", "sample-100BT")
 
 
 }

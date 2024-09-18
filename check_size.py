@@ -7,8 +7,12 @@ from models.utils import print_model_stats
 
 @hydra.main(config_path="configs/train", config_name="baseline-10m")
 def main(cfg):
+    if len(cfg) == 1:
+        cfg = cfg[list(cfg.keys())[0]]
     if "full_configs" in cfg:
         cfg = cfg["full_configs"]
+
+    
     model, _ = build_model(model_cfg=cfg["model"])
 
     # print full parameter count

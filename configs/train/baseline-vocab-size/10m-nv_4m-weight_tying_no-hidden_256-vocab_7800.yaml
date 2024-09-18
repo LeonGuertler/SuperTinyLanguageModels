@@ -1,10 +1,10 @@
 model:
   core_model_type: generic
-  num_layers: 5
+  num_layers: 8
   
   ffn:
     ffn_type: generic
-    ffn_dim: 1536
+    ffn_dim: 1070
     activation: gelu
     normalization: rms_norm
     bias: false
@@ -22,9 +22,9 @@ model:
   tokenizer_type: bpe
   tokenizer_dataset_name: en_wiki
   tokenizer_simplify_data: true
-  vocab_size: 4000
+  vocab_size: 7800
 
-  hidden_dim: 384
+  hidden_dim: 256
   context_window: 2048
 
   lm_head_type: generic
@@ -33,14 +33,14 @@ model:
   lm_head_dropout: 0.0
 
   model_shell_type: standard
-  embedding_weight_tying: true
+  embedding_weight_tying: false
   ffn_weight_tying: false
   cproj_weight_tying: false
   positional_encoding_type: rope
 
 trainer:
   trainer_type: base_trainer
-  dataset: openwebtext
+  dataset: fineweb_edu_100B
   batch_size: 24
   gradient_accumulation_steps: 10
 
@@ -96,7 +96,8 @@ general:
     wandb_log: true
     wandb_project: SuperTinyLanguageModels
     wandb_run_name: Null
-    group_name: base_group
+    group_name: baseline-vocab
+    run_name: "NonVocab: 4M, Weight-Tying: No, Hidden: 256, Vocab-Size: 7800"
 
   paths:
     output_dir: outputs
