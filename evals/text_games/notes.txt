@@ -1,0 +1,13 @@
+for a given set of LLMs, play each game such that they are fairly evaluated. This can be a single game iteration, or many
+
+on reset, reset the game (which should return the main prompt for the agents) and reset the agents (giving them the main prompt)
+
+for each agent split into full-state (including agent internal memory) and immediate state
+
+keep system prompts seperately (might be editable by agents)
+
+
+
+Worth restricting reply lengths for all.
+
+Maybe worth giving the counter for how many terms are left.
