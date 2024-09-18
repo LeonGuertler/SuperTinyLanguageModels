@@ -11,7 +11,9 @@ from evals.text_games.game_collection import (
     DebateGame 
 )
 from evals.text_games.two_player_game_wrapper import TwoPlayerGameWrapper
+
 from evals.text_games.llm_wrapper import GPT4Agent
+
 
 def main():
     # Initialize agents with unique agent IDs
@@ -20,7 +22,7 @@ def main():
     if not api_key:
         raise ValueError("OpenAI API key not found. Please set the OPENAI_API_KEY environment variable.")
 
-    gpt_4_agent = GPT4Agent(agent_id=0, api_key=api_key, model_name="gpt-4")
+    gpt_4_agent = GPT4Agent(agent_id=0, api_key=api_key, model_name="gpt-3.5-turbo")
     gpt_4_agent2 = GPT4Agent(agent_id=1, api_key=api_key, model_name="gpt-4o-mini")
     # human_agent = HumanAgent(agent_id=1)
 
@@ -180,3 +182,26 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    input(agent_scores)
+    exit()
+    # Access agent logs
+    agent_logs = detailed_log['agent_logs']
+
+    # Print high-level summaries
+    print("\n=== High-Level Game Summary ===")
+    for game_summary in high_level_log:
+        print(f"Round: {game_summary['round']}, Game: {game_summary['game']}")
+        print(f"Number of Turns: {game_summary['turns']}")
+        print(f"Game Reward: {game_summary['game_reward']}")
+        print(f"Roles: {game_summary['roles']}")
+        print(f"Reason for Game End: {game_summary['reason_for_game_end']}\n")
+
+    # Print agent-specific logs
+    print("\n=== Agent Logs ===")
+    for agent_id, logs in agent_logs.items():
+        print(f"\nAgent {agent_id} Logs:")
+        for log in logs:
+            input(log)
+            #print(f"Round {log['round']}, Game {log['game']}, Role: {log.get('role', 'N/A')}, Action: {log['action']}, Reward: {log['reward']}")
+            # Include additional log details as needed
