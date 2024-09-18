@@ -175,7 +175,7 @@ class GPT4Agent:
             messages.append({"role": "assistant", "content": h_action})
         # append valid actions
         if valid_actions:
-            messages.append({"role": "user", "content": f"\nValid actions: {', '.join(valid_actions)}\n"})
+            messages.append({"role": "user", "content": f"Valid actions: {', '.join(valid_actions)}\n"})
         if len(state) > 0:
             messages.append({"role": "user", "content": state})
 

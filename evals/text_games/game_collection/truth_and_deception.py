@@ -1,5 +1,4 @@
-import random
-import json
+import random, json
 from evals.text_games.game_collection.game_interface import GameInterface
 
 class TruthAndDeceptionGame(GameInterface):

@@ -6,7 +6,9 @@ from evals.text_games.game_collection import (
     ChessGame,
     NegotiationGame,
     TruthAndDeceptionGame,
-    PokerGame
+    PokerGame,
+    ConnectFourGame,
+    DebateGame 
 )
 from evals.text_games.two_player_game_wrapper import TwoPlayerGameWrapper
 from evals.text_games.llm_wrapper import GPT4Agent
@@ -136,7 +138,7 @@ def main():
     #"""
 
 
-    # initialize the game wrapper for poker
+    """# initialize the game wrapper for poker
     poker_game_kwargs = {
         'render': True
     }
@@ -150,6 +152,26 @@ def main():
 
     # Play the game
     agent_logs, agent_scores = poker_game_wrapper.play_game()
+    print("Truth And Deception Game Results:")
+    print(agent_logs)
+    print("\n\n")
+    print(agent_scores)"""
+
+    # initialize the game wrapper for poker
+    connect_four_game_kwargs = {
+        'render': True,
+        'is_open': True
+    }
+
+    connect_four_game_wrapper = TwoPlayerGameWrapper(
+        game_class = ConnectFourGame,
+        agents=agents,
+        num_games=10,
+        **connect_four_game_kwargs
+    )
+
+    # Play the game
+    agent_logs, agent_scores = connect_four_game_wrapper.play_game()
     print("Truth And Deception Game Results:")
     print(agent_logs)
     print("\n\n")
