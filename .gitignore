@@ -170,3 +170,4 @@ cython_debug/
 #.idea/
 
 *.pt
+main_debug.py

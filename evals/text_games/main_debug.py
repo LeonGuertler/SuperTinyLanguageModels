@@ -11,7 +11,7 @@ from evals.text_games.llm_wrapper import GPT4Agent
 
 def main():
     # Initialize agents with unique agent IDs
-    api_key = ""
+    api_key = "sk-oIFK31NYAihLQBehwjU304mxYPYASjv3K1H0dExQ_jT3BlbkFJm9L0Uv2BXvB04k17luvv8lunjLOZdAaDmKbBiHbM4A"
     gpt_4_agent = GPT4Agent(agent_id=0, api_key=api_key, model_name="gpt-4o")
     gpt_4_agent2 = GPT4Agent(agent_id=1, api_key=api_key, model_name="gpt-4o-mini")
     #human_agent = HumanAgent(agent_id=0)
