@@ -1,5 +1,6 @@
 # human_agent.py
 
+
 class HumanAgent:
     def __init__(self, agent_id, prompt_prefix="> "):
         """
@@ -9,7 +10,7 @@ class HumanAgent:
             player_id (int): The ID of the player.
             prompt_prefix (str): The prefix to display when prompting for input.
         """
-        self.player_id = player_id
+        self.player_id = agent_id
         self.prompt_prefix = prompt_prefix
         self.history = []  # Stores tuples of (prompt, response)
         self.main_prompt = ""
@@ -45,7 +46,7 @@ class HumanAgent:
         # append the current state to all of this
         prompt += f"{immediate_state}\n"
         # Combine main prompt and immediate state for context
-        #prompt = f"{self.main_prompt}\n{immediate_state}"
+        # prompt = f"{self.main_prompt}\n{immediate_state}"
         print(f"\n[Player {self.player_id} - Human Agent]")
         print(f"{prompt}")
         if valid_actions:
@@ -54,19 +55,15 @@ class HumanAgent:
             action = input(f"{self.prompt_prefix}Enter your action: ").strip()
             if valid_actions:
                 if action in valid_actions:
-                    self.history.append((
-                        immediate_state, 
-                        f"Previous Action: {action}"
-                    ))
+                    self.history.append((immediate_state, f"Previous Action: {action}"))
                     return action, prompt
                 else:
-                    print("Invalid action. Please choose from the valid actions listed.")
+                    print(
+                        "Invalid action. Please choose from the valid actions listed."
+                    )
             else:
                 if action:
-                    self.history.append((
-                        immediate_state,
-                        f"Previous Action: {action}"
-                    ))
+                    self.history.append((immediate_state, f"Previous Action: {action}"))
                     return action, prompt
                 else:
                     print("Action cannot be empty. Please enter a valid action.")
