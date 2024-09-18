@@ -7,7 +7,21 @@ for each agent split into full-state (including agent internal memory) and immed
 keep system prompts seperately (might be editable by agents)
 
 
+Notes:
+    - Worth restricting reply lengths for all.
+    - Maybe worth giving the counter for how many terms are left. (taboo)
 
-Worth restricting reply lengths for all.
 
-Maybe worth giving the counter for how many terms are left.
+
+
+
+
+
+
+- codenames 
+- truth and deception
+- a version of poker 
+- connect four
+- iterative prisoners dilemma with conversations
+- debate (AI judge)
+- 

@@ -11,6 +11,7 @@ class TabooGame(GameInterface):
             turn_limit=10, 
             data_path="evals/text_games/game_collection/data/taboo/"
         ):
+        self.name = "Taboo"
         self.rounds_per_player = rounds_per_player
         self.turn_limit = turn_limit
         self.data_path = data_path
@@ -59,7 +60,7 @@ class TabooGame(GameInterface):
         return None  # No restriction; actions will be validated in `step`
 
     def get_info(self):
-        return self.turn_count
+        return {"num_turns": self.turn_count}
 
     def step(self, player_id, action):
         # Increment the turn counter
@@ -99,7 +100,7 @@ class TabooGame(GameInterface):
                 }
             # check for turn limit
             elif self.turn_count >= self.turn_limit:
-                return None, {0:1, 1:1}, True, {
+                return None, {0:-1, 1:-1}, True, {
                     "reason": "The turn limit was reached.",
                     "player_id": player_id,
                     "role": self.role[player_id]

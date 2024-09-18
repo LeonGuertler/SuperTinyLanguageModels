@@ -1,105 +1,219 @@
-from evals.text_games.game_collection.game_interface import GameInterface 
 import random
+from evals.text_games.game_collection.game_interface import GameInterface
 
 class NegotiationGame(GameInterface):
-    def __init__(self, num_players=2):
-        self.num_players = num_players
+    def __init__(self, resource_types=5, max_turns=10):
+        """
+        Initialize the Negotiation Game.
+        Args:
+            resource_types (int): Number of different resource types.
+            max_turns (int): Maximum number of turns for the game.
+        """
+        self.name = "Negotiation"
+        self.resource_types = resource_types
+        self.max_turns = max_turns
         self.reset()
 
     def reset(self):
-        self.players = list(range(self.num_players))
-        self.resources = {player_id: {'gold': 10, 'silver': 10, 'bronze': 10} for player_id in self.players}
-        self.values = {'gold': 3, 'silver': 2, 'bronze': 1}
-        self.private_info = {player_id: {'demand': random.choice(['gold', 'silver', 'bronze'])} for player_id in self.players}
+        """Reset the game to its initial state."""
+        self.turn = 0  # Current turn number
+        self.current_player = 0  # Player 0 starts
         self.game_over = False
-        self.turn = 0
-        self.trade_proposals = []
 
-    def get_state(self, player_id):
-        state = {
-            'your_resources': self.resources[player_id],
-            'your_private_info': self.private_info[player_id],
-            'public_trade_proposals': self.trade_proposals
+        # Generate random allocations of resources for each player
+        self.player_resources = {
+            0: [random.randint(1, 5) for _ in range(self.resource_types)],
+            1: [random.randint(1, 5) for _ in range(self.resource_types)]
         }
-        return state
+
+        # Generate player-specific values for each resource type (hidden from other player)
+        self.player_values = {
+            0: [random.randint(5, 15) for _ in range(self.resource_types)],
+            1: [random.randint(5, 15) for _ in range(self.resource_types)]
+        }
+
+        # Keep track of initial resources for value calculation
+        self.initial_resources = {
+            0: self.player_resources[0][:],
+            1: self.player_resources[1][:]
+        }
+
+        # Keep track of trades made
+        self.trades_made = []
+
+        # Return the main prompts for both players
+        player_prompts = {
+            0: (
+                f"You have resources: {self.player_resources[0]}. "
+                "Each resource has a specific value to you (hidden from the other player). "
+                "Negotiate trades with the other player using structured offers. "
+                "Format: 'Offer: I give [your resources], You give [their resources]'. "
+                "You can also respond with 'Accept' or 'Deny' to an offer."
+            ),
+            1: (
+                f"You have resources: {self.player_resources[1]}. "
+                "Each resource has a specific value to you (hidden from the other player). "
+                "Negotiate trades with the other player using structured offers. "
+                "Format: 'Offer: I give [your resources], You give [their resources]'. "
+                "You can also respond with 'Accept' or 'Deny' to an offer."
+            )
+        }
+        return player_prompts
 
     def get_valid_actions(self, player_id):
-        return ['[PUBLIC] message', '[PRIVATE] player_id message', 'propose_trade', 'accept_trade', 'decline_trade', 'end_turn']
+        """Return valid actions for the given player."""
+        return None  # No restrictions; actions will be validated in `step`
+
+    def get_info(self):
+        """Return additional information."""
+        return {'turn': self.turn}
 
     def step(self, player_id, action):
-        if self.game_over:
-            return None, 0, True, {'message': 'Game is over.'}
+        """
+        Process the player's action.
+        Args:
+            player_id (int): The player's ID.
+            action (str): The player's action.
+        Returns:
+            state (dict): The new state after the action.
+            reward (dict): The rewards for each player.
+            done (bool): Whether the game is over.
+            info (dict): Additional information.
+        """
+        # Other player ID
+        other_player_id = 1 - player_id
 
-        reward = 0
-        info = {}
-        action_type, *args = action.split(' ', 1)
-        if action_type == 'propose_trade':
-            # Format: 'propose_trade to_player_id offer_resources for_resources'
-            to_player_id, offer_for = args[0].split(' ', 1)
-            to_player_id = int(to_player_id)
-            offer, for_ = offer_for.split(' for ')
-            self.trade_proposals.append({
-                'from': player_id,
-                'to': to_player_id,
-                'offer': offer,
-                'for': for_
-            })
-            info['message'] = 'Trade proposed.'
-        elif action_type == 'accept_trade':
-            # Accept the last trade proposal directed to the player
-            proposal = next((p for p in reversed(self.trade_proposals) if p['to'] == player_id and not p.get('accepted')), None)
-            if proposal:
-                # Execute trade
-                self.execute_trade(proposal)
-                proposal['accepted'] = True
-                info['message'] = 'Trade accepted.'
+        # Process the action
+        # Expected action formats:
+        # - "Offer: I give [list], You give [list]"
+        # - "Accept"
+        # - "Deny"
+
+        action_lower = action.lower().strip()
+        response = {}
+        done = False
+        reward = None
+
+        if action_lower.startswith("offer:"):
+            # Player is making an offer
+            parsed_offer = self._parse_offer(action)
+            if parsed_offer:
+                self.current_offer = {
+                    'from_player': player_id,
+                    'to_player': other_player_id,
+                    'offer': parsed_offer
+                }
+                response[other_player_id] = f"Player {player_id} offers a trade: {action}"
+                info = {"info": "Offer made."}
             else:
-                info['error'] = 'No trade to accept.'
-        elif action_type == 'decline_trade':
-            # Decline the last trade proposal directed to the player
-            proposal = next((p for p in reversed(self.trade_proposals) if p['to'] == player_id and not p.get('accepted')), None)
-            if proposal:
-                proposal['declined'] = True
-                info['message'] = 'Trade declined.'
+                response[player_id] = "Invalid offer format. Please follow the structure."
+                info = {"info": "Invalid offer format."}
+        elif action_lower == "accept":
+            if hasattr(self, 'current_offer') and self.current_offer['to_player'] == player_id:
+                # Trade is accepted
+                self._execute_trade(self.current_offer['offer'], player_id)
+                self.trades_made.append(self.current_offer)
+                del self.current_offer
+                response = {
+                    player_id: "You accepted the trade.",
+                    other_player_id: f"Player {player_id} accepted your trade."
+                }
+                info = {"info": "Trade accepted."}
             else:
-                info['error'] = 'No trade to decline.'
-        elif action_type == 'end_turn':
-            self.turn = (self.turn + 1) % self.num_players
-            if self.turn == 0:
-                self.game_over = True
+                response[player_id] = "No valid offer to accept."
+                info = {"info": "No valid offer to accept."}
+        elif action_lower == "deny":
+            if hasattr(self, 'current_offer') and self.current_offer['to_player'] == player_id:
+                # Trade is denied
+                del self.current_offer
+                response = {
+                    player_id: "You denied the trade.",
+                    other_player_id: f"Player {player_id} denied your trade."
+                }
+                info = {"info": "Trade denied."}
+            else:
+                response[player_id] = "No valid offer to deny."
+                info = {"info": "No valid offer to deny."}
         else:
-            info['error'] = 'Invalid action.'
-        state = self.get_state(player_id)
-        done = self.game_over
-        return state, reward, done, info
+            # General conversation
+            response[other_player_id] = f"Player {player_id}: {action}"
+            info = {"info": "Message sent."}
 
-    def execute_trade(self, proposal):
-        from_player = proposal['from']
-        to_player = proposal['to']
-        offer = proposal['offer'].split(',')
-        for_ = proposal['for'].split(',')
+        # Increment turn and check for game over
+        self.turn += 1
+        if self.turn >= self.max_turns:
+            done = True
+            reward = self._calculate_rewards()
+            info = {"info": "Maximum turns reached. Game over."}
 
-        # Update resources (assuming valid resources)
-        for item in offer:
-            resource, amount = item.split(':')
-            amount = int(amount)
-            self.resources[from_player][resource] -= amount
-            self.resources[to_player][resource] += amount
+        return response, reward, done, info
 
-        for item in for_:
-            resource, amount = item.split(':')
-            amount = int(amount)
-            self.resources[to_player][resource] -= amount
-            self.resources[from_player][resource] += amount
+    def _parse_offer(self, action):
+        """
+        Parse the offer action to extract the resources being traded.
+        Expected format: "Offer: I give [list], You give [list]"
+        Returns a dictionary with 'offer' and 'request' resource lists.
+        """
+        try:
+            parts = action.split("Offer:")[1].strip()
+            offer_parts = parts.split(", You give ")
+            my_offer_str = offer_parts[0].split("I give ")[1].strip()
+            their_offer_str = offer_parts[1].strip()
 
-    def is_over(self):
-        return self.game_over
+            my_offer = [int(x) for x in my_offer_str.strip('[]').split(',')]
+            their_offer = [int(x) for x in their_offer_str.strip('[]').split(',')]
 
-    def get_winner(self):
-        # Calculate total value of resources for each player
+            if len(my_offer) != self.resource_types or len(their_offer) != self.resource_types:
+                return None
+
+            return {'my_offer': my_offer, 'their_offer': their_offer}
+        except Exception:
+            return None
+
+    def _execute_trade(self, trade, acceptor_id):
+        """
+        Execute the trade between players.
+        """
+        proposer_id = 1 - acceptor_id
+        my_offer = trade['my_offer']
+        their_offer = trade['their_offer']
+
+        # Update the resources
+        for i in range(self.resource_types):
+            # Check if players have enough resources to trade
+            if self.player_resources[proposer_id][i] < my_offer[i] or self.player_resources[acceptor_id][i] < their_offer[i]:
+                continue  # Skip if they don't have enough resources
+
+            # Execute the trade
+            self.player_resources[proposer_id][i] -= my_offer[i]
+            self.player_resources[acceptor_id][i] -= their_offer[i]
+            self.player_resources[proposer_id][i] += their_offer[i]
+            self.player_resources[acceptor_id][i] += my_offer[i]
+
+    def _calculate_rewards(self):
+        """
+        Calculate the rewards for both players based on their resource values.
+        """
         total_values = {}
-        for player_id, resources in self.resources.items():
-            total_values[player_id] = sum(self.values[res] * qty for res, qty in resources.items())
-        # Player with highest total value wins
-        winner = max(total_values, key=total_values.get)
-        return winner
+        gains = {}
+        for player_id in [0, 1]:
+            resources = self.player_resources[player_id]
+            values = self.player_values[player_id]
+            total_value = sum([r * v for r, v in zip(resources, values)])
+            initial_resources = self.initial_resources[player_id]
+            initial_value = sum([r * v for r, v in zip(initial_resources, values)])
+            total_values[player_id] = total_value
+            gains[player_id] = total_value - initial_value
+
+        # Determine rewards
+        if not self.trades_made:
+            # No trades made, both players lose
+            rewards = {0: -1, 1: -1}
+        else:
+            if gains[0] > gains[1]:
+                rewards = {0: 1, 1: -1 if gains[1] < 0 else 0}
+            elif gains[1] > gains[0]:
+                rewards = {1: 1, 0: -1 if gains[0] < 0 else 0}
+            else:
+                rewards = {0: 0, 1: 0}
+        return rewards

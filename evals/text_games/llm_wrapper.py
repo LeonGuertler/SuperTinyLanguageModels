@@ -153,9 +153,8 @@ class GPT4Agent:
             prompt (str): The full prompt sent to the model.
         """
         #print(f"######################## current input ########################")
-
         # Use the main prompt and state history to construct the agent input
-        prompt = self.main_prompt + "\n"
+        """prompt = self.main_prompt + "\n"
         for h_state, h_action in self.history:
             prompt += f"{h_state}\n\n{h_action}\n"
 
@@ -164,7 +163,7 @@ class GPT4Agent:
 
         # If valid actions are provided, include them in the prompt for context
         if valid_actions:
-            prompt += f"\nValid actions: {', '.join(valid_actions)}\n"
+            prompt += f"\nValid actions: {', '.join(valid_actions)}\n"""
 
         #print(f"\n[Player - GPT-4 API Agent]")
         #print(f"{prompt}")
@@ -174,8 +173,10 @@ class GPT4Agent:
         for h_state, h_action in self.history:
             messages.append({"role": "user", "content": h_state})
             messages.append({"role": "assistant", "content": h_action})
-        messages.append({"role": "user", "content": state})
-
+        # append valid actions
+        if valid_actions:
+            messages.append({"role": "user", "content": f"\nValid actions: {', '.join(valid_actions)}\n"})
+        messages.append({"role": "user", "content": state+"\nNext Action:"})
 
         # Call the GPT-4 API to generate a response
         response = openai.ChatCompletion.create(
@@ -203,6 +204,10 @@ class GPT4Agent:
             f"Previous Action: {action}"
         ))
 
+        # convert the messages to a single string
+        prompt = ""
+        for message in messages:
+            prompt += f"\n{message['role']}: {message['content']}"
         return action, prompt
 
     def get_history(self):

@@ -1,4 +1,5 @@
-# two_player_game_wrapper.py
+
+from tqdm import tqdm 
 
 class TwoPlayerGameWrapper:
     def __init__(
@@ -42,9 +43,11 @@ class TwoPlayerGameWrapper:
         agent_logs = {agent.agent_id: [] for agent in self.agents.values()}
         agent_scores = {agent.agent_id: 0 for agent in self.agents.values()}
         agent_scores['num_turns'] = []
+        agent_scores['reasons'] = []
 
 
-        for game_id in range(self.num_games):
+        # Wrap the outer loop with tqdm for progress tracking
+        for game_id in tqdm(range(self.num_games), desc=f'Playing {self.game.name}', unit='game'):
             # reset the game 
             player_prompts = self.game.reset() # Should return a dict {player_id: prompt}
 
@@ -56,13 +59,17 @@ class TwoPlayerGameWrapper:
             state = ""
 
             episode_logs = {agent.agent_id: [] for agent in self.agents.values()}
+            
+            # (Optional) Initialize a counter for turns if you want to track progress within a game
+            # turn_counter = 0
+
             while not done:
                 for player_id, agent in enumerate(self.agents.values()):
                     # get the valid actions
                     valid_actions = self.game.get_valid_actions(player_id=player_id)
 
                     # get action from the agent
-                    action, full_state = agent.get_action(
+                    action, agent_state = agent.get_action(
                         state=state,
                         valid_actions=valid_actions
                     )
@@ -74,7 +81,7 @@ class TwoPlayerGameWrapper:
                     agent_id = agent.agent_id 
                     episode_logs[agent_id].append({
                         "state": state,
-                        "full_state": full_state,
+                        "agent_state": agent_state,
                         "action": action,
                         "info": info
                     })
@@ -84,6 +91,10 @@ class TwoPlayerGameWrapper:
 
                     # update state
                     state = new_state
+
+                # (Optional) Update turn counter and display progress within the game
+                # turn_counter += 1
+                # You can use a secondary tqdm bar or print statements if desired
 
             # Game finished, add reward to all agent logs and the agent scores
             for player_id, agent in enumerate(self.agents.values()):
@@ -95,8 +106,8 @@ class TwoPlayerGameWrapper:
                 # add agent scores
                 agent_scores[agent_id] += reward[player_id]
 
-            agent_scores["num_turns"].append(self.game.get_info())
-
+            agent_scores["num_turns"].append(self.game.get_info().get("num_turns", None))
+            agent_scores["reasons"].append(info.get("reason", "Not Specified"))
             # swap players
             self.swap_agents()
 
