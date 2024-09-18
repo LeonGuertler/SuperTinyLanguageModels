@@ -79,7 +79,7 @@ class ChessGame(GameInterface):
                         reward = {0: -1, 1: 1}
                     else:
                         reward = {0: 0, 1: 0}  # Draw
-                    return None, reward, True, {"result": result}
+                    return None, reward, True, {"result": result, "reason": "Game Finished"}
                 elif self.board.fullmove_number > self.turn_limit:
                     # draw by too long
                     return None, {0:0, 1:0}, True, {"reason": "Too many turns."}

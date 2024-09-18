@@ -36,29 +36,30 @@ def main():
     game_wrapper = TwoPlayerGameWrapper(
         game_class=TabooGame,
         agents=agents,
-        num_games=20,
+        num_games=2,
         **game_kwargs
     )
 
     # Play the Taboo game
     agent_logs, agent_scores = game_wrapper.play_game()
     print("Taboo Game Results:")
-    print(agent_logs)
+    #print(agent_logs)
     print(agent_scores)
-    exit()
+    #exit()
 
 
     # Initialize the TwoPlayerGameWrapper for Chess (Open)
     chess_open_game_kwargs = {
         'is_open': True,
         #'render': True,
-        'turn_limit': 30
+        'turn_limit': 30,
+        'show_valid': True
     }
 
     chess_open_game_wrapper = TwoPlayerGameWrapper(
         game_class=ChessGame,
         agents=agents,
-        num_games=4,
+        num_games=1,
         **chess_open_game_kwargs
     )
 
