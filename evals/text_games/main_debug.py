@@ -14,7 +14,7 @@ def main():
     if not api_key:
         raise ValueError("OpenAI API key not found. Please set the OPENAI_API_KEY environment variable.")
 
-    gpt_4_agent = GPT4Agent(agent_id=0, api_key=api_key, model_name="gpt-4o-mini")
+    gpt_4_agent = GPT4Agent(agent_id=0, api_key=api_key, model_name="gpt-3.5-turbo")
     gpt_4_agent2 = GPT4Agent(agent_id=1, api_key=api_key, model_name="gpt-4o-mini")
     # human_agent = HumanAgent(agent_id=1)
 
@@ -26,7 +26,7 @@ def main():
         1: gpt_4_agent2
     }
 
-    # Define game parameters
+    """# Define game parameters
     game_kwargs = {
         'turn_limit': 6,
         'data_path': "evals/text_games/game_collection/data/taboo/"
@@ -88,12 +88,12 @@ def main():
     print("Chess Closed Game Results:")
     print(agent_logs)
     print(agent_scores)
-    input()
+    input()"""
 
     # Initialize the TwoPlayerGameWrapper for Negotiation Game
     negotiation_game_kwargs = {
-        'resource_types': 5,
-        'max_turns': 10
+        'max_turns': 10,
+        'render': True
     }
 
     negotiation_game_wrapper = TwoPlayerGameWrapper(
@@ -107,6 +107,7 @@ def main():
     agent_logs, agent_scores = negotiation_game_wrapper.play_game()
     print("Negotiation Game Results:")
     print(agent_logs)
+    print("\n\n")
     print(agent_scores)
 
     

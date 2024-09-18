@@ -178,6 +178,12 @@ class GPT4Agent:
             messages.append({"role": "user", "content": f"\nValid actions: {', '.join(valid_actions)}\n"})
         messages.append({"role": "user", "content": state+"\nNext Action:"})
 
+        ###################################
+        #prompt = ""
+        #for message in messages:
+        #    prompt += f"\n{message['role']}: {message['content']}"
+        #input(prompt)
+        ####################################
         # Call the GPT-4 API to generate a response
         response = openai.ChatCompletion.create(
             model=self.model_name,
