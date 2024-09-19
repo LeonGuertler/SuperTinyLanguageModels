@@ -1,14 +1,15 @@
 class GameInterface:
     def reset(self):
         """Reset the game to its initial state."""
-        raise NotImplementedError
-
-    def get_state(self, player_id):
-        """Return the current state for the given player."""
+        # TODO return prompt + types
         raise NotImplementedError
 
     def get_valid_actions(self, player_id):
         """Return valid actions for the given player."""
+        raise NotImplementedError
+
+    def get_info(self):
+        """Return additional info after the game"""
         raise NotImplementedError
 
     def step(self, player_id, action):
@@ -16,17 +17,11 @@ class GameInterface:
         Apply the player's action to the game.
 
         Returns:
-            state (object): The new state after the action.
-            reward (float): The reward received after the action.
+            state (str): The new state after the action.
+            reward (None/dict): The reward received after the game ends.
             done (bool): Whether the game has ended.
             info (dict): Additional information.
         """
-        raise NotImplementedError
-
-    def is_over(self):
-        """Check if the game has ended."""
-        raise NotImplementedError
-
-    def get_winner(self):
-        """Determine the winner of the game."""
+        # rename as observation
+        # optinally return state (used to re-load game at checkpoint)
         raise NotImplementedError

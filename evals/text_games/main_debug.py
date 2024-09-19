@@ -8,7 +8,12 @@ from evals.text_games.game_collection import (
     TruthAndDeceptionGame,
     PokerGame,
     ConnectFourGame,
-    DebateGame 
+    DebateGame,
+    BluffingDiceGame,
+    DontSayItGame,
+    EmotionExpressionGame,
+    LogicPuzzleGame,
+    MathProofGame,
 )
 from evals.text_games.two_player_game_wrapper import TwoPlayerGameWrapper
 
@@ -22,7 +27,7 @@ def main():
     if not api_key:
         raise ValueError("OpenAI API key not found. Please set the OPENAI_API_KEY environment variable.")
 
-    gpt_4_agent = GPT4Agent(agent_id=0, api_key=api_key, model_name="gpt-3.5-turbo")
+    gpt_4_agent = GPT4Agent(agent_id=0, api_key=api_key, model_name="gpt-4o")
     gpt_4_agent2 = GPT4Agent(agent_id=1, api_key=api_key, model_name="gpt-4o-mini")
     # human_agent = HumanAgent(agent_id=1)
 
@@ -159,7 +164,7 @@ def main():
     print("\n\n")
     print(agent_scores)"""
 
-    # initialize the game wrapper for poker
+    """# initialize the game wrapper for poker
     connect_four_game_kwargs = {
         'render': True,
         'is_open': True
@@ -177,31 +182,55 @@ def main():
     print("Truth And Deception Game Results:")
     print(agent_logs)
     print("\n\n")
+    print(agent_scores)"""
+
+
+    """debate_game_wrapper = TwoPlayerGameWrapper(
+        game_class = DebateGame,
+        agents=agents,
+        num_games=4,
+        **{
+            "max_turns": 10,
+            "render": False
+        }
+    )
+    agent_logs, agent_scores = debate_game_wrapper.play_game()"""
+
+
+    """bluffing_dice_game_wrapper = TwoPlayerGameWrapper(
+        game_class = BluffingDiceGame,
+        agents=agents,
+        num_games=4,
+        **{
+            "render": False
+        }
+    )
+    agent_logs, agent_scores = bluffing_dice_game_wrapper.play_game()"""
+
+    dont_say_it_game_wrapper = TwoPlayerGameWrapper(
+        game_class = DontSayItGame,
+        agents=agents,
+        num_games=4,
+        **{
+            "render": False,
+            "max_turns": 15
+        }
+    )
+    agent_logs, agent_scores = dont_say_it_game_wrapper.play_game()
+    
+    
+    
+    
+    
+    
+    
+    
+    print("Game Results:")
+    print(agent_logs)
+    print("\n\n")
     print(agent_scores)
     
 
 if __name__ == "__main__":
     main()
 
-    input(agent_scores)
-    exit()
-    # Access agent logs
-    agent_logs = detailed_log['agent_logs']
-
-    # Print high-level summaries
-    print("\n=== High-Level Game Summary ===")
-    for game_summary in high_level_log:
-        print(f"Round: {game_summary['round']}, Game: {game_summary['game']}")
-        print(f"Number of Turns: {game_summary['turns']}")
-        print(f"Game Reward: {game_summary['game_reward']}")
-        print(f"Roles: {game_summary['roles']}")
-        print(f"Reason for Game End: {game_summary['reason_for_game_end']}\n")
-
-    # Print agent-specific logs
-    print("\n=== Agent Logs ===")
-    for agent_id, logs in agent_logs.items():
-        print(f"\nAgent {agent_id} Logs:")
-        for log in logs:
-            input(log)
-            #print(f"Round {log['round']}, Game {log['game']}, Role: {log.get('role', 'N/A')}, Action: {log['action']}, Reward: {log['reward']}")
-            # Include additional log details as needed

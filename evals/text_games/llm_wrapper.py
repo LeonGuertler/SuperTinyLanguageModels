@@ -111,7 +111,7 @@ class LLMWrapper:
 
 
 class GPT4Agent:
-    def __init__(self, agent_id, api_key, max_tokens=100, model_name="gpt-4"):
+    def __init__(self, agent_id, api_key, max_tokens=100, model_name="gpt-4o-mini"):
         """
         Initialize the GPT-4 agent.
 
@@ -196,14 +196,14 @@ class GPT4Agent:
         )
 
         # Extract the generated action from the API response
-        generated_text = response['choices'][0]['message']['content'].strip()
-        action = generated_text.split("\n")[0]  # Extract only the first action
+        action = response['choices'][0]['message']['content'].strip()
+        #action = generated_text.split("\n")[0]  # Extract only the first action
 
 
         # Check if the action is valid (if valid actions are provided)
-        if valid_actions and action not in valid_actions:
+        #if valid_actions and action not in valid_actions:
             #print("Generated action is not in the valid actions list. Picking a random valid action instead.")
-            action = valid_actions[0]  # Or any strategy for picking valid actions
+        #    action = valid_actions[0]  # Or any strategy for picking valid actions
 
         # Add to history
         self.history.append((
