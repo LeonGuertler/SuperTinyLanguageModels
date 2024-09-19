@@ -21,10 +21,7 @@ class DontSayItGame(GameInterface):
         self.name = "Don't Say It"
         self.max_turns = max_turns
         self.render = render
-        self.data_path = data_path
-        self._load_words()
-        #self.word_list = ["Apple", "Banana", "Cat", "Dog", "Elephant", "Flower", "Guitar", "House", "Ice", "Jungle"]
-        #self.reset()
+        self._load_words(data_path=data_path)
 
     def reset(self):
         """Reset the game to its initial state."""
@@ -43,9 +40,9 @@ class DontSayItGame(GameInterface):
         return player_prompts
 
 
-    def _load_words(self):
+    def _load_words(self, data_path):
         """ Load all available words from a JSON file """
-        with open(os.path.join(self.data_path, "words.json"), "r") as file:
+        with open(os.path.join(data_path, "words.json"), "r") as file:
             data = json.load(file)
             self.word_list = data["words"]
 
