@@ -183,7 +183,7 @@ class GPT4Agent:
         #prompt = ""
         #for message in messages:
         #    prompt += f"\n{message['role']}: {message['content']}"
-        #input(prompt)
+        #print(prompt)
         ####################################
         # Call the GPT-4 API to generate a response
         response = openai.ChatCompletion.create(
@@ -198,7 +198,7 @@ class GPT4Agent:
         # Extract the generated action from the API response
         action = response['choices'][0]['message']['content'].strip()
         #action = generated_text.split("\n")[0]  # Extract only the first action
-
+        #input(action)
 
         # Check if the action is valid (if valid actions are provided)
         #if valid_actions and action not in valid_actions:

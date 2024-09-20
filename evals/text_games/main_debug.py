@@ -11,9 +11,12 @@ from evals.text_games.game_collection import (
     DebateGame,
     BluffingDiceGame,
     DontSayItGame,
-    EmotionExpressionGame,
+    #EmotionExpressionGame,
     LogicPuzzleGame,
     MathProofGame,
+    CarPuzzleGame,
+    WordChainsGame,
+    TrafficStopGame
 )
 from evals.text_games.two_player_game_wrapper import TwoPlayerGameWrapper
 
@@ -207,20 +210,73 @@ def main():
     )
     agent_logs, agent_scores = bluffing_dice_game_wrapper.play_game()"""
 
-    dont_say_it_game_wrapper = TwoPlayerGameWrapper(
+    """dont_say_it_game_wrapper = TwoPlayerGameWrapper(
         game_class = DontSayItGame,
+        agents=agents,
+        num_games=10,
+        **{
+            "render": False,
+            "max_turns": 10
+        }
+    )
+    agent_logs, agent_scores = dont_say_it_game_wrapper.play_game()"""
+
+
+    # TODO
+    """math_game_wrapper = TwoPlayerGameWrapper(
+        game_class = MathProofGame,
         agents=agents,
         num_games=4,
         **{
-            "render": False,
-            "max_turns": 15
+            "render": True,
         }
     )
-    agent_logs, agent_scores = dont_say_it_game_wrapper.play_game()
+    agent_logs, agent_scores = math_game_wrapper.play_game()"""
     
+    # TODO
+    """car_puzzle_game_wrapper = TwoPlayerGameWrapper(
+        game_class = CarPuzzleGame,
+        agents=agents,
+        num_games=4,
+        **{
+            "render": True,
+        }
+    )
+    agent_logs, agent_scores = car_puzzle_game_wrapper.play_game()"""
+
+    # TODO
+    """car_puzzle_game_wrapper = TwoPlayerGameWrapper(
+        game_class = CarPuzzleGame,
+        agents=agents,
+        num_games=4,
+        **{
+            "render": True,
+        }
+    )
+    agent_logs, agent_scores = car_puzzle_game_wrapper.play_game()"""
+
+
+    """word_chains_game_wrapper = TwoPlayerGameWrapper(
+        game_class = WordChainsGame,
+        agents=agents,
+        num_games=10,
+        **{
+            "render": True,
+        }
+    )
+    agent_logs, agent_scores = word_chains_game_wrapper.play_game()"""
     
-    
-    
+    traffic_stop_game_wrapper = TwoPlayerGameWrapper(
+        game_class = TrafficStopGame,
+        agents=agents,
+        num_games=5,
+        **{
+            "render": False,
+            "max_turns": 20,
+            #"initial_temperature": 0.7
+        }
+    )
+    agent_logs, agent_scores = traffic_stop_game_wrapper.play_game()
     
     
     
