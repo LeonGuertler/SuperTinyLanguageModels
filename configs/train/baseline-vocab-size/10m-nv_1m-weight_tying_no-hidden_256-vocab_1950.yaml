@@ -40,7 +40,7 @@ model:
 
 trainer:
   trainer_type: base_trainer
-  dataset: fineweb_edu_100B
+  dataset: fineweb_edu_10B
   batch_size: 24
   gradient_accumulation_steps: 10
 
