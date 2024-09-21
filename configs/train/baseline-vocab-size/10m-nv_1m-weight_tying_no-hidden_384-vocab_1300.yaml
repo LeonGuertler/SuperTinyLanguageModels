@@ -40,11 +40,11 @@ model:
 
 trainer:
   trainer_type: base_trainer
-  dataset: fineweb_edu_100B
+  dataset: fineweb_edu_10B
   batch_size: 24
   gradient_accumulation_steps: 10
 
-  max_iters: 50000
+  max_iters: 25000
   eval_interval: 5000
   log_interval: 10
   checkpoint_interval: 10000
@@ -80,7 +80,7 @@ trainer:
 
   lr_scheduler:
     name: cosine
-    warmup_iters: 2500
+    warmup_iters: 1000
 
   dataloader:
     name: standard
@@ -97,6 +97,7 @@ general:
     wandb_project: SuperTinyLanguageModels
     wandb_run_name: Null
     group_name: baseline-vocab
+    run_name: "NonVocab: 1M, Weight-Tying: No, Hidden: 384, Vocab-Size: 1300"
 
   paths:
     output_dir: outputs
