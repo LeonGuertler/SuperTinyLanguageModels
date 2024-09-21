@@ -44,7 +44,7 @@ trainer:
   batch_size: 24
   gradient_accumulation_steps: 10
 
-  max_iters: 50000
+  max_iters: 25000
   eval_interval: 5000
   log_interval: 10
   checkpoint_interval: 10000
@@ -80,7 +80,7 @@ trainer:
 
   lr_scheduler:
     name: cosine
-    warmup_iters: 2500
+    warmup_iters: 1000
 
   dataloader:
     name: standard
