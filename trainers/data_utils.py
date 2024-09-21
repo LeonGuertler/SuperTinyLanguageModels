@@ -78,13 +78,7 @@ DATASET_DICT = {
         lambda_fn=lambda x: {"text": f"Task: Definition: {x['definition']}\nQuestion: {x['inputs']}\nAnswer: {x['targets']}"}
     ),
     "fineweb_edu_100B": lambda: load_dataset("HuggingFaceFW/fineweb-edu", "sample-100BT"),
-<<<<<<< HEAD
     "fineweb_edu_10B": lambda: load_dataset("HuggingFaceFW/fineweb-edu", "sample-10BT")
-
-=======
-    "fineweb_edu_10B": lambda: load_dataset("HuggingFaceFW/fineweb-edu", "sample-10BT"),
->>>>>>> f521713 (temp)
-
 
 }
 

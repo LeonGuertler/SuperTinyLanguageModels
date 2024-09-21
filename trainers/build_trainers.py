@@ -15,6 +15,7 @@ from trainers.datasets import (
     BytePoolingDataset,
     DatasetInterface,
     DualBytePooling,
+    BaseDatasetRandomAutoencoder
 )
 from trainers.loss_fn import (
     cross_entropy_loss_fn,
@@ -98,6 +99,7 @@ DATASET_DICT: dict[str, DatasetInterface] = {
     "standard": BaseDatasetRandom,
     "byte_pooling": BytePoolingDataset,
     "dual_byte_pooling": DualBytePooling,
+    "autoencoder": BaseDatasetRandomAutoencoder
 }
 
 

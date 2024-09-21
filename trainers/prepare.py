@@ -141,7 +141,8 @@ class DualByteLevelProcessor(StandardProcessor):
 DATALOADER_PROCESSORS = {
     "standard": StandardProcessor,
     "byte_pooling": ByteLevelProcessor,
-    "dual_byte_pooling": DualByteLevelProcessor
+    "dual_byte_pooling": DualByteLevelProcessor,
+    "autoencoder": StandardProcessor
 }
 
 
@@ -184,31 +185,31 @@ def prepare_data(cfg):
     )
 
     # wrap in try such that half-complete files can be deleted on error
-    try:
-        # Get the maximum number of processors
-        max_procs = os.cpu_count()
-        # cap at 12 to reduce memory usage
-        max_procs = min(max_procs, 12) # TODO properly fix this
-        print(f"Using {max_procs} processors")
+    #try:
+    # Get the maximum number of processors
+    max_procs = os.cpu_count()
+    # cap at 12 to reduce memory usage
+    max_procs = min(max_procs, 12) # TODO properly fix this
+    print(f"Using {max_procs} processors")
 
-        # tokenize the dataset
-        tokenized = split_dataset.map(
-            processor_object.process,
-            remove_columns=["text"],
-            desc="Tokenizing dataset",
-            num_proc=max_procs
-        )
+    # tokenize the dataset
+    tokenized = split_dataset.map(
+        processor_object.process,
+        remove_columns=["text"],
+        desc="Tokenizing dataset",
+        num_proc=max_procs
+    )
 
-        # concatenate all the ids in each dataset
-        processor_object.write_tokenized_data(
-            tokenized=tokenized, 
-            tokenized_data_folder=tokenized_data_folder
-        )
+    # concatenate all the ids in each dataset
+    processor_object.write_tokenized_data(
+        tokenized=tokenized, 
+        tokenized_data_folder=tokenized_data_folder
+    )
 
-    except Exception as exc:
-        print(f"Error: {exc}")
-        for file in os.listdir(tokenized_data_folder):
-            os.remove(os.path.join(tokenized_data_folder, file))
-        raise RuntimeError("Failed to process and write data") from exc
+    # except Exception as exc:
+    #     print(f"Error: {exc}")
+    #     for file in os.listdir(tokenized_data_folder):
+    #         os.remove(os.path.join(tokenized_data_folder, file))
+    #     raise RuntimeError("Failed to process and write data") from exc
 
 

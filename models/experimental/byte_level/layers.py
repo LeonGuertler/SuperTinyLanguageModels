@@ -57,12 +57,12 @@ class ByteLevelTransformerBlock(torch.nn.Module):
         # build the attention
         self.attn = Attention(
             hidden_dim=input_dim,
-            num_heads=8,
+            num_q_heads=8,
+            num_kv_heads=8,
             bias=False,
             use_rope=use_rope,
             context_window=context_window,
             is_causal=False,
-            group_size=1,
         )
 
         # build the ffn norm

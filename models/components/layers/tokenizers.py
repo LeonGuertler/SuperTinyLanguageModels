@@ -22,6 +22,13 @@ from tokenizers.normalizers import NFD, StripAccents, Replace, Sequence as Norma
 from tokenizers import decoders
 
 
+import os
+import re
+import string
+import json
+from typing import List, Dict
+import torch  # Assuming torch is used elsewhere in your project
+
 
 class TokenizerClass:
     """Base class for tokenizers, defines the interface for tokenizers."""
@@ -136,7 +143,7 @@ class TiktokenTokenizer(TokenizerClass):
 
 
 
-class BPETokenizer(TokenizerClass):
+class BPETokenizer_old(TokenizerClass):
     def __init__(self, vocab_size: int, dataset_name: str, simplify: bool = True):
         super().__init__()
         self.vocab_size = vocab_size
@@ -266,6 +273,190 @@ class BPETokenizer(TokenizerClass):
         # print vocab size
         print(f"Loaded a BPE tokenizer with {len(self.vocab)} tokens.")
 
+class BPETokenizer:
+    """
+    A byte-level tokenizer with a fixed vocabulary of 256 bytes plus three special tokens:
+    [PAD], [EOT], [UNK], totaling 259 tokens.
+    """
+    
+    # Define special tokens and their IDs
+    SPECIAL_TOKENS = {
+        "[PAD]": 256,
+        "[EOT]": 257,
+        "[UNK]": 258
+    }
+    
+    def __init__(self, vocab_size: int = 259, dataset_name: str = "default_dataset", simplify: bool = True):
+        """
+        Initialize the BPETokenizer.
+
+        Args:
+            vocab_size (int): Size of the vocabulary. Fixed to 259.
+            dataset_name (str): Name of the dataset to be used.
+            simplify (bool): Whether to simplify the text by removing non-English characters.
+        """
+        self.vocab_size = vocab_size  # Fixed to 259
+        self.dataset_name = dataset_name
+        self.simplify = simplify 
+        
+        # Initialize the vocabulary
+        self.vocab = self._build_vocab()
+        self.inv_vocab = {v: k for k, v in self.vocab.items()}  # For decoding
+        
+        # Set special token IDs
+        self.pad_token = self.vocab["[PAD]"]
+        self.eot_token = self.vocab["[EOT]"]
+        self.unk_token = self.vocab["[UNK]"]
+        
+        # Check if tokenizer exists; if not, save the current vocab
+        if not utils.check_if_tokenizer_exists(
+            tokenizer_type="byte", 
+            vocab_size=self.vocab_size, 
+            dataset_name=self.dataset_name,
+            simplify=self.simplify
+        ):
+            self._save()
+        else:
+            self._load()
+    
+    def _build_vocab(self) -> Dict[str, int]:
+        """
+        Build the vocabulary mapping bytes and special tokens to unique IDs.
+
+        Returns:
+            Dict[str, int]: The vocabulary mapping.
+        """
+        vocab = {chr(i): i for i in range(256)}  # Byte tokens: 0-255
+        vocab.update(self.SPECIAL_TOKENS)        # Special tokens: 256-258
+        return vocab
+    
+    def encode(self, text: str) -> List[int]:
+        """
+        Encode a single string into a list of token IDs.
+
+        Args:
+            text (str): The input text to encode.
+
+        Returns:
+            List[int]: The list of token IDs.
+        """
+        if self.simplify:
+            text = self._simplify_text(text)
+        
+        byte_sequence = text.encode('utf-8', errors='replace')  # Encode to bytes
+        token_ids = []
+        
+        for byte in byte_sequence:
+            char = chr(byte)
+            token_id = self.vocab.get(char, self.unk_token)
+            token_ids.append(token_id)
+        
+        token_ids.append(self.eot_token)  # Append end-of-text token
+        assert all([type(i)==int for i in token_ids]), token_ids
+        assert len(token_ids)>0, token_ids
+        return token_ids
+    
+    def encode_batch(self, texts: List[str]) -> List[List[int]]:
+        """
+        Encode a batch of strings into lists of token IDs.
+
+        Args:
+            texts (List[str]): The list of input texts to encode.
+
+        Returns:
+            List[List[int]]: The list of token ID lists.
+        """
+        return [self.encode(text) for text in texts]
+    
+    def decode(self, tokens: List[int]) -> str:
+        """
+        Decode a list of token IDs back into a string.
+
+        Args:
+            tokens (List[int]): The list of token IDs to decode.
+
+        Returns:
+            str: The decoded string.
+        """
+        # Remove special tokens if present
+        tokens = [token for token in tokens if token not in self.SPECIAL_TOKENS.values()]
+        
+        byte_sequence = bytes([self.inv_vocab.get(token, ord('?')) for token in tokens])  # Replace unknown tokens with '?'
+        try:
+            text = byte_sequence.decode('utf-8', errors='replace')  # Decode bytes to string
+        except UnicodeDecodeError:
+            text = byte_sequence.decode('utf-8', errors='replace')
+        return text
+    
+    def decode_batch(self, token_lists: List[List[int]]) -> List[str]:
+        """
+        Decode a batch of token ID lists back into strings.
+
+        Args:
+            token_lists (List[List[int]]): The list of token ID lists to decode.
+
+        Returns:
+            List[str]: The list of decoded strings.
+        """
+        return [self.decode(tokens) for tokens in token_lists]
+    
+    def _simplify_text(self, text: str) -> str:
+        """
+        Simplify the text by removing non-English characters based on a predefined pattern.
+
+        Args:
+            text (str): The input text to simplify.
+
+        Returns:
+            str: The simplified text.
+        """
+        # Define pattern to remove non-English characters
+        non_english_char_pattern = r'[^a-zA-Z0-9\s' + re.escape(string.punctuation) + r']'
+        cleaned_text = re.sub(non_english_char_pattern, '', text)
+        return cleaned_text
+    
+    def _save(self):
+        """
+        Save the tokenizer's vocabulary to a file for later use.
+        """
+        _, tokenizer_path = utils.get_tokenizer_path(
+            tokenizer_type="byte",
+            vocab_size=self.vocab_size,
+            dataset_name=self.dataset_name,
+            simplify=self.simplify
+        )
+        os.makedirs(os.path.dirname(tokenizer_path), exist_ok=True)
+        
+        with open(tokenizer_path, 'w', encoding='utf-8') as f:
+            json.dump(self.vocab, f, ensure_ascii=False, indent=4)
+        
+        print(f"Saved byte-level tokenizer to {tokenizer_path}.")
+    
+    def _load(self):
+        """
+        Load the tokenizer's vocabulary from a file.
+        """
+        _, tokenizer_path = utils.get_tokenizer_path(
+            tokenizer_type="byte",
+            vocab_size=self.vocab_size,
+            dataset_name=self.dataset_name,
+            simplify=self.simplify
+        )
+        
+        if not os.path.exists(tokenizer_path):
+            raise FileNotFoundError(f"Tokenizer file not found at {tokenizer_path}.")
+        
+        with open(tokenizer_path, 'r', encoding='utf-8') as f:
+            self.vocab = json.load(f)
+        
+        self.inv_vocab = {int(v): k for k, v in self.vocab.items()}  # Update inverse vocab
+        
+        # Update special tokens
+        self.pad_token = self.vocab.get("[PAD]", 256)
+        self.eot_token = self.vocab.get("[EOT]", 257)
+        self.unk_token = self.vocab.get("[UNK]", 258)
+        
+        print(f"Loaded byte-level tokenizer from {tokenizer_path} with {len(self.vocab)} tokens.")
 
 
 

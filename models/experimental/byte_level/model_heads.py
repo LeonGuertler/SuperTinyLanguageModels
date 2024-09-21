@@ -20,19 +20,17 @@ class ByteLevelDecoder(torch.nn.Module):
     def __init__(self, model_cfg):
         super().__init__()
         self.hidden_dim = model_cfg["hidden_dim"]
-        self.embedding_dim = model_cfg["byte_embedding_dim"]
-        self.byte_vocab_size = model_cfg["byte_vocab_size"]
-        self.byte_context_window = model_cfg["byte_context_window"]
+        self.embedding_dim = 128
+        self.byte_vocab_size = model_cfg["vocab_size"]
+        self.byte_context_window = 16
 
         self.projection = torch.nn.Linear(
-            in_features=self.hidden_dim,
+            in_features=self.hidden_dim, # 512
             out_features=self.byte_context_window * self.embedding_dim,
             bias=False,
         )
 
-        self.pos_encoder = LearnedPosEncoding(
-            hidden_dim=self.embedding_dim, context_window=self.byte_context_window
-        )
+
 
         # build transformer block
         self.transformer = torch.nn.ModuleList(
@@ -42,56 +40,56 @@ class ByteLevelDecoder(torch.nn.Module):
                     output_dim=self.embedding_dim,
                     ffn_dim=self.embedding_dim * 4,
                     context_window=self.byte_context_window,
-                    use_rope=False,
+                    use_rope=True,
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=self.embedding_dim,
                     output_dim=self.embedding_dim,
                     ffn_dim=self.embedding_dim * 4,
                     context_window=self.byte_context_window,
-                    use_rope=False,
+                    use_rope=True,
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=self.embedding_dim,
                     output_dim=self.embedding_dim,
                     ffn_dim=self.embedding_dim * 4,
                     context_window=self.byte_context_window,
-                    use_rope=False,
+                    use_rope=True,
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=self.embedding_dim,
                     output_dim=self.embedding_dim,
                     ffn_dim=self.embedding_dim * 4,
                     context_window=self.byte_context_window,
-                    use_rope=False,
+                    use_rope=True,
                 ),
-                ByteLevelTransformerBlock(
-                    input_dim=self.embedding_dim,
-                    output_dim=self.embedding_dim,
-                    ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
-                    use_rope=False,
-                ),
-                ByteLevelTransformerBlock(
-                    input_dim=self.embedding_dim,
-                    output_dim=self.embedding_dim,
-                    ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
-                    use_rope=False,
-                ),
-                ByteLevelTransformerBlock(
-                    input_dim=self.embedding_dim,
-                    output_dim=self.embedding_dim,
-                    ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
-                    use_rope=False,
-                ),
+                # """ByteLevelTransformerBlock(
+                #     input_dim=self.embedding_dim,
+                #     output_dim=self.embedding_dim,
+                #     ffn_dim=self.embedding_dim * 4,
+                #     context_window=self.byte_context_window,
+                #     use_rope=True,
+                # ),
+                # ByteLevelTransformerBlock(
+                #     input_dim=self.embedding_dim,
+                #     output_dim=self.embedding_dim,
+                #     ffn_dim=self.embedding_dim * 4,
+                #     context_window=self.byte_context_window,
+                #     use_rope=True,
+                # ),
+                # ByteLevelTransformerBlock(
+                #     input_dim=self.embedding_dim,
+                #     output_dim=self.embedding_dim,
+                #     ffn_dim=self.embedding_dim * 4,
+                #     context_window=self.byte_context_window,
+                #     use_rope=True,
+                # ),"""
             ]
         )
 
         self.lm_head = torch.nn.Linear(
-            in_features=self.embedding_dim,
-            out_features=self.byte_vocab_size,
+            in_features=self.embedding_dim, # 128
+            out_features=self.byte_vocab_size, # 259 (256 bytes + 3 special)
             bias=False,
         )
 
@@ -109,7 +107,7 @@ class ByteLevelDecoder(torch.nn.Module):
         x = x.view(B * S, self.byte_context_window, self.embedding_dim)
 
         # positional encoding
-        x = x + self.pos_encoder(x)
+        #x = x + self.pos_encoder(x)
 
         # pass through transformer
         for block in self.transformer:
@@ -121,7 +119,7 @@ class ByteLevelDecoder(torch.nn.Module):
         # reshape and return
         x = x.view(B, S, self.byte_context_window, self.byte_vocab_size)
 
-        return x, None
+        return x
 
     def inference(self, x):
         """

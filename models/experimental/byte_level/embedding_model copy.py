@@ -19,25 +19,25 @@ class TokenizerEncoder(torch.nn.Module):
     Take seq of byte embeddings, return sequence of delimiters. (binary)
     """
 
-    def __init__(self, max_chunk_length):
+    def __init__(self, max_chunck_length):
         super().__init__()
 
         layers = 3
-        self.max_chunk_length = max_chunk_length
+        self.max_chunck_length = max_chunck_length
 
         self.transformer = torch.nn.ModuleList(
             [
                 GenericTransformerBlock(
                     hidden_dim=128,
-                    context_window=5 * 2048,
+                    context_window=5*2048,
                     use_rope=True,
                     ffn_cfg={
-                        "ffn_type": "generic",
-                        "ffn_dim": 4 * 128,
+                        "ffn_type": "generic", #128*128 + 128*4*128*2
+                        "ffn_dim": 4*128,
                         "activation": "gelu",
                         "normalization": "rms_norm",
                         "bias": False,
-                        "dropout": 0.0,
+                        "dropout": 0.0
                     },
                     attn_cfg={
                         "attn_type": "causal",
@@ -46,79 +46,71 @@ class TokenizerEncoder(torch.nn.Module):
                         "normalization": "rms_norm",
                         "bias": False,
                         "dropout": False,
-                    },
-                )
-                for _ in range(layers)
+                    }
+                ) for _ in range(layers)
             ]
         )
 
+
         self.end_of_seq_head = torch.nn.Linear(
             128,
-            2,  # 2 because we just need to predict whether it's a <sep> or <end>
-            bias=True,
+            2, # 2 because we just need to predict whether it's a <sep> or <end>
+            bias=True
         )
+
 
     def forward(self, x, pad_token_vector, x_ids, pad_token_id):
-        # Pass through transformer blocks
-        x_transformed = x
+        # input is seq of bytes, output is seq of eoc/neoc
+        # x_chunking = deepcopy(x)
+        x_chunking = x.clone()
+        #x_chunking = x
         for block in self.transformer:
-            x_transformed = block(x_transformed)
+            x_chunking = block(x_chunking)
 
-        # Pass through end_of_seq_head
-        output = self.end_of_seq_head(x_transformed)  # Shape: (batch, seq_len, 2)
+        # pass through head 
+        #assert checkpoint == x, "deepcopy is required"
 
-        # Determine where to split chunks based on output logits
-        end_of_chunk = output[..., 0] > output[..., 1]  # Shape: (batch, seq_len)
+        output = self.end_of_seq_head(x) # should be shape (seq-len, 2) ; x = (seq-len, 128) -> N_c * S_c * 128
+        #print("Output shape:", output.shape)
 
-        batch_size, seq_len = end_of_chunk.size()
-        device = x.device
+        
+        # optimally, outputformat is num_chunks x variable chunk length (padded) x original byte embed
+        self.max_chunk_length = 16 # statisically 
+        max_num_chuncks = 1_024
 
-        # Find chunk end indices for each sequence in the batch
-        chunk_indices = []
-        for batch in range(batch_size):
-            ends = torch.nonzero(end_of_chunk[batch], as_tuple=False).squeeze(-1)
-            if ends.numel() == 0:
-                ends = torch.tensor([seq_len - 1], device=device)
-            starts = torch.cat([torch.tensor([0], device=device), ends[:-1] + 1])
-            chunk_indices.append((starts, ends))
+        # initalize the output tensor 
+        output_tensor = torch.ones((x.size(0), max_num_chuncks, self.max_chunk_length, 128), device="cuda") * pad_token_vector # B, N_c, S_c, 128
+        output_token_ids = torch.ones((x.size(0), max_num_chuncks, self.max_chunk_length), device="cuda") * pad_token_id
 
-        max_num_chunks = 1024
-        max_chunk_length = self.max_chunk_length
+        # loop over the 
+        for i in range(output.size(0)): # iterate over batch
+            
+            prev_idx = 0
+            chunk_counter = 0
+            for ii in range(output.size(1)-1): # iterate over the byte sequence
+                # check if end of chunk
+                if output[i, ii, 0] > output[i, ii, 1]: # end of chunk
+                    # set output tensor to relevant values
+                    next_idx = min(prev_idx+self.max_chunk_length, ii+1)
+                    # print(output_tensor.size(), output_tensor[i, chunk_counter, :, :].size())
+                    # print(x.size(), x[i, prev_idx:next_idx, :].size())
+                    # print(prev_idx, next_idx, chunk_counter)
+                    # input()
+                    chunck_len = next_idx - prev_idx
+                    output_tensor[i, chunk_counter, :chunck_len, :] += x[i, prev_idx:next_idx, :]
+                    
+                    output_token_ids[i, chunk_counter, :chunck_len] = x_ids[i, prev_idx:next_idx]
+                    prev_idx = next_idx 
+                    chunk_counter += 1
+                    if chunk_counter >= max_num_chuncks:
+                        break
 
-        # Initialize output tensors by repeating pad_token_vector
-        # pad_token_vector shape: (1, 128)
-        # Desired shape: (batch_size, max_num_chunks, max_chunk_length, 128)
-        output_tensor = pad_token_vector.repeat(batch_size, max_num_chunks, max_chunk_length, 1)
 
-        # Initialize output_token_ids with pad_token_id
-        output_token_ids = torch.full(
-            (batch_size, max_num_chunks, max_chunk_length),
-            pad_token_id,
-            device=device,
-            dtype=torch.long,
-        )
 
-        # Populate output_tensor and output_token_ids with actual chunk data
-        for batch in range(batch_size):
-            starts, ends = chunk_indices[batch]
-            num_chunks = min(len(ends), max_num_chunks)
-            for i in range(num_chunks):
-                start = starts[i]
-                end = ends[i] + 1  # Include the end index
-                chunk = x_transformed[batch, start:end, :]  # Shape: (chunk_len, 128)
-                chunk_ids = x_ids[batch, start:end]
-
-                chunk_len = chunk.size(0)
-                if chunk_len > max_chunk_length:
-                    chunk = chunk[:max_chunk_length]
-                    chunk_ids = chunk_ids[:max_chunk_length]
-                    chunk_len = max_chunk_length
-
-                output_tensor[batch, i, :chunk_len, :] = chunk
-                output_token_ids[batch, i, :chunk_len] = chunk_ids
+        # print(f"Ouput_token_ids: {output_token_ids.size()}")
+        # input(output_tensor)
 
         return output_tensor, output_token_ids
-
 
 
 
@@ -127,7 +119,7 @@ class ByteBidirectionEncoding(torch.nn.Module):
     Input shape: batch x max_num_chuncks x max_chunck_length x 128 (byte_embed_dim)
     return batch x max_num_chuncks x hidden_dim (512)
     """
-    def __init__(self, max_chunk_length):
+    def __init__(self, max_chunck_length):
         super().__init__()
         # build the transformer blocks
         self.transformer = torch.nn.ModuleList(
@@ -136,28 +128,28 @@ class ByteBidirectionEncoding(torch.nn.Module):
                     input_dim=128,
                     output_dim=128 * 2,
                     ffn_dim=128 * 4,
-                    context_window=max_chunk_length,
+                    context_window=max_chunck_length,
                     use_rope=True,
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=128*2,
                     output_dim=128 * 2,
                     ffn_dim=128 * 8,
-                    context_window=max_chunk_length,
+                    context_window=max_chunck_length,
                     use_rope=True,
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=128*2,
                     output_dim=128 * 4,
                     ffn_dim=128 * 8,
-                    context_window=max_chunk_length,
+                    context_window=max_chunck_length,
                     use_rope=True,
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=128 * 4,
                     output_dim=128*4,
                     ffn_dim=128 * 16,
-                    context_window=max_chunk_length,
+                    context_window=max_chunck_length,
                     use_rope=True,
                 ),
             ]
@@ -190,63 +182,59 @@ class ByteLevelEmbedder(EmbedderInterface):
     Input is a sequence of byte-level token ids
     """
 
+    # pylint: disable=super-init-not-called
     def __init__(self, model_cfg):
         super().__init__()
         self.model_cfg = model_cfg
-        max_chunk_length = 16
+        max_chunck_length = 16
 
         self.byte_tokenizer = build_tokenizer(
             tokenizer_type="bpe",
             vocab_size=model_cfg["vocab_size"],
             simplify=False,
-            dataset_name="simple_en_wiki",
+            dataset_name="simple_en_wiki"
         )
 
-        self.byte_embedder = torch.nn.Embedding(
+        self.byte_emebdder = torch.nn.Embedding(
             num_embeddings=model_cfg["vocab_size"],
-            embedding_dim=128,
-            device="cuda"
+            embedding_dim=128
         )
 
         self.delimiter_model = TokenizerEncoder(
-            max_chunk_length=max_chunk_length
+            max_chunck_length=max_chunck_length
         )
 
         self.word_encoding_model = ByteBidirectionEncoding(
-            max_chunk_length=max_chunk_length
+            max_chunck_length=max_chunck_length
         )
 
-
-
-
-        # Store pad_token_id and eot_token as class attributes
+        # get pad token id and pad token vector
         self.pad_token_id = self.byte_tokenizer.pad_token
         self.eot_token = self.byte_tokenizer.eot_token
 
     def forward(self, x):
-        # Pass through byte tokenizer (assuming x is token IDs)
-        # x = self.byte_tokenizer.encode(token_ids)
-        # Register pad_token_vector as a buffer to avoid recomputing
-        pad_token_vector = self.byte_embedder(
-            torch.tensor([self.byte_tokenizer.pad_token]).to("cuda")
-        )
-        self.register_buffer("pad_token_vector", pad_token_vector)
-        # Pass through delimiter model
-        x_embedded = self.byte_embedder(x)
+        # pass through byte_tokenizer
+        #x = self.byte_tokenizer.encode(token_ids)
+
+        # pass through delimiter 
         x, output_token_ids = self.delimiter_model(
-            x=x_embedded,
-            pad_token_vector=self.pad_token_vector,
-            x_ids=x,
-            pad_token_id=self.pad_token_id,
+            x=self.byte_emebdder(x), 
+            pad_token_vector=self.byte_emebdder(torch.tensor([self.pad_token_id]).to("cuda"))[0], 
+            x_ids=x, 
+            pad_token_id=self.pad_token_id
         )
 
-        # Pass through word encoding model
+        # pass through word embedding model
         x = self.word_encoding_model(x)
 
+        # double-check the size
+        #input(x.size())
+        
         return x, output_token_ids
+
 
     def tokenize_input(self, input_string, truncate=False, add_eot=True):
         token_ids = self.byte_tokenizer.encode(input_string)
         if add_eot:
             token_ids.append(self.eot_token)
-        return token_ids
+        return token_ids 

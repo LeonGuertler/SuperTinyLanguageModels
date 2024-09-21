@@ -8,13 +8,14 @@ from models.core_models import GenericTransformer
 from models.embedding_models import GenericEmbedder
 from models.experimental.byte_level.embedding_model import ByteLevelEmbedder
 from models.experimental.byte_level.model_heads import ByteLevelDecoder
-from models.experimental.byte_level.byte_model_shell import ByteModelShell
+from models.experimental.byte_level.byte_model_shell import ByteAutoencoderModelShell
 from models.experimental.hugging_face import HFEmbedder, HFLMHead, HFTransformerCore
 from models.experimental.next_thought.embedding_models import HierarchicalEncoder
 from models.experimental.next_thought.model_heads import VariableLengthLatentDecoder
 from models.experimental.next_thought.core_models import BaselineCoreModel, Conv1dCoreModel
 from models.model_heads import AutoregressiveLMHead
 from models.model_shell import ModelShell
+
 
 from models.experimental.weight_sharing import (
     SharedInteriorFFNLoraAndCProj,
@@ -25,6 +26,7 @@ from models.experimental.moe_weight_sharing import (
     SharedMoE
 )
 
+from models.core_models import PassThroughCore
 
 def build_model(model_cfg=None, checkpoint_path=None, device="cuda"):
     """
@@ -96,6 +98,7 @@ CORE_MODEL_DICT = {
     "ffn_lora_sharing_moe": SharedMoE,
     "next_thought_baseline": BaselineCoreModel,
     "conv": Conv1dCoreModel,
+    "pass_through": PassThroughCore,
 }
 
 
@@ -139,7 +142,7 @@ def build_model_head(model_cfg, embedding_model=None):
 
 MODEL_SHELL_DICT = {
     "standard": ModelShell,
-    "byte_shell": ByteModelShell
+    "byte_autoencoder_shell": ByteAutoencoderModelShell
 }
 
 

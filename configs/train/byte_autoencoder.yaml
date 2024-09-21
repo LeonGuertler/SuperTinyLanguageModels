@@ -1,0 +1,80 @@
+model:
+  core_model_type: pass_through
+  num_layers: 5
+  
+
+  embedding_model_type: byte_level
+  tokenizer_type: bpe
+  tokenizer_dataset_name: simple_en_wiki
+  tokenizer_simplify_data: true
+  vocab_size: 259
+
+  hidden_dim: 512
+  context_window: 4096
+
+  lm_head_type: byte_level
+  lm_head_normalization: rms_norm
+  lm_head_bias: false
+  lm_head_dropout: 0.0
+
+  model_shell_type: byte_autoencoder_shell
+  embedding_weight_tying: true
+  ffn_weight_tying: false
+  cproj_weight_tying: false
+  positional_encoding_type: rope
+
+trainer:
+  trainer_type: base_trainer
+  dataset: simple_en_wiki
+  batch_size: 8
+  gradient_accumulation_steps: 10
+
+  max_iters: 50000
+  eval_interval: 5000
+  log_interval: 10
+  checkpoint_interval: 10000
+  eval_iters: 1000
+
+  eval:
+    mcq_benchmarks:
+    mcq_num_samples: 1000
+    eval_byte_metrics: false 
+    text_modeling_eval: false 
+    text_generation_eval: false
+
+  optimizer:
+    optimizer_name: adamW
+    lr: 5.0e-4
+    min_lr: 5.0e-5
+    weight_decay: 0.01
+    beta1: 0.9
+    beta2: 0.98
+    grad_clip: 1.0
+
+  lr_scheduler:
+    name: cosine
+    warmup_iters: 2500
+
+  dataloader:
+    name: autoencoder
+
+  datasampling:
+    name: standard
+
+  loss_fn:
+    name: cross_entropy
+
+general:
+  logging:
+    wandb_log: false
+    wandb_project: SuperTinyLanguageModels
+    wandb_run_name: Null
+    group_name: base_group
+
+  paths:
+    output_dir: outputs
+    data_dir: data
+    checkpoint_dir: checkpoints
+    eval_dir: evals
+  seed: 489
+  device: cuda

@@ -94,6 +94,7 @@ class BaseTrainer:
 
         print(f"Training the model on {self.cfg.model.get('dataset', None)} with {train_token_count} tokens.")
 
+
         if self.use_wandb and (self.gpu_id == 0 or not self.dist): ## ensures that only the first GPU logs to wandb
             self._setup_logging(
                 total_parameter_count_str=total_params_formated,
@@ -233,7 +234,7 @@ class BaseTrainer:
 
         if self.evaluate_byte_metrics:
             if total_bytes > 0:
-                avg_byte_loss = aggregate_value(total_byte_loss, self.cfg.general.device).item() / total_bytes
+                avg_byte_loss = aggregate_value(total_byte_loss, self.cfg.general.device) / total_bytes
                 avg_byte_perplexity = np.exp(avg_byte_loss) if avg_byte_loss < 100 else float('inf')  # Avoid overflow
             else:
                 avg_byte_loss = float('inf')
@@ -267,14 +268,15 @@ class BaseTrainer:
             eval_results.update(text_generation_results)
 
             # log the generated text
-            wandb.log(
-                {
-                    "Generated Text": wandb.Html(
-                        text_generation_sample_html
-                    )
-                },
-                step=eval_results["token_num"]
-            )
+            if (self.gpu_id==0 or self.gpu_id is None) and self.use_wandb:
+                wandb.log(
+                    {
+                        "Generated Text": wandb.Html(
+                            text_generation_sample_html
+                        )
+                    },
+                    step=eval_results["token_num"]
+                )
 
         # set model back into train mode
         self.model.train()
@@ -314,10 +316,12 @@ class BaseTrainer:
 
             with context_manager:
                 with self.ctx: 
-                    output, aux_loss = self.DDP_model(x)
-                    loss = self.loss_fn(output, y)
-                    if aux_loss is not None:
-                        loss += aux_loss
+                    output, loss = self.DDP_model(x)
+                    print(loss.item())
+                    #loss = self.loss_fn(output, y)
+                    #if aux_loss is not None:
+                    #    loss += aux_loss
+
 
                 # Scale loss to simulate larger effective batch size
                 loss = loss / self.gradient_accumulation_steps
@@ -364,7 +368,7 @@ class BaseTrainer:
 
             # estimate the loss on the train/val sets
             if (
-                not iter_num % self.cfg["trainer"]["eval_interval"]
+                False and not iter_num % self.cfg["trainer"]["eval_interval"]
             ): # run on first iter to prevent bugs causing it to crash
                 self.estimate_performance(
                     iter_num=iter_num,
