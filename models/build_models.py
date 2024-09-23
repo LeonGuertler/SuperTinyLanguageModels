@@ -205,6 +205,18 @@ def initialize_model(model_cfg):
         model_head=model_head,
     )
 
+    # detailed model size 
+    def count_parameters(model):
+        return sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Embedding Model Parameter Count: {count_parameters(embedding_model):,}")
+    print(f"Core Model Parameter Count: {count_parameters(core_model):,}")
+    print(f"Model Head Parameter Count: {count_parameters(model_head):,}")
+
+    # Total parameter count for the complete model
+    print(f"Total Model Parameter Count: {count_parameters(model):,}")
+    input()
+
+
     # initialize the model weights
     init_fn_type = model_cfg.get("initialization_fn", "kaiming")
     if init_fn_type != None:

@@ -26,10 +26,10 @@ model:
 trainer:
   trainer_type: base_trainer
   dataset: simple_en_wiki
-  batch_size: 8
-  gradient_accumulation_steps: 10
+  batch_size: 12
+  gradient_accumulation_steps: 4
 
-  max_iters: 50000
+  max_iters: 10000
   eval_interval: 5000
   log_interval: 10
   checkpoint_interval: 10000
@@ -44,16 +44,16 @@ trainer:
 
   optimizer:
     optimizer_name: adamW
-    lr: 5.0e-4
+    lr: 1.0e-3
     min_lr: 5.0e-5
     weight_decay: 0.01
     beta1: 0.9
-    beta2: 0.98
+    beta2: 0.95
     grad_clip: 1.0
 
   lr_scheduler:
     name: cosine
-    warmup_iters: 2500
+    warmup_iters: 10
 
   dataloader:
     name: autoencoder

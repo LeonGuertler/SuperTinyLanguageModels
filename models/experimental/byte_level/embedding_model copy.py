@@ -22,7 +22,7 @@ class TokenizerEncoder(torch.nn.Module):
     def __init__(self, max_chunck_length):
         super().__init__()
 
-        layers = 3
+        layers = 2
         self.max_chunck_length = max_chunck_length
 
         self.transformer = torch.nn.ModuleList(
@@ -138,20 +138,20 @@ class ByteBidirectionEncoding(torch.nn.Module):
                     context_window=max_chunck_length,
                     use_rope=True,
                 ),
-                ByteLevelTransformerBlock(
-                    input_dim=128*2,
-                    output_dim=128 * 4,
-                    ffn_dim=128 * 8,
-                    context_window=max_chunck_length,
-                    use_rope=True,
-                ),
-                ByteLevelTransformerBlock(
-                    input_dim=128 * 4,
-                    output_dim=128*4,
-                    ffn_dim=128 * 16,
-                    context_window=max_chunck_length,
-                    use_rope=True,
-                ),
+                # ByteLevelTransformerBlock(
+                #     input_dim=128*2,
+                #     output_dim=128 * 4,
+                #     ffn_dim=128 * 8,
+                #     context_window=max_chunck_length,
+                #     use_rope=True,
+                # ),
+                # ByteLevelTransformerBlock(
+                #     input_dim=128 * 4,
+                #     output_dim=128*4,
+                #     ffn_dim=128 * 16,
+                #     context_window=max_chunck_length,
+                #     use_rope=True,
+                # ),
             ]
         )
 

@@ -28,12 +28,12 @@ class TokenizerEncoder(torch.nn.Module):
         self.transformer = torch.nn.ModuleList(
             [
                 GenericTransformerBlock(
-                    hidden_dim=128,
+                    hidden_dim=64,
                     context_window=5 * 2048,
                     use_rope=True,
                     ffn_cfg={
                         "ffn_type": "generic",
-                        "ffn_dim": 4 * 128,
+                        "ffn_dim": 4 * 64,
                         "activation": "gelu",
                         "normalization": "rms_norm",
                         "bias": False,
@@ -53,7 +53,7 @@ class TokenizerEncoder(torch.nn.Module):
         )
 
         self.end_of_seq_head = torch.nn.Linear(
-            128,
+            64,
             2,  # 2 because we just need to predict whether it's a <sep> or <end>
             bias=True,
         )
@@ -75,13 +75,17 @@ class TokenizerEncoder(torch.nn.Module):
 
         # Find chunk end indices for each sequence in the batch
         chunk_indices = []
+        avg_chunk_len = []
         for batch in range(batch_size):
             ends = torch.nonzero(end_of_chunk[batch], as_tuple=False).squeeze(-1)
             if ends.numel() == 0:
                 ends = torch.tensor([seq_len - 1], device=device)
             starts = torch.cat([torch.tensor([0], device=device), ends[:-1] + 1])
             chunk_indices.append((starts, ends))
+            avg_chunk_len.append((ends - starts).float().mean())
 
+        print(f"Average Chunk len: {sum(avg_chunk_len)/len(avg_chunk_len)}")
+        reg_term = output[:, :, 1].mean()
         max_num_chunks = 1024
         max_chunk_length = self.max_chunk_length
 
@@ -117,7 +121,7 @@ class TokenizerEncoder(torch.nn.Module):
                 output_tensor[batch, i, :chunk_len, :] = chunk
                 output_token_ids[batch, i, :chunk_len] = chunk_ids
 
-        return output_tensor, output_token_ids
+        return output_tensor, output_token_ids, reg_term #sum(avg_chunk_len)/len(avg_chunk_len)
 
 
 
@@ -130,33 +134,34 @@ class ByteBidirectionEncoding(torch.nn.Module):
     def __init__(self, max_chunk_length):
         super().__init__()
         # build the transformer blocks
+        hidden = 64
         self.transformer = torch.nn.ModuleList(
             [
                 ByteLevelTransformerBlock(
-                    input_dim=128,
-                    output_dim=128 * 2,
-                    ffn_dim=128 * 4,
+                    input_dim=hidden,
+                    output_dim=hidden,
+                    ffn_dim=hidden*4,
                     context_window=max_chunk_length,
                     use_rope=True,
                 ),
                 ByteLevelTransformerBlock(
-                    input_dim=128*2,
-                    output_dim=128 * 2,
-                    ffn_dim=128 * 8,
+                    input_dim=hidden,
+                    output_dim=hidden ,
+                    ffn_dim=hidden*4,
                     context_window=max_chunk_length,
                     use_rope=True,
                 ),
                 ByteLevelTransformerBlock(
-                    input_dim=128*2,
-                    output_dim=128 * 4,
-                    ffn_dim=128 * 8,
+                    input_dim=hidden,
+                    output_dim=hidden*4,
+                    ffn_dim=hidden*8,
                     context_window=max_chunk_length,
                     use_rope=True,
                 ),
                 ByteLevelTransformerBlock(
-                    input_dim=128 * 4,
-                    output_dim=128*4,
-                    ffn_dim=128 * 16,
+                    input_dim=hidden*4,
+                    output_dim=hidden*8,
+                    ffn_dim=hidden*12,
                     context_window=max_chunk_length,
                     use_rope=True,
                 ),
@@ -176,7 +181,8 @@ class ByteBidirectionEncoding(torch.nn.Module):
             x = block(x)
 
         # use last # TODO try mean pooling
-        x = x[:, -1, :] # (batch*C_num), 1, 512 
+        #x = x[:, -1, :] # (batch*C_num), 1, 512 
+        x = x.mean(-2)
 
 
         # reshape it back to 3
@@ -193,7 +199,7 @@ class ByteLevelEmbedder(EmbedderInterface):
     def __init__(self, model_cfg):
         super().__init__()
         self.model_cfg = model_cfg
-        max_chunk_length = 16
+        max_chunk_length = 12
 
         self.byte_tokenizer = build_tokenizer(
             tokenizer_type="bpe",
@@ -204,7 +210,7 @@ class ByteLevelEmbedder(EmbedderInterface):
 
         self.byte_embedder = torch.nn.Embedding(
             num_embeddings=model_cfg["vocab_size"],
-            embedding_dim=128,
+            embedding_dim=64,
             device="cuda"
         )
 
@@ -233,7 +239,7 @@ class ByteLevelEmbedder(EmbedderInterface):
         self.register_buffer("pad_token_vector", pad_token_vector)
         # Pass through delimiter model
         x_embedded = self.byte_embedder(x)
-        x, output_token_ids = self.delimiter_model(
+        x, output_token_ids, chunk_len = self.delimiter_model(
             x=x_embedded,
             pad_token_vector=self.pad_token_vector,
             x_ids=x,
@@ -243,7 +249,7 @@ class ByteLevelEmbedder(EmbedderInterface):
         # Pass through word encoding model
         x = self.word_encoding_model(x)
 
-        return x, output_token_ids
+        return x, output_token_ids, chunk_len
 
     def tokenize_input(self, input_string, truncate=False, add_eot=True):
         token_ids = self.byte_tokenizer.encode(input_string)

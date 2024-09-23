@@ -8,6 +8,8 @@ import torch
 from models import core_models, embedding_models, model_heads
 from models.model_shell import ModelShell 
 
+import time 
+
 def cross_entropy_loss_fn(logits, y, ignore_index=-1):
     """
     Cross Entropy Loss Function that ignores specified index.
@@ -22,7 +24,7 @@ def cross_entropy_loss_fn(logits, y, ignore_index=-1):
     """
     logits = logits.view(-1, logits.size(-1))  # (B*S, V)
     y = y.view(-1)  # (B*S,)
-    print(logits.size(), y.size())
+    #print(logits.size(), y.size())
     return torch.nn.functional.cross_entropy(logits, y, ignore_index=ignore_index)
 
 class ByteAutoencoderModelShell(torch.nn.Module):
@@ -88,22 +90,30 @@ class ByteAutoencoderModelShell(torch.nn.Module):
         Returns:
             Tuple[Tensor, Tensor]: The core model output and the loss.
         """
-
+        #print(f"\n\n")
+        #t0 = time.time()
         # Pass the token_ids through the embedding model
         # to get embeddings and target_ids (B, S, H) and (B, S)
-        embeddings, target_ids = self.embedding_model(token_ids)
-
+        embeddings, target_ids, chunk_len = self.embedding_model(token_ids)
+        
+        #print(f"Embedding: {time.time() - t0:.5f} Seconds")
         # Pass the embeddings through the core model
         core_output = self.core_model(embeddings)
+        #to = time.time()
 
         # Pass the core model output through the model head to get logits (B, S, V)
         logits = self.model_head(core_output)
-
+        #print(f"LM Head: {time.time() - t0:.5f} Seconds")
         # Compute the loss, ignoring pad tokens
         loss = cross_entropy_loss_fn(
             logits=logits,
             y=target_ids.long(),
             ignore_index=self.embedding_model.pad_token_id
-        )
+        ) #- 0.2*chunk_len
+        chunk_loss = -0.002*chunk_len 
 
-        return core_output, loss
+        total_loss = loss + chunk_loss
+
+        print(f"Total Loss: {total_loss}, Chunk Loss: {chunk_loss}, BCE Loss: {loss}")
+
+        return core_output, total_loss

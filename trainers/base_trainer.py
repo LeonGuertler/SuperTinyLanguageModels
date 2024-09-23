@@ -20,6 +20,8 @@ from itertools import islice
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP 
 
+import time 
+
 
 # pylint: disable invalid-name
 class BaseTrainer:
@@ -317,7 +319,7 @@ class BaseTrainer:
             with context_manager:
                 with self.ctx: 
                     output, loss = self.DDP_model(x)
-                    print(loss.item())
+                    #print(loss.item())
                     #loss = self.loss_fn(output, y)
                     #if aux_loss is not None:
                     #    loss += aux_loss
