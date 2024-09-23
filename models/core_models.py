@@ -3,7 +3,6 @@ Simple, flexible core models.
 """
 
 import torch
-
 from models.components.layers.transformer_blocks import GenericTransformerBlock
 
 
@@ -75,10 +74,3 @@ class GenericTransformer(torch.nn.Module):
         return x
 
 
-class PassThroughCore(torch.nn.Module):
-    def __init__(self, model_cfg):
-        super().__init__()
-        pass 
-
-    def forward(self, x):
-        return x

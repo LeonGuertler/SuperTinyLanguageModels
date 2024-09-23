@@ -200,7 +200,7 @@ class BaseTrainer:
             y = y.to(device)
 
             with self.ctx:
-                output, _ = self.model(x)
+                output, _, _ = self.model(x)
                 loss = torch.nn.functional.cross_entropy(
                     output.view(-1, output.size(-1)),
                     y.view(-1),
@@ -304,6 +304,7 @@ class BaseTrainer:
         self.optimizer.zero_grad()  # Clear gradients at the start of accumulation
 
         accumulated_loss = 0
+        additional_info_dict = {}
         for i in range(self.gradient_accumulation_steps):
             # get the next batch
             x, y = next(self.train_dataloader_iter)
@@ -318,15 +319,16 @@ class BaseTrainer:
 
             with context_manager:
                 with self.ctx: 
-                    output, loss = self.DDP_model(x)
-                    #print(loss.item())
-                    #loss = self.loss_fn(output, y)
-                    #if aux_loss is not None:
-                    #    loss += aux_loss
+                    output, aux_loss, additional_info_sub_dict = self.DDP_model(x)
+                    loss = self.loss_fn(output, y)
+                    if aux_loss is not None:
+                        loss += aux_loss
 
 
                 # Scale loss to simulate larger effective batch size
                 loss = loss / self.gradient_accumulation_steps
+                for key in additional_info_sub_dict:
+                    additional_info_dict[key] = additional_info_dict.get(key, 0) + additional_info_sub_dict[key]/self.gradient_accumulation_steps
                 self.scaler.scale(loss).backward()
                 accumulated_loss += loss.item()
 
@@ -342,7 +344,7 @@ class BaseTrainer:
         self.scaler.update()
         self.optimizer.zero_grad()  # Reset gradients after update
 
-        return accumulated_loss
+        return accumulated_loss, additional_info_dict
 
     def _save_model(self, iter_num=0):
         """
@@ -370,7 +372,8 @@ class BaseTrainer:
 
             # estimate the loss on the train/val sets
             if (
-                False and not iter_num % self.cfg["trainer"]["eval_interval"]
+                not iter_num % self.cfg["trainer"]["eval_interval"] \
+                and self.cfg["trainer"].get("run_eval", True)
             ): # run on first iter to prevent bugs causing it to crash
                 self.estimate_performance(
                     iter_num=iter_num,
@@ -389,7 +392,7 @@ class BaseTrainer:
                 self._save_model(iter_num)
 
 
-            lossf = self._run_step() 
+            lossf, additional_info_dict = self._run_step() 
             end_time = time.time()
             if not iter_num % self.cfg["trainer"]["log_interval"] and iter_num > 0:
                 ## uncomment the following line to print the loss on all GPUs
@@ -411,6 +414,18 @@ class BaseTrainer:
                         },
                         step=token_num
                     )
+
+                    # log all additional information
+                    if len(additional_info_dict) > 0:
+                        # refactor keys for better logging structure
+                        wandb.log(
+                            {
+                                f"additional_info/{key}": additional_info_dict[key] \
+                                for key in additional_info_dict.keys()
+                            },#.update({"token_num": token_num})
+                            step=token_num
+                        )
+
         # save the final model
         if self.gpu_id == 0 or self.gpu_id is None: ## ensure only the first GPU saves the model
             self._save_model(iter_num+1) # just so it looks nicer

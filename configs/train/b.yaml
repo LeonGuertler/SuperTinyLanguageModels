@@ -71,11 +71,11 @@ trainer:
 
   optimizer:
     optimizer_name: adamW
-    lr: 6.0e-6
-    min_lr: 6.0e-8
-    weight_decay: 0.1
+    lr: 6.0e-4
+    min_lr: 6.0e-6
+    weight_decay: 0.01
     beta1: 0.9
-    beta2: 0.95
+    beta2: 0.999
     grad_clip: 1.0
 
   lr_scheduler:

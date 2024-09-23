@@ -22,54 +22,32 @@ class ByteLevelDecoder(torch.nn.Module):
     def __init__(self, model_cfg):
         super().__init__()
         self.hidden_dim = model_cfg["hidden_dim"]
-        self.embedding_dim = 64
+        self.byte_hidden = model_cfg["byte_hidden"]
         self.byte_vocab_size = model_cfg["vocab_size"]
-        self.byte_context_window = 12
+        self.max_chunk_length = model_cfg["max_chunk_length"]
+        self.num_byte_decoder_layers = model_cfg["num_byte_decoder_layers"]
 
         self.projection = torch.nn.Linear(
             in_features=self.hidden_dim, # 512
-            out_features=self.byte_context_window * self.embedding_dim,
+            out_features=self.max_chunk_length * self.byte_hidden,
             bias=False,
         )
-
-
 
         # build transformer block
         self.transformer = torch.nn.ModuleList(
             [
                 ByteLevelTransformerBlock(
-                    input_dim=self.embedding_dim,
-                    output_dim=self.embedding_dim,
-                    ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
+                    input_dim=self.byte_hidden,
+                    output_dim=self.byte_hidden,
+                    ffn_dim=self.byte_hidden * 4,
+                    context_window=self.max_chunk_length,
                     use_rope=True,
-                ),
-                ByteLevelTransformerBlock(
-                    input_dim=self.embedding_dim,
-                    output_dim=self.embedding_dim,
-                    ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
-                    use_rope=True,
-                ),
-                ByteLevelTransformerBlock(
-                    input_dim=self.embedding_dim,
-                    output_dim=self.embedding_dim,
-                    ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
-                    use_rope=True,
-                ),
-                ByteLevelTransformerBlock(
-                    input_dim=self.embedding_dim,
-                    output_dim=self.embedding_dim,
-                    ffn_dim=self.embedding_dim * 4,
-                    context_window=self.byte_context_window,
-                    use_rope=True,
-                ),
+                ) for _ in range(self.num_byte_decoder_layers)
             ]
         )
 
         self.lm_head = torch.nn.Linear(
-            in_features=self.embedding_dim, # 128
+            in_features=self.byte_hidden, # 128
             out_features=self.byte_vocab_size, # 259 (256 bytes + 3 special)
             bias=False,
         )
@@ -80,21 +58,21 @@ class ByteLevelDecoder(torch.nn.Module):
         """
         # project the latent embeddings
         x = self.projection(x)
-        x = x.view(x.size(0), x.size(1), self.byte_context_window, self.embedding_dim)
+        x = x.view(x.size(0), x.size(1), self.max_chunk_length, self.byte_hidden)
 
 
         # Reshape for transformer
         B, S, _, _ = x.size()
-        x = x.view(B * S, self.byte_context_window, self.embedding_dim).contiguous()
+        x = x.view(B * S, self.max_chunk_length, self.byte_hidden).contiguous()
 
         # pass through transformer
         for block in self.transformer:
             x = block(x)
-        # pass final self.byte_context_window byte tokens through lm head
+        # pass final self.max_chunk_length byte tokens through lm head
         x = self.lm_head(x)
 
         # reshape and return
-        x = x.view(B, S, self.byte_context_window, self.byte_vocab_size)
+        x = x.view(B, S, self.max_chunk_length, self.byte_vocab_size)
         return x
 
     def inference(self, x):
@@ -102,49 +80,3 @@ class ByteLevelDecoder(torch.nn.Module):
         inference
         """
         return self.forward(x)[0][:, -1, :, :]
-
-    # def forward(self, x):
-    #     """
-    #     Bidirectionally decode all tokens at once
-    #     """
-    #     torch.cuda.synchronize()
-    #     print(f"\n\n")
-    #     t0 = time.time()
-    #     # project the latent embeddings
-    #     x = self.projection(x)
-    #     x = x.view(x.size(0), x.size(1), self.byte_context_window, self.embedding_dim)
-    #     torch.cuda.synchronize()
-    #     print(f"Projection: {time.time() - t0:.5f} Seconds")
-    #     t0 = time.time()
-    #     # pass through model and deocde
-    #     B, S, _, _ = x.size()
-    #     x = x.view(B * S, self.byte_context_window, self.embedding_dim)
-    #     torch.cuda.synchronize()
-    #     print(f"Reshaping: {time.time() - t0:.5f} Seconds")
-    #     t0 = time.time()
-    #     # positional encoding
-    #     #x = x + self.pos_encoder(x)
-
-    #     # pass through transformer
-    #     for block in self.transformer:
-    #         x = block(x)
-    #     torch.cuda.synchronize()
-    #     print(f"Transformer: {time.time() - t0:.5f} Seconds")
-    #     # pass final self.byte_context_window byte tokens through lm head
-    #     t0 = time.time()
-    #     x = self.lm_head(x)
-    #     torch.cuda.synchronize()
-    #     print(f"LM-Head: {time.time() - t0:.5f} Seconds")
-    #     # reshape and return
-    #     to = time.time()
-    #     x = x.view(B, S, self.byte_context_window, self.byte_vocab_size)
-    #     torch.cuda.synchronize()
-    #     print(f"Reshaping: {time.time()-t0:.5f} Seconds")
-    #     print(f"\n\n")
-    #     return x
-
-    # def inference(self, x):
-    #     """
-    #     inference
-    #     """
-    #     return self.forward(x)[0][:, -1, :, :]

@@ -46,13 +46,22 @@ class ByteAutoencoderModelShell(torch.nn.Module):
         self.core_model = core_model
         self.model_head = model_head
 
-        self.device = torch.device("cpu")  # Initialize to CPU or any default device
+        self.device = torch.device("cuda")  # Initialize to CPU or any default device
 
         # Initialize weights if necessary
         self._initialize_weights()
 
         # Print basic model statistics
         self._print_model_stats()
+
+
+        # get loss hyperparameters
+        self.target_chunk_len = model_cfg["target_chunk_len"]
+        self.chunk_len_loss_weight = model_cfg["chunk_len_loss_weight"]
+        self.max_chunk_length = model_cfg["max_chunk_length"]
+        self.chunk_len_penalty = model_cfg["chunk_len_penalty"]
+
+
 
     def _initialize_weights(self):
         """
@@ -69,6 +78,13 @@ class ByteAutoencoderModelShell(torch.nn.Module):
         """
         Print basic statistics about the model.
         """
+        def count_parameters(model):
+            return sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"Embedding Model Parameter Count: {count_parameters(self.embedding_model):,}")
+        print(f"Core Model Parameter Count: {count_parameters(self.core_model):,}")
+        print(f"Model Head Parameter Count: {count_parameters(self.model_head):,}")
+
+
         total_params = sum(p.numel() for p in self.parameters())
         trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
         print(f"Total Parameters: {total_params}")
@@ -90,30 +106,47 @@ class ByteAutoencoderModelShell(torch.nn.Module):
         Returns:
             Tuple[Tensor, Tensor]: The core model output and the loss.
         """
-        #print(f"\n\n")
-        #t0 = time.time()
         # Pass the token_ids through the embedding model
         # to get embeddings and target_ids (B, S, H) and (B, S)
-        embeddings, target_ids, chunk_len = self.embedding_model(token_ids)
+        embeddings, target_ids, avg_chunk_len = self.embedding_model(token_ids)
         
-        #print(f"Embedding: {time.time() - t0:.5f} Seconds")
         # Pass the embeddings through the core model
         core_output = self.core_model(embeddings)
-        #to = time.time()
 
         # Pass the core model output through the model head to get logits (B, S, V)
         logits = self.model_head(core_output)
-        #print(f"LM Head: {time.time() - t0:.5f} Seconds")
+
+
         # Compute the loss, ignoring pad tokens
         loss = cross_entropy_loss_fn(
             logits=logits,
             y=target_ids.long(),
             ignore_index=self.embedding_model.pad_token_id
-        ) #- 0.2*chunk_len
-        chunk_loss = -0.002*chunk_len 
+        )
 
-        total_loss = loss + chunk_loss
+        # Aux loss 1: Target Chunk length
+        chunk_loss = (avg_chunk_len - self.target_chunk_len) ** 2
 
-        print(f"Total Loss: {total_loss}, Chunk Loss: {chunk_loss}, BCE Loss: {loss}")
+        # Aux loss 2: Max Chunk length
+        over_length = torch.clamp(
+            avg_chunk_len-self.max_chunk_length,
+            min=0
+        )
+        length_loss = torch.sum(over_length)
 
-        return core_output, total_loss
+
+        total_loss = loss + \
+            self.chunk_len_loss_weight * chunk_loss + \
+            self.chunk_len_penalty * length_loss
+
+        #print(f"Total Loss: {total_loss}, Chunk Loss: {chunk_loss}, BCE Loss: {loss}")
+
+        additional_info_dict = {
+            "average_chunk_length": avg_chunk_len.item(),
+            "chunk_len_loss": self.chunk_len_loss_weight*chunk_loss,
+            "chunk_len_penalty_loss": self.chunk_len_penalty*length_loss,
+            "BCE-loss": loss,
+            "total-loss": total_loss,
+        }
+
+        return core_output, total_loss, additional_info_dict

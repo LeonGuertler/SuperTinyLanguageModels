@@ -62,7 +62,7 @@ class ModelShell(torch.nn.Module):
         # pass the core model output through the model head
         x = self.model_head(x)
 
-        return x
+        return x, {} # return additional info if necessary
 
     @torch.no_grad()
     def inference(self, model_input):

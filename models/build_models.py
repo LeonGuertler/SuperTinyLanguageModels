@@ -6,9 +6,14 @@ import torch
 
 from models.core_models import GenericTransformer
 from models.embedding_models import GenericEmbedder
-from models.experimental.byte_level.embedding_model import ByteLevelEmbedder
-from models.experimental.byte_level.model_heads import ByteLevelDecoder
-from models.experimental.byte_level.byte_model_shell import ByteAutoencoderModelShell
+
+# import experimental models 
+from models.experimental.byte_level import (
+    ByteAutoencoderModelShell,
+    PassThroughCore,
+    ByteLevelDecoder,
+    ByteLevelEmbedder
+)
 from models.experimental.hugging_face import HFEmbedder, HFLMHead, HFTransformerCore
 from models.experimental.next_thought.embedding_models import HierarchicalEncoder
 from models.experimental.next_thought.model_heads import VariableLengthLatentDecoder
@@ -26,7 +31,6 @@ from models.experimental.moe_weight_sharing import (
     SharedMoE
 )
 
-from models.core_models import PassThroughCore
 
 def build_model(model_cfg=None, checkpoint_path=None, device="cuda"):
     """
@@ -204,17 +208,6 @@ def initialize_model(model_cfg):
         core_model=core_model,
         model_head=model_head,
     )
-
-    # detailed model size 
-    def count_parameters(model):
-        return sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Embedding Model Parameter Count: {count_parameters(embedding_model):,}")
-    print(f"Core Model Parameter Count: {count_parameters(core_model):,}")
-    print(f"Model Head Parameter Count: {count_parameters(model_head):,}")
-
-    # Total parameter count for the complete model
-    print(f"Total Model Parameter Count: {count_parameters(model):,}")
-    input()
 
 
     # initialize the model weights

@@ -4,7 +4,6 @@ Each loss function should take in output of a model and the target labels
 and return the loss value. This need not be the logits."""
 
 import time
-
 import torch
 
 
@@ -30,9 +29,15 @@ def next_token_mlm_loss_fn(logits, y_mask, masked_loss=True):
     return cross_entropy_loss_fn(logits, y)
 
 
+def pass_through_loss_fn(logits, y):
+    """Return a scalar zero loss."""
+    return torch.tensor(0.0, device=logits.device, dtype=logits.dtype)
+
+
 LOSS_FN_DICT = {
     "cross_entropy": cross_entropy_loss_fn,
     "next_token_mlm": next_token_mlm_loss_fn,
+    "pass_through": pass_through_loss_fn
 }
 
 def build_loss_fn(loss_fn_type: str):
