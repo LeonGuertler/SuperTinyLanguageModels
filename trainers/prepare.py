@@ -5,6 +5,8 @@ import os
 import torch 
 import numpy as np 
 from tqdm import tqdm 
+from multiprocess import set_start_method
+
 from trainers.data_utils import load_data
 
 from models.build_models import build_embedding_model 
@@ -189,8 +191,13 @@ def prepare_data(cfg):
     # Get the maximum number of processors
     max_procs = os.cpu_count()
     # cap at 12 to reduce memory usage
-    max_procs = min(max_procs, 12) # TODO properly fix this
+    max_procs = min(max_procs, 12)
     print(f"Using {max_procs} processors")
+
+    # Fix for RuntimeError: Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, you must use the 'spawn' start method.
+    # See https://huggingface.co/docs/datasets/process#multiprocessing
+    if max_procs > 1:
+        set_start_method("spawn")
 
     # tokenize the dataset
     tokenized = split_dataset.map(
