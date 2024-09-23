@@ -1,7 +1,6 @@
 model:
   core_model_type: pass_through
 
-
   # byte-level related
   hidden_dim: 384
   byte_hidden: 96
@@ -10,7 +9,6 @@ model:
   num_delimiter_layers: 3
   num_byte_decoder_layers: 5
 
-
   # loss hyperparams
   target_chunk_len: 8.0
   chunk_len_loss_weight: 0.1
@@ -18,14 +16,11 @@ model:
 
   context_window: 8192
 
-
   embedding_model_type: byte_level
   tokenizer_type: bpe
   tokenizer_dataset_name: simple_en_wiki # no need to change. Not used anyway
   tokenizer_simplify_data: true
   vocab_size: 259
-
-  
 
   lm_head_type: byte_level
   lm_head_normalization: rms_norm
@@ -54,8 +49,8 @@ trainer:
   eval:
     mcq_benchmarks:
     mcq_num_samples: 1000
-    eval_byte_metrics: false 
-    text_modeling_eval: false 
+    eval_byte_metrics: false
+    text_modeling_eval: false
     text_generation_eval: false
 
   optimizer:

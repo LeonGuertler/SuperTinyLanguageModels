@@ -75,7 +75,7 @@ class TokenizerEncoder(torch.nn.Module):
         # Apply sigmoid activation
         probs = torch.sigmoid(logits)
         # Determine chunk boundaries using a threshold
-        threshold = 0.5  # Adjust as needed
+        threshold = 0.8  # Adjust as needed
         end_of_chunk = probs > threshold
 
         batch_size, seq_len = end_of_chunk.size()
