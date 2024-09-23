@@ -57,7 +57,7 @@ class TokenizerEncoder(torch.nn.Module):
         )
 
         self.end_of_seq_head = torch.nn.Linear(
-            64,
+            self.byte_hidden,
             1,  # 2 because we just need to predict whether it's a <sep> or <end>
             bias=True,
         )
@@ -230,7 +230,7 @@ class ByteLevelEmbedder(EmbedderInterface):
 
         self.byte_embedder = torch.nn.Embedding(
             num_embeddings=model_cfg["vocab_size"],
-            embedding_dim=64,
+            embedding_dim=model_cfg["byte_hidden"],
             device="cuda"
         )
 

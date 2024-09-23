@@ -197,7 +197,7 @@ class ByteLevelEmbedder(EmbedderInterface):
 
         self.byte_emebdder = torch.nn.Embedding(
             num_embeddings=model_cfg["vocab_size"],
-            embedding_dim=128
+            embedding_dim=self.model_cfg["byte_hidden"]
         )
 
         self.delimiter_model = TokenizerEncoder(
