@@ -4,7 +4,7 @@ A collection of different model heads.
 
 import torch
 
-from models.components.layers.normalization import build_normalization
+from models.components.normalization import build_normalization
 
 
 class AutoregressiveLMHead(torch.nn.Module):

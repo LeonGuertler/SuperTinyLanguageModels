@@ -4,10 +4,10 @@ The Embedding model for a VAE style sequence to sequence model.
 import torch 
 
 from models.embedding_models import GenericEmbedder
-from models.components.layers.transformer_blocks import GenericTransformerBlock
+from models.components.transformer_blocks import GenericTransformerBlock
 
 from models.components.positional_encoding import build_positional_encodings
-from models.components.layers.tokenizers import build_tokenizer
+from models.components.tokenizers import build_tokenizer
 
 
 # import local components

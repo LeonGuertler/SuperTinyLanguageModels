@@ -108,13 +108,23 @@ class ByteAutoencoderModelShell(torch.nn.Module):
         """
         # Pass the token_ids through the embedding model
         # to get embeddings and target_ids (B, S, H) and (B, S)
-        embeddings, target_ids, avg_chunk_len = self.embedding_model(token_ids)
+        embeddings, target_ids, avg_chunk_len, target_mask = self.embedding_model(token_ids)
+        # print(embeddings.size())
+        # print(f"Embeddings: {embeddings.size()}")
+        # print(f"target_ids: {target_ids.size()}")
+        # print(f"Avg. chunk len: {avg_chunk_len}")
+        # exit()
         
         # Pass the embeddings through the core model
         core_output = self.core_model(embeddings)
 
         # Pass the core model output through the model head to get logits (B, S, V)
-        logits = self.model_head(core_output)
+        logits = self.model_head(core_output, target_ids)
+
+        # input(logits.size()) # [2, 3456, 6, 259]
+        # input(target_ids.size()) # [2, 3456, 6]
+        # input(avg_chunk_len)
+        # exit()
 
 
         # Compute the loss, ignoring pad tokens

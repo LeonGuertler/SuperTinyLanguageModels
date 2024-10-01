@@ -9,7 +9,7 @@ from models.experimental.next_thought.layers import (
 )
 
 from models.embedding_models import GenericEmbedder
-from models.components.layers.transformer_blocks import GenericTransformerBlock
+from models.components.transformer_blocks import GenericTransformerBlock
 from models.components.positional_encoding import build_positional_encodings
 
 

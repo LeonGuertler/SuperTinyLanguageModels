@@ -7,7 +7,7 @@ from transformers import AutoTokenizer
 
 # local imports
 from trainers.data_utils import load_data
-from models.components.layers import utils
+from models.components import utils
 
 # text processing imports
 import re

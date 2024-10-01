@@ -1,5 +1,5 @@
 """
-A collection of util functions
+A collection of tokenizer util functions
 """
 import os 
 import hydra 
@@ -16,7 +16,7 @@ def get_tokenizer_path(tokenizer_type, vocab_size, dataset_name, simplify):
     ## TODO: find better solution
     
     tokenizer_folder = os.path.join(
-        project_root, "components", "layers", "tokenizer_models"
+        project_root, "components", "tokenizer_models"
     )
 
     # create folder if not exists

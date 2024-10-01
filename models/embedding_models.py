@@ -8,7 +8,7 @@ import torch
 import numpy as np 
 
 from models.components.positional_encoding import build_positional_encodings
-from models.components.layers.tokenizers import build_tokenizer
+from models.components.tokenizers import build_tokenizer
 
 
 class EmbedderInterface(torch.nn.Module):
