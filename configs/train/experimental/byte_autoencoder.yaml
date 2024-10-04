@@ -38,7 +38,7 @@ model:
 
 trainer:
   trainer_type: base_trainer
-  dataset: simple_en_wiki
+  dataset: en_wiki
   batch_size: 2
   gradient_accumulation_steps: 4
 

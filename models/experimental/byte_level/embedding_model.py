@@ -76,6 +76,9 @@ class TokenizerEncoder(torch.nn.Module):
         threshold = 0.5  # Adjust as needed
         end_of_chunk = probs > threshold  # Shape: (batch, seq_len)
 
+        chunk_len_loss = torch.mean(torch.sum(probs, dim=1))
+        
+
         batch_size, seq_len = end_of_chunk.size()
         device = x.device
 
@@ -154,7 +157,7 @@ class TokenizerEncoder(torch.nn.Module):
             for start, end in zip(starts.tolist(), ends.tolist()):
                 attention_masks[batch, start:end, start:end] = True
 
-        return x_transformed, x_ids, avg_chunk_len, attention_masks, chunk_spans
+        return x_transformed, x_ids, avg_chunk_len, attention_masks, chunk_spans, chunk_len_loss
 
 
 
@@ -413,7 +416,7 @@ class ByteLevelEmbedder(EmbedderInterface):
         x_embedded = self.byte_embedder(x)  # (batch_size, seq_len, byte_hidden)
 
         # Pass through delimiter model
-        x_transformed, output_token_ids, avg_chunk_len, attention_masks, chunk_spans = self.delimiter_model(
+        x_transformed, output_token_ids, avg_chunk_len, attention_masks, chunk_spans, chunk_len_loss = self.delimiter_model(
             x=x_embedded,
             x_ids=x,
         )
@@ -436,7 +439,7 @@ class ByteLevelEmbedder(EmbedderInterface):
         # input(f"target_mask: {target_mask.size()}")
         # print(target_tensor)
         # exit()
-        return x_encoded, target_tensor, avg_chunk_len, target_mask
+        return x_encoded, target_tensor, avg_chunk_len, target_mask, chunk_len_loss
 
     def tokenize_input(self, input_string, truncate=False, add_eot=True):
         token_ids = self.byte_tokenizer.encode(input_string)
