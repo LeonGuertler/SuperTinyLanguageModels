@@ -1,13 +1,32 @@
 model:
-  core_model_type: pass_through
+  core_model_type: generic 
+  num_layers: 12
+  
+  ffn:
+    ffn_type: generic
+    ffn_dim: 1536
+    activation: gelu
+    normalization: rms_norm
+    bias: false
+    dropout: 0.0
+
+  attn:
+    attn_type: causal
+    num_kv_heads: 8
+    num_q_heads: 8
+    normalization: rms_norm
+    bias: false
+    dropout: false
+    pos_enc_cfg:
+      positional_encoding_type: rope
 
   # byte-level related
   hidden_dim: 384
-  byte_hidden: 96
+  byte_hidden: 64
   max_chunk_length: 12
   max_num_chunks: 1024
-  num_delimiter_layers: 3
-  num_byte_decoder_layers: 5
+  num_delimiter_layers: 5
+  num_byte_decoder_layers: 8
 
 
   global_byte_projection: 4
@@ -31,16 +50,16 @@ model:
   lm_head_dropout: 0.0
 
   model_shell_type: byte_autoencoder_shell
-  embedding_weight_tying: true
-  ffn_weight_tying: false
+  embedding_weight_tying: false
+  ffn_weight_tying: true
   cproj_weight_tying: false
   positional_encoding_type: rope
 
 trainer:
   trainer_type: base_trainer
   dataset: en_wiki
-  batch_size: 2
-  gradient_accumulation_steps: 4
+  batch_size: 3
+  gradient_accumulation_steps: 80
 
   max_iters: 10000
   eval_interval: 50000000
@@ -70,7 +89,7 @@ trainer:
     warmup_iters: 100
 
   dataloader:
-    name: autoencoder
+    name: standard
 
   datasampling:
     name: standard
@@ -80,7 +99,7 @@ trainer:
 
 general:
   logging:
-    wandb_log: false
+    wandb_log: true
     wandb_project: SuperTinyLanguageModels
     wandb_run_name: Null
     group_name: experimental_byte_level

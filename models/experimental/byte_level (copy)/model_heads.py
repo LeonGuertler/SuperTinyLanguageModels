@@ -11,7 +11,6 @@ from models.experimental.byte_level.layers import (
 )
 from models.components.transformer_blocks import GenericTransformerBlock
 
-from models.components.normalization import build_normalization
 import time
 
 
@@ -31,8 +30,7 @@ class ByteLevelDecoder(torch.nn.Module):
         self.byte_vocab_size = model_cfg["vocab_size"]
         self.max_chunk_length = model_cfg["max_chunk_length"]
         self.num_byte_decoder_layers = model_cfg["num_byte_decoder_layers"]
-        self.byte_hidden = 384
-        self.max_chunk_length = 6
+
         self.projection = torch.nn.Linear(
             in_features=self.hidden_dim, # 512
             out_features=self.max_chunk_length * self.byte_hidden,
@@ -51,17 +49,6 @@ class ByteLevelDecoder(torch.nn.Module):
                 ) for _ in range(self.num_byte_decoder_layers)
             ]
         )
-
-        # share ffn weights
-        # Share the weights between all FFN blocks, similar to:
-        # https://arxiv.org/abs/2402.16840
-        ffn_0 = self.transformer.h[0].ffn
-        for i in range(1, len(self.transformer.h)):
-            for name, module in ffn_0.named_modules():
-                if isinstance(module, torch.nn.Linear):
-                    target_module = dict(self.transformer.h[i].ffn.named_modules())[name]
-                    target_module.weight = module.weight
-                    target_module.bias = module.bias
 
         self.lm_head = torch.nn.Linear(
             in_features=self.byte_hidden, # 128
@@ -148,14 +135,6 @@ class ByteLevelDecoder(torch.nn.Module):
                 ) for _ in range(self.num_byte_decoder_layers)
             ]
         )
-
-        # build the ffn norm
-        self.ffn_norm = build_normalization(
-            normalization_name="rms_norm", # Default: rms_norm
-            dim=self.byte_hidden,
-            bias=False,
-        )
-
 
         self.lm_head = torch.nn.Linear(
             in_features=self.byte_hidden, # 128
@@ -356,9 +335,6 @@ class ByteLevelDecoder(torch.nn.Module):
 
         # Reshape x_output if necessary
         x_output = x_output.view(B, S, self.num_global_proj + S_c, self.byte_hidden)
-
-        # reg
-        x_output = self.ffn_norm(x_output)
 
         return self.lm_head(
             x_output[:, :, self.num_global_proj:, :]

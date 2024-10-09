@@ -7,7 +7,7 @@ import torch
 
 from models import core_models, embedding_models, model_heads
 from models.model_shell import ModelShell 
-import numpy as np
+
 import time 
 
 def cross_entropy_loss_fn(logits, y, ignore_index=-1):
@@ -22,21 +22,8 @@ def cross_entropy_loss_fn(logits, y, ignore_index=-1):
     Returns:
         Tensor: The computed cross entropy loss.
     """
-    # print(logits.?size())
-    # torch.Size([2, 641, 14, 259])
-    # torch.Size([2, 641, 14])
-
-    # input(y.size())
-    logits = logits.reshape(-1, logits.size(-1))  # (B*S, V)
-    y = y.reshape(-1)  # (B*S,)
-
-    # if np.random.uniform() < 0.01:
-    #     import matplotlib.pyplot as plt 
-    #     plt.bar(range(len(logits[0])), logits[0].float().detach().cpu().numpy())
-    #     plt.show()
-    # print(logits[:16])
-    # print(y[:16])
-    # input()
+    logits = logits.view(-1, logits.size(-1))  # (B*S, V)
+    y = y.view(-1)  # (B*S,)
     #print(logits.size(), y.size())
     return torch.nn.functional.cross_entropy(logits, y, ignore_index=ignore_index)
 
@@ -123,17 +110,10 @@ class ByteAutoencoderModelShell(torch.nn.Module):
         # to get embeddings and target_ids (B, S, H) and (B, S)
         embeddings, target_ids, avg_chunk_len, target_mask, chunk_len_loss = self.embedding_model(token_ids) 
         # print(embeddings.size())
-        # print(f"Embeddings: {embeddings.size()}") # [2, 635, 384]
-        # print(f"target_ids: {target_ids.size()}") # [2, 635, 14]
+        # print(f"Embeddings: {embeddings.size()}")
+        # print(f"target_ids: {target_ids.size()}")
         # print(f"Avg. chunk len: {avg_chunk_len}")
         # exit()
-
-        # autoregressive (ad'hoc)
-        embeddings = embeddings[:, :-1]
-        target_ids = target_ids[:, 1:]
-        # print(f"Embeddings: {embeddings.size()}") # [2, 635, 384]
-        # print(f"target_ids: {target_ids.size()}") # [2, 635, 14]
-        # input()
         
         # Pass the embeddings through the core model
         core_output = self.core_model(embeddings)

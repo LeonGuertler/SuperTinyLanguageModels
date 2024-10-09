@@ -24,7 +24,7 @@ class GenericTransformer(torch.nn.Module):
                         GenericTransformerBlock(
                             hidden_dim=model_cfg["hidden_dim"],
                             context_window=model_cfg["context_window"],
-                            use_rope=model_cfg["positional_encoding_type"] == "rope",
+                            #use_rope=model_cfg["positional_encoding_type"] == "rope",
                             ffn_cfg=model_cfg["ffn"],
                             attn_cfg=model_cfg["attn"],
                         )

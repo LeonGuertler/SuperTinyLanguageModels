@@ -29,7 +29,7 @@ class TokenizerEncoder(torch.nn.Module):
             [
                 GenericTransformerBlock(
                     hidden_dim=self.byte_hidden,
-                    context_window=2048, #5 * 2048,
+                    context_window=5 * 2048,
                     ffn_cfg={
                         "ffn_type": "generic",
                         "ffn_dim": 4 * self.byte_hidden,
@@ -76,7 +76,7 @@ class TokenizerEncoder(torch.nn.Module):
         threshold = 0.5  # Adjust as needed
         end_of_chunk = probs > threshold  # Shape: (batch, seq_len)
 
-        chunk_len_loss = torch.mean(torch.pow(probs-0.25, 2)) #torch.mean(torch.sum(probs, dim=1)) # change to exp. val. 0.85
+        chunk_len_loss = torch.mean(torch.pow(probs-0.85, 2)) #torch.mean(torch.sum(probs, dim=1)) # change to exp. val. 0.85
         
 
         batch_size, seq_len = end_of_chunk.size()
@@ -186,38 +186,20 @@ class ByteBidirectionEncoding(torch.nn.Module):
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=self.byte_hidden,
-                    output_dim=self.byte_hidden*2 ,
-                    ffn_dim=self.byte_hidden*6,
+                    output_dim=self.byte_hidden ,
+                    ffn_dim=self.byte_hidden*4,
                     context_window=self.max_chunk_length,
                 ),
                 ByteLevelTransformerBlock(
-                    input_dim=self.byte_hidden*2,
+                    input_dim=self.byte_hidden,
                     output_dim=self.byte_hidden*4,
                     ffn_dim=self.byte_hidden*8,
                     context_window=self.max_chunk_length,
                 ),
                 ByteLevelTransformerBlock(
                     input_dim=self.byte_hidden*4,
-                    output_dim=384,
+                    output_dim=self.hidden_dim,
                     ffn_dim=self.byte_hidden*12,
-                    context_window=self.max_chunk_length,
-                ),
-                ByteLevelTransformerBlock(
-                    input_dim=384,
-                    output_dim=384,
-                    ffn_dim=384*4,
-                    context_window=self.max_chunk_length,
-                ),
-                ByteLevelTransformerBlock(
-                    input_dim=384,
-                    output_dim=384,
-                    ffn_dim=384*4,
-                    context_window=self.max_chunk_length,
-                ),
-                ByteLevelTransformerBlock(
-                    input_dim=384,
-                    output_dim=384,
-                    ffn_dim=384*4,
                     context_window=self.max_chunk_length,
                 ),
             ]
@@ -336,7 +318,7 @@ class ByteBidirectionEncoding(torch.nn.Module):
 
         # Initialize target mask
         target_mask = torch.zeros(batch_size, max_num_spans, max_span_length, dtype=torch.bool, device=x.device)
-        # input(end_token_id) # 257
+
         for i, span in enumerate(attention_spans):
             start_tensor, end_tensor = span  # Unpack the tuple
             num_spans = start_tensor.size(0)
@@ -351,7 +333,6 @@ class ByteBidirectionEncoding(torch.nn.Module):
                     
                     target_tensor[i, j, :span_length] = output_token_ids[i, start:end]
                     target_tensor[i, j, span_length] = end_token_id
-
                     # input(target_tensor[i, j])
                     # # Determine the length to copy, considering max_span_length - 1 (for EOS)
                     # copy_length = min(span_length, max_span_length - 1)  # Reserve last position for EOS
@@ -372,18 +353,17 @@ class ByteBidirectionEncoding(torch.nn.Module):
                     # If end <= start, only set the EOS token at position 0
                     target_tensor[i, j, 0] = end_token_id
                     target_mask[i, j, 0] = 1
-                    input('WRONG')
 
         # Zero out the padded spans in target_tensor and target_mask
         # For spans that are padded (span_mask == 0), set target_tensor to pad_token_id and target_mask to 0
-        # target_tensor = target_tensor * span_mask.unsqueeze(-1).type_as(x) + \
-                        # (1 - span_mask.unsqueeze(-1).type_as(x)) * pad_token_id
-        # target_mask = target_mask * span_mask.unsqueeze(-1)
-        target_mask = None
+        target_tensor = target_tensor * span_mask.unsqueeze(-1).type_as(x) + \
+                        (1 - span_mask.unsqueeze(-1).type_as(x)) * pad_token_id
+        target_mask = target_mask * span_mask.unsqueeze(-1)
+
         return span_avgs, target_tensor, target_mask
 
 
-# B, 8192, 32 -> B, 8192/16, 16, 32 -> (B*8192/16), 16, 32
+
 class ByteLevelEmbedder(EmbedderInterface):
     """
     Input is a sequence of byte-level token ids
@@ -440,12 +420,6 @@ class ByteLevelEmbedder(EmbedderInterface):
             x=x_embedded,
             x_ids=x,
         )
-
-        # print(output_token_ids.size()) # 2, 2048
-        # print(len(chunk_spans), len(chunk_spans[0]), len(chunk_spans[0][0])) # 2, 2, 2048 (max, might be smaller) 2, 2048 ->( stard_idx(Tensor(2048)), end_idx(Tensor(2048)))
-        # input()
-        # truncate the input by one and remove the first target token
-
 
         # input(attention_masks.size()) # (1, 4096, 4096)
 

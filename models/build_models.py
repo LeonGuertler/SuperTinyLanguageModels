@@ -70,7 +70,7 @@ def build_model(model_cfg=None, checkpoint_path=None, device="cuda"):
 
     return model, loaded_train_config
 
-
+ 
 EMBEDDING_MODEL_DICT = {
     "generic": GenericEmbedder, 
     "byte_level": ByteLevelEmbedder,
