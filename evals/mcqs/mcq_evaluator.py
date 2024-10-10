@@ -77,6 +77,6 @@ class MCQEvaluator(EvaluationInterface):
             accuracy = self.evaluate_benchmark(
                 benchmark_name=benchmark_name, num_samples=self.num_samples
             )
-            results[f"MCQ/{benchmark_name}"] = accuracy.item()
+            results[f"MCQ/{benchmark_name}"] = accuracy
 
         return results

@@ -233,7 +233,7 @@ class BaseTrainer:
 
         if self.evaluate_byte_metrics:
             if total_bytes > 0:
-                avg_byte_loss = aggregate_value(total_byte_loss, self.cfg.general.device).item() / total_bytes
+                avg_byte_loss = aggregate_value(total_byte_loss, self.cfg.general.device) / total_bytes
                 avg_byte_perplexity = np.exp(avg_byte_loss) if avg_byte_loss < 100 else float('inf')  # Avoid overflow
             else:
                 avg_byte_loss = float('inf')
@@ -265,16 +265,11 @@ class BaseTrainer:
                 model=self.model
             )
             eval_results.update(text_generation_results)
-
-            # log the generated text
-            wandb.log(
-                {
-                    "Generated Text": wandb.Html(
+            eval_results.update({
+                "Generated Text": wandb.Html(
                         text_generation_sample_html
                     )
-                },
-                step=eval_results["token_num"]
-            )
+            })
 
         # set model back into train mode
         self.model.train()

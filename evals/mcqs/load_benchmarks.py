@@ -251,6 +251,8 @@ def load_commonsense_qa(num_samples=None):
             [f"Answer: {choice}" for i, choice in enumerate(sample["choices"]["text"]) if i != correct_idx]
         )
 
+def load_ewok(num_samples=None):
+
 
 
 EVALS_DICT = {
