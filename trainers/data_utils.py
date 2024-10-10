@@ -115,7 +115,6 @@ def load_data(dataset_names, shuffle=True):
         dataset = DATASET_DICT[dataset_name]()
         datasets_list.append(dataset["train"])
 
-        input(dataset)
     # Concatenate datasets if there are multiple datasets
     if len(datasets_list) > 1:
         combined_dataset = concatenate_datasets(datasets_list)
