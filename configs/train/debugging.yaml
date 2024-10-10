@@ -20,7 +20,7 @@ model:
 
   embedding_model_type: generic
   tokenizer_type: bpe
-  tokenizer_dataset_name: simple_en_wiki
+  tokenizer_dataset_names: [simple_en_wiki]
   tokenizer_simplify_data: true
   tokenizer_num_reserved_tokens: 20
   vocab_size: 4000
@@ -52,24 +52,33 @@ trainer:
   eval_iters: 1000
 
   eval:
-    mcq_benchmarks:
-      - "winogrande"
-      - "hellaswag"
-      - "arc_easy"
-      - "blimp"
-      - "piqa"
-      - "race_middle"
-      - "race_high"
-      - "boolq"
-      - "openbook_qa_closed"
-      - "openbook_qa_open"
-      - "copa"
-      - "commonsense_qa"
-      - "ewok"
-    mcq_num_samples: 1000
-    eval_byte_metrics: true 
-    text_modeling_eval: true 
-    text_generation_eval: true
+    benchmarks:
+      - ArcEasy
+      - ArcEasySubset
+      - ArcEasyLinearSubset
+
+
+
+    # mcq_benchmarks:
+    #   - "winogrande"
+    #   - "hellaswag"
+    #   - "arc_easy"
+    #   - "blimp"
+    #   - "piqa"
+    #   - "race_middle"
+    #   - "race_high"
+    #   - "boolq"
+    #   - "openbook_qa_closed"
+    #   - "openbook_qa_open"
+    #   - "copa"
+    #   - "commonsense_qa"
+    #   - "ewok"
+    # mcq_num_samples: 1000
+    # eval_byte_metrics: true 
+    # text_modeling_eval: true 
+    # text_generation_eval: true
+    # free_form_benchmarks:
+    #   - "gsm8k"
 
   optimizer:
     optimizer_name: adamW

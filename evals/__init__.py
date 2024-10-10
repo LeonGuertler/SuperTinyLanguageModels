@@ -1,7 +1,145 @@
 """
-For easier imports
-"""
+Import all and register them in the registry
 
-from evals.mcqs.mcq_evaluator import MCQEvaluator
-from evals.text_modeling.text_modeling_evaluator import TextModelingEvaluator
-from evals.text_generation.text_generation_evaluator import TextGenerationEvaluator
+(i.e. import benchmarks and evaluators)
+
+
+ultimately should be able to call .make and .evaluate
+"""
+from evals.benchmark_registry import register, make
+
+
+from evals.benchmarks.yield_functions import *
+
+from evals.model_wrappers import LoglikelihoodMCQModelWrapper
+
+
+# Register the MCQ benchmarks
+
+# ARC-Easy 
+register(
+    id="ArcEasy",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_arc_easy,
+    yield_fn_params={
+        "version": "original",
+        "num_samples": None, # i.e. all samples
+    }
+)
+register(
+    id="ArcEasySubset",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_arc_easy,
+    yield_fn_params={
+        "version": "original",
+        "num_samples": 100, # i.e. all samples
+        "seed": 489
+    }
+)
+register(
+    id="ArcEasyLinearSubset",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_arc_easy,
+    yield_fn_params={
+        "version": "stlm_eval",
+        "num_samples": None, # i.e. all samples
+        "seed": 489
+    }
+)
+
+
+# Register the text-modeling benchmarks
+
+
+
+
+
+
+
+# EVALS_DICT = {
+#     "arc_easy": lambda num_samples: load_arc_easy(
+#         version="original",
+#         num_samples=num_samples
+#     ),
+#     "stlm_eval_arc_easy": lambda num_samples: load_arc_easy(
+#         version="stlm_eval",
+#         num_samples=num_samples
+#     ),
+#     "hellaswag": lambda num_samples: load_hellaswag(
+#         version="original",
+#         num_samples=num_samples
+#     ),
+#     "stlm_eval_hellaswag": lambda num_samples: load_hellaswag(
+#         version="stlm_eval",
+#         num_samples=num_samples
+#     ),
+#     "winogrande": lambda num_samples: load_winogrande(
+#         version="original",
+#         num_samples=num_samples
+#     ),
+#     "stlm_eval_winogrande": lambda num_samples: load_winogrande(
+#         version="stlm_eval",
+#         num_samples=num_samples
+#     ),
+#     "truthful_qa": lambda num_samples: load_truthful_qa_m2(
+#         version="original",
+#         num_samples=num_samples
+#     ),
+#     "stlm_eval_truthful_qa": lambda num_samples: load_truthful_qa_m2(
+#         version="stlm_eval",
+#         num_samples=num_samples
+#     ),
+#     "blimp": lambda num_samples: load_blimp(
+#         num_samples=num_samples
+#     ),
+#     "mmlu": lambda num_samples: load_mmlu(
+#         num_samples=num_samples
+#     ),
+#     "piqa": lambda num_samples: load_piqa(
+#         num_samples=num_samples
+#     ),
+#     "boolq": lambda num_samples: load_boolq(
+#         num_samples=num_samples
+#     ),
+#     "race_middle": lambda num_samples: load_race(
+#         version="middle",
+#         num_samples=num_samples
+#     ),
+#     "race_high": lambda num_samples: load_race(
+#         version="high",
+#         num_samples=num_samples
+#     ),
+#     "openbook_qa_open": lambda num_samples: load_openbook_qa(
+#         version="open",
+#         num_samples=num_samples
+#     ),
+#     "openbook_qa_closed": lambda num_samples: load_openbook_qa(
+#         version="closed",
+#         num_samples=num_samples
+#     ),
+#     "copa": lambda num_samples: load_copa(
+#         num_samples=num_samples
+#     ),
+#     "commonsense_qa": lambda num_samples: load_commonsense_qa(
+#         num_samples=num_samples
+#     ),
+#     "ewok": lambda num_samples: load_ewok(
+#         num_samples=num_samples
+#     )
+# }
+
+
+
+
+# def load_benchmark(benchmark_name, num_samples):
+#     """
+#     Given the benchmark name, build the benchmark
+#     """
+#     assert benchmark_name in EVALS_DICT, \
+#         f"Benchmark {benchmark_name} not found. The available benchmarks are: {list(EVALS_DICT.keys())}"
+#     return EVALS_DICT[benchmark_name](
+#         num_samples=num_samples
+#     )

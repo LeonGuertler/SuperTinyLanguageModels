@@ -1,23 +1,30 @@
 """
-Load a bechmark loader, given the benchmark name.
+Load a benchmark loader, given the benchmark name.
 """
 import numpy as np 
 from datasets import load_dataset
+from tqdm import tqdm 
 
-def get_idx_list(dataset_length, num_samples):
+def get_idx_list(dataset_length, num_samples, seed=None, verbose=True):
     """
     Given the dataset length and the number of samples,
     return a list of indices to sample from the dataset
     """
     # re-set seed every time for consistency
-    np.random.seed(42)
-    return np.random.choice(
+    if seed:
+        np.random.seed(42)
+    idx_list = np.random.choice(
         dataset_length,
         dataset_length if num_samples is None else min(num_samples, dataset_length),
         replace=False,
     ).tolist()
 
-def load_arc_easy(version, num_samples=None):
+    if verbose:
+        idx_list = tqdm(idx_list, desc="Loading PIQA samples")
+    
+    return idx_list
+
+def load_arc_easy(version, num_samples=None, seed=None):
     """ 
     Load ARC easy eval set 
     (https://huggingface.co/datasets/allenai/ai2_arc/viewer/ARC-Easy)
@@ -27,7 +34,11 @@ def load_arc_easy(version, num_samples=None):
     elif version == "stlm_eval":
         raise NotImplementedError("STLM eval version not implemented yet")
     
-    index_list = get_idx_list(len(dataset), num_samples)
+    index_list = get_idx_list(
+        dataset_length=len(dataset), 
+        num_samples=num_samples,
+        seed=seed
+    )
     for i in index_list:
         sample = dataset[i]
         correct_idx = sample["choices"]["label"].index(sample["answerKey"])
@@ -45,13 +56,17 @@ def load_arc_easy(version, num_samples=None):
             ],
         )
 
-def load_blimp(num_samples=None):
+def load_blimp(num_samples=None, seed=None):
     """
     Load BLIMP eval set
     https://huggingface.co/datasets/WillHeld/blimp
     """
     dataset = load_dataset("WillHeld/blimp", trust_remote_code=True)["train"]
-    index_list = get_idx_list(len(dataset), num_samples)
+    index_list = get_idx_list(
+        dataset_length=len(dataset), 
+        num_samples=num_samples,
+        seed=seed
+    )
     for i in index_list:
         sample = dataset[i]
         yield (
@@ -61,7 +76,7 @@ def load_blimp(num_samples=None):
         )
 
 
-def load_hellaswag(version, num_samples=None):
+def load_hellaswag(version, num_samples=None, seed=None):
     """
     Load hellaswag eval set
     https://huggingface.co/datasets/Rowan/hellaswag
@@ -70,8 +85,12 @@ def load_hellaswag(version, num_samples=None):
         dataset = load_dataset("Rowan/hellaswag", trust_remote_code=True)["validation"] # standard to use val
     elif version == "stlm_eval":
         raise NotImplementedError("STLM eval version not implemented yet")
-
-    index_list = get_idx_list(len(dataset), num_samples)
+    
+    index_list = get_idx_list(
+        dataset_length=len(dataset), 
+        num_samples=num_samples,
+        seed=seed
+    )
     for i in index_list:
         sample = dataset[i]
         ground_truth_idx = int(sample["label"])
@@ -82,13 +101,17 @@ def load_hellaswag(version, num_samples=None):
         )
 
 
-def load_mmlu(num_samples=None):
+def load_mmlu(num_samples=None, seed=None):
     """
     Load MMLU eval set
     https://huggingface.co/datasets/cais/mmlu
     """
     dataset = load_dataset("cais/mmlu", "all", trust_remote_code=True)["test"]
-    index_list = get_idx_list(len(dataset), num_samples)
+    index_list = get_idx_list(
+        dataset_length=len(dataset), 
+        num_samples=num_samples,
+        seed=seed
+    )
     for i in index_list:
         sample = dataset[i]
         correct_idx = sample["answer"]
@@ -98,7 +121,7 @@ def load_mmlu(num_samples=None):
             [f" Answer: {choice}" for i, choice in enumerate(sample["choices"]) if i != correct_idx],
         )
 
-def load_winogrande(version, num_samples=None):
+def load_winogrande(version, num_samples=None, seed=None):
     """
     Load Winogrande eval set
     https://huggingface.co/datasets/allenai/winogrande
@@ -112,7 +135,11 @@ def load_winogrande(version, num_samples=None):
     elif version == "stlm_eval":
         raise NotImplementedError("STLM eval version not implemented yet")
     
-    index_list = get_idx_list(len(dataset), num_samples)
+    index_list = get_idx_list(
+        dataset_length=len(dataset), 
+        num_samples=num_samples,
+        seed=seed
+    )
     for i in index_list:
         sample = dataset[i]
         correct_opt_num = sample["answer"]
@@ -122,7 +149,7 @@ def load_winogrande(version, num_samples=None):
             [sample["sentence"].replace("_", sample[f"option{1 if correct_opt_num == 2 else 2}"])]
         )
 
-def load_truthful_qa_m2(version, num_samples=None):
+def load_truthful_qa_m2(version, num_samples=None, seed=None):
     """
     Load the truthful QA eval set
     https://huggingface.co/datasets/TruthfulQA
@@ -132,7 +159,11 @@ def load_truthful_qa_m2(version, num_samples=None):
     elif version == "stlm_eval":
         raise NotImplementedError("STLM eval version not implemented yet")
 
-    index_list = get_idx_list(len(dataset), num_samples)
+    index_list = get_idx_list(
+        dataset_length=len(dataset), 
+        num_samples=num_samples,
+        seed=seed
+    )
     for i in index_list:
         sample = dataset[i]
         yield (
@@ -141,14 +172,18 @@ def load_truthful_qa_m2(version, num_samples=None):
             sample["incorrect_answers"]
         )
 
-def load_piqa(num_samples=None):
+def load_piqa(num_samples=None, seed=None):
     """
     Load the PIQA eval set
     https://arxiv.org/abs/1911.11641
     https://huggingface.co/datasets/ybisk/piqa
     """
     dataset = load_dataset("ybisk/piqa", trust_remote_code=True)["validation"]
-    index_list = get_idx_list(len(dataset), num_samples)
+    index_list = get_idx_list(
+        dataset_length=len(dataset), 
+        num_samples=num_samples,
+        seed=seed
+    )
     for i in index_list:
         sample = dataset[i]
         yield (
@@ -157,14 +192,18 @@ def load_piqa(num_samples=None):
             [sample[f"sol{1 if sample['label'] == 2 else 2}"]]
         )
 
-def load_boolq(num_samples=None):
+def load_boolq(num_samples=None, seed=None):
     """
     Load the BoolQ eval set
     https://arxiv.org/abs/1905.10044
     https://huggingface.co/datasets/google/boolq
     """
     dataset = load_dataset("google/boolq", trust_remote_code=True)["validation"]
-    index_list = get_idx_list(len(dataset), num_samples)
+    index_list = get_idx_list(
+        dataset_length=len(dataset), 
+        num_samples=num_samples,
+        seed=seed
+    )
     for i in index_list:
         sample = dataset[i]
         yield (
@@ -173,7 +212,7 @@ def load_boolq(num_samples=None):
             ["no"] if sample["answer"] else ["yes"]
         )
 
-def load_race(version, num_samples=None):
+def load_race(version, num_samples=None, seed=None):
     """
     Load the RACE eval set 
     https://aclanthology.org/D17-1082/
@@ -185,7 +224,11 @@ def load_race(version, num_samples=None):
         version, # middle or high school
         trust_remote_code=True
     )["validation"]
-    index_list = get_idx_list(len(dataset), num_samples)
+    index_list = get_idx_list(
+        dataset_length=len(dataset), 
+        num_samples=num_samples,
+        seed=seed
+    )
     for i in index_list:
         sample = dataset[i]
         correct_idx = ANS_TO_IDX[sample["answer"]]
@@ -196,14 +239,18 @@ def load_race(version, num_samples=None):
             [option for i, option in enumerate(sample["options"]) if i != correct_idx]
         )
 
-def load_openbook_qa(version, num_samples=None):
+def load_openbook_qa(version, num_samples=None, seed=None):
     """
     Load the OpenbookQA eval set
     https://huggingface.co/datasets/allenai/openbookqa
     """
     ANS_TO_IDX = {"A": 0, "B": 1, "C": 2, "D": 3}
     dataset = load_dataset("allenai/openbookqa", "additional", trust_remote_code=True)["validation"]
-    index_list = get_idx_list(len(dataset), num_samples)
+    index_list = get_idx_list(
+        dataset_length=len(dataset), 
+        num_samples=num_samples,
+        seed=seed
+    )
     for i in index_list:
         sample = dataset[i]
         correct_idx = ANS_TO_IDX[sample["answerKey"]]
@@ -213,14 +260,18 @@ def load_openbook_qa(version, num_samples=None):
             [choice for i, choice in enumerate(sample["choices"]["text"]) if i != correct_idx]
         )
 
-def load_copa(num_samples=None):
+def load_copa(num_samples=None, seed=None):
     """
     Load the Copa eval set (balanced)
     https://aclanthology.org/S12-1052/
     https://huggingface.co/datasets/pkavumba/balanced-copa
     """
     dataset = load_dataset("pkavumba/balanced-copa", trust_remote_code=True)["train"]
-    index_list = get_idx_list(len(dataset), num_samples)
+    index_list = get_idx_list(
+        dataset_length=len(dataset), 
+        num_samples=num_samples,
+        seed=seed
+    )
     for i in index_list:
         sample = dataset[i]
         correct_idx = sample["label"]
@@ -232,7 +283,7 @@ def load_copa(num_samples=None):
         )
 
 
-def load_commonsense_qa(num_samples=None):
+def load_commonsense_qa(num_samples=None, seed=None):
     """
     Load the Commonsense QA eval set
     https://aclanthology.org/N19-1421/
@@ -241,7 +292,11 @@ def load_commonsense_qa(num_samples=None):
     ANS_TO_IDX = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6, "H": 7}
 
     dataset = load_dataset("tau/commonsense_qa", trust_remote_code=True)["validation"]
-    index_list = get_idx_list(len(dataset), num_samples)
+    index_list = get_idx_list(
+        dataset_length=len(dataset), 
+        num_samples=num_samples,
+        seed=seed
+    )
     for i in index_list:
         sample = dataset[i]
         correct_idx = ANS_TO_IDX[sample["answerKey"]]
@@ -251,14 +306,18 @@ def load_commonsense_qa(num_samples=None):
             [f"Answer: {choice}" for i, choice in enumerate(sample["choices"]["text"]) if i != correct_idx]
         )
 
-def load_ewok(num_samples=None):
+def load_ewok(num_samples=None, seed=None):
     """
     Load the Ewok eval set
     https://arxiv.org/abs/2405.09605v1
     https://huggingface.co/datasets/ewok-core
     """
     dataset = load_dataset("ewok-core/ewok-core-1.0", trust_remote_code=True)["test"]
-    index_list = get_idx_list(len(dataset), num_samples)
+    index_list = get_idx_list(
+        dataset_length=len(dataset), 
+        num_samples=num_samples,
+        seed=seed
+    )
     for i in index_list:
         sample = dataset[i] 
         yield(
@@ -268,81 +327,3 @@ def load_ewok(num_samples=None):
         )
 
 
-
-
-EVALS_DICT = {
-    "arc_easy": lambda num_samples: load_arc_easy(
-        version="original",
-        num_samples=num_samples
-    ),
-    "stlm_eval_arc_easy": lambda num_samples: load_arc_easy(
-        version="stlm_eval",
-        num_samples=num_samples
-    ),
-    "hellaswag": lambda num_samples: load_hellaswag(
-        version="original",
-        num_samples=num_samples
-    ),
-    "stlm_eval_hellaswag": lambda num_samples: load_hellaswag(
-        version="stlm_eval",
-        num_samples=num_samples
-    ),
-    "winogrande": lambda num_samples: load_winogrande(
-        version="original",
-        num_samples=num_samples
-    ),
-    "stlm_eval_winogrande": lambda num_samples: load_winogrande(
-        version="stlm_eval",
-        num_samples=num_samples
-    ),
-    "truthful_qa": lambda num_samples: load_truthful_qa_m2(
-        version="original",
-        num_samples=num_samples
-    ),
-    "stlm_eval_truthful_qa": lambda num_samples: load_truthful_qa_m2(
-        version="stlm_eval",
-        num_samples=num_samples
-    ),
-    "blimp": load_blimp,
-    "mmlu": load_mmlu,
-    "piqa": load_piqa,
-    "boolq": load_boolq,
-    "race_middle": lambda num_samples: load_race(
-        version="middle",
-        num_samples=num_samples
-    ),
-    "race_high": lambda num_samples: load_race(
-        version="high",
-        num_samples=num_samples
-    ),
-    "openbook_qa_open": lambda num_samples: load_openbook_qa(
-        version="open",
-        num_samples=num_samples
-    ),
-    "openbook_qa_closed": lambda num_samples: load_openbook_qa(
-        version="closed",
-        num_samples=num_samples
-    ),
-    "copa": lambda num_samples: load_copa(
-        num_samples=num_samples
-    ),
-    "commonsense_qa": lambda num_samples: load_commonsense_qa(
-        num_samples=num_samples
-    ),
-    "ewok": lambda num_samples: load_ewok(
-        num_samples=num_samples
-    )
-}
-
-
-
-
-def load_benchmark(benchmark_name, num_samples):
-    """
-    Given the benchmark name, build the benchmark
-    """
-    assert benchmark_name in EVALS_DICT, \
-        f"Benchmark {benchmark_name} not found. The available benchmarks are: {list(EVALS_DICT.keys())}"
-    return EVALS_DICT[benchmark_name](
-        num_samples=num_samples
-    )

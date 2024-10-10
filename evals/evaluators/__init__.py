@@ -1,0 +1,1 @@
+from evals.evaluators.mcq_evaluator.evaluator import MCQEvaluator

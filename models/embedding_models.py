@@ -102,7 +102,7 @@ class GenericEmbedder(EmbedderInterface):
         self.tokenizer = build_tokenizer(
             tokenizer_type=model_cfg["tokenizer_type"],
             vocab_size=model_cfg.get("vocab_size", None),
-            dataset_name=model_cfg.get("tokenizer_dataset_name", None),
+            dataset_names=model_cfg.get("tokenizer_dataset_names", None),
             simplify=model_cfg.get("tokenizer_simplify", True), # Default True
             num_reserved_tokens=model_cfg.get("tokenizer_num_reserved_tokens", 0), # By Default, no spaces are reserved
         )

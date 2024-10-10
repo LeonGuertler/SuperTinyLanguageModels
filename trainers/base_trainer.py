@@ -7,11 +7,13 @@ from contextlib import nullcontext
 
 # local imports
 from trainers import utils
-from trainers.evaluator import (
-    train_eval_mcq, 
-    train_eval_text_modeling,
-    train_eval_text_generation
-)
+from trainers.evaluator import intra_training_evaluation
+# from trainers.evaluator import (
+#     train_eval_mcq, 
+#     train_eval_text_modeling,
+#     train_eval_text_generation,
+#     train_free_form,
+# )
 from trainers.utils import aggregate_value, print_evaluation_results
 from models.utils import print_model_stats
 
@@ -181,6 +183,14 @@ class BaseTrainer:
         # Make sure the model is in eval mode
         self.model.eval()
 
+        # try the evaluator
+        eval_results.update(
+            intra_training_evaluation(
+                model=self.model,
+                benchmarks=self.cfg["trainer"]["eval"].get("benchmarks", []),
+            )
+        )
+
         # Initialize accumulators
         total_loss = 0.0
         total_bytes = 0
@@ -244,33 +254,49 @@ class BaseTrainer:
             eval_results["Validation/Loss (Bytes)"] = avg_byte_loss
             eval_results["Validation/Perplexity (Bytes)"] = avg_byte_perplexity
 
-        # get the mcq eval results
+
+        
+
+        # # get the mcq eval results
+        # eval_results.update(
+        #     train_eval_mcq(
+        #         model=self.model,
+        #         num_samples=self.cfg["trainer"]["eval"].get("mcq_num_samples", None),
+        #         benchmark_list=self.cfg["trainer"]["eval"].get("mcq_benchmarks", []),
+        #     )
+        # )
+
+        # # get the text modeling eval results
+        # if self.cfg["trainer"]["eval"].get("text_modeling_eval", False):
+        #     eval_results.update(
+        #         train_eval_text_modeling(
+        #             model=self.model,
+        #             topic_list=self.cfg["trainer"]["eval"].get("text_modeling_topics", []),
+        #         )
+        #     )
+
+        # # get the text generation eval results
+        # if self.cfg["trainer"]["eval"].get("text_generation_eval", False):
+        #     text_generation_results, text_generation_sample_html = train_eval_text_generation(
+        #         model=self.model
+        #     )
+        #     eval_results.update(text_generation_results)
+        #     eval_results.update({
+        #         "Generated Text": wandb.Html(
+        #                 text_generation_sample_html
+        #             )
+        #     })
+
+        # get the free form eval results
         eval_results.update(
-            train_eval_mcq(
+            train_free_form(
                 model=self.model,
-                num_samples=self.cfg["trainer"]["eval"].get("mcq_num_samples", None),
-                benchmark_list=self.cfg["trainer"]["eval"].get("mcq_benchmarks", []),
+                num_samples=self.cfg["trainer"]["eval"].get("free_form_num_sampels", None),
+                benchmark_list=self.cfg["trainer"]["eval"].get("free_form_benchmarks", [])
             )
         )
-        # get the text modeling eval results
-        if self.cfg["trainer"]["eval"].get("text_modeling_eval", False):
-            eval_results.update(
-                train_eval_text_modeling(
-                    model=self.model,
-                    topic_list=self.cfg["trainer"]["eval"].get("text_modeling_topics", []),
-                )
-            )
 
-        if self.cfg["trainer"]["eval"].get("text_generation_eval", False):
-            text_generation_results, text_generation_sample_html = train_eval_text_generation(
-                model=self.model
-            )
-            eval_results.update(text_generation_results)
-            eval_results.update({
-                "Generated Text": wandb.Html(
-                        text_generation_sample_html
-                    )
-            })
+
 
         # set model back into train mode
         self.model.train()

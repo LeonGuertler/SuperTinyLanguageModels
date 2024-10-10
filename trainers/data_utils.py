@@ -80,7 +80,10 @@ DATASET_DICT = {
     "fineweb_edu_100B": lambda: load_dataset("HuggingFaceFW/fineweb-edu", "sample-100BT"),
     "fineweb_edu_10B": lambda: load_dataset("HuggingFaceFW/fineweb-edu", "sample-10BT"),
     "prm800k": lambda: load_dataset("tasksource/PRM800K"),
-    "math_pile": lambda: load_dataset("GAIR/MathPile")
+    "MATH": lambda: load_general_dataset(
+        dataset_name="lighteval/MATH",
+        lambda_fn=lambda x: {"text": f"{x['problem']}\n{x['solution']}"}
+        )
 
 }
 
@@ -112,6 +115,7 @@ def load_data(dataset_names, shuffle=True):
         dataset = DATASET_DICT[dataset_name]()
         datasets_list.append(dataset["train"])
 
+        input(dataset)
     # Concatenate datasets if there are multiple datasets
     if len(datasets_list) > 1:
         combined_dataset = concatenate_datasets(datasets_list)

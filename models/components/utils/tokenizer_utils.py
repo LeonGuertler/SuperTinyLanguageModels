@@ -6,7 +6,7 @@ import hydra
 
 
 ### Tokenizer Utils
-def get_tokenizer_path(tokenizer_type, vocab_size, dataset_name, simplify, num_reserved_tokens):
+def get_tokenizer_path(tokenizer_type, vocab_size, dataset_names, simplify, num_reserved_tokens):
     """
     Get the path to the tokenizer.
     """
@@ -23,21 +23,28 @@ def get_tokenizer_path(tokenizer_type, vocab_size, dataset_name, simplify, num_r
     if not os.path.exists(tokenizer_folder):
         os.mkdir(tokenizer_folder)
 
+    # Ensure dataset_names is a list
+    if isinstance(dataset_names, str):
+        dataset_names = [dataset_names]
+
+    # Create a unique identifier for the combined dataset
+    combined_dataset_name = '_'.join(dataset_names)
+
     tokenizer_full_path = os.path.join(
-        tokenizer_folder, f"{tokenizer_type}_{dataset_name}_{vocab_size}_{num_reserved_tokens}.model"
+        tokenizer_folder, f"{tokenizer_type}_{combined_dataset_name}_{vocab_size}_{num_reserved_tokens}.model"
     )
     if simplify:
         tokenizer_full_path = tokenizer_full_path.replace(".model", "_simplified.model")
     return tokenizer_folder, tokenizer_full_path
 
-def check_if_tokenizer_exists(tokenizer_type, vocab_size, dataset_name, simplify, num_reserved_tokens):
+def check_if_tokenizer_exists(tokenizer_type, vocab_size, dataset_names, simplify, num_reserved_tokens):
     """
     Check if the tokenizer already exists.
     """
     _, tokenizer_path = get_tokenizer_path(
         tokenizer_type=tokenizer_type, 
         vocab_size=vocab_size, 
-        dataset_name=dataset_name,
+        dataset_names=dataset_names,
         simplify=simplify,
         num_reserved_tokens=num_reserved_tokens,
     )

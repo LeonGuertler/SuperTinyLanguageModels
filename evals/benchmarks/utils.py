@@ -1,3 +1,6 @@
+"""
+Most of this should be moved to huggingface ASAP. TODO
+"""
 GENERATION_PROMPTS = [
     {
       "difficulty": "easy",
@@ -96,3 +99,5 @@ GENERATION_PROMPTS = [
       "prompt": "You have 9 coins, one of which is slightly heavier than the others. You have a balance scale, and you can only use it twice. How can you determine which coin is the heavier one?"
     }
   ]
+
+

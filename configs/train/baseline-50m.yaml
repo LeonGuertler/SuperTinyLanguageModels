@@ -20,7 +20,7 @@ model:
 
   embedding_model_type: generic
   tokenizer_type: bpe
-  tokenizer_dataset_name: en_wiki
+  tokenizer_dataset_names: en_wiki
   tokenizer_simplify_data: true
   vocab_size: 10000
 

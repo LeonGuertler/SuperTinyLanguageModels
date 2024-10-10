@@ -140,20 +140,20 @@ class BPETokenizer(TokenizerClass):
     def __init__(
         self,
         vocab_size: int,
-        dataset_name: str,
+        dataset_names: str,
         simplify: bool = True,
         num_reserved_tokens: int = 0,
     ):
         super().__init__()
         self.vocab_size = vocab_size
-        self.dataset_name = dataset_name
+        self.dataset_names = dataset_names
         self.simplify = simplify
         self.reserved_tokens = [f"[Res{x}]" for x in range(num_reserved_tokens)]
 
         if not utils.check_if_tokenizer_exists(
             tokenizer_type="bpe",
             vocab_size=vocab_size,
-            dataset_name=dataset_name,
+            dataset_names=dataset_names,
             simplify=simplify,
             num_reserved_tokens=len(self.reserved_tokens)
         ):
@@ -168,7 +168,7 @@ class BPETokenizer(TokenizerClass):
         self.unk_token = self.tokenizer.token_to_id("[UNK]")
 
     def _train_tokenizer(self, verbose: bool = True):
-        raw_datasets = load_data(dataset_name=self.dataset_name)
+        raw_datasets = load_data(dataset_names=self.dataset_names)
 
         # Pattern string without compiling
         non_english_char_pattern = r"[^a-zA-Z0-9\s" + re.escape(string.punctuation) + r"]"
@@ -240,7 +240,7 @@ class BPETokenizer(TokenizerClass):
 
         # print 
         if verbose:
-            print(f"Trained a BPE tokenizer with {self.vocab_size} tokens on the {self.dataset_name} dataset.")
+            print(f"Trained a BPE tokenizer with {self.vocab_size} tokens on the {self.dataset_names} dataset(s).")
 
     def encode(self, text: str) -> List[int]:
         return self.tokenizer.encode(text).ids
@@ -262,7 +262,7 @@ class BPETokenizer(TokenizerClass):
         _, tokenizer_path = utils.get_tokenizer_path(
             tokenizer_type="bpe",
             vocab_size=self.vocab_size,
-            dataset_name=self.dataset_name,
+            dataset_names=self.dataset_names,
             simplify=self.simplify,
             num_reserved_tokens=len(self.reserved_tokens),
         )
@@ -272,7 +272,7 @@ class BPETokenizer(TokenizerClass):
         _, tokenizer_path = utils.get_tokenizer_path(
             tokenizer_type="bpe",
             vocab_size=self.vocab_size,
-            dataset_name=self.dataset_name,
+            dataset_names=self.dataset_names,
             simplify=self.simplify,
             num_reserved_tokens=len(self.reserved_tokens),
         )
@@ -301,8 +301,8 @@ TOKENIZER_DICT = {
     "mistral_32k": lambda vocab_size, dataset_name, simplify: HuggingfaceTokenizer(tokenizer_path="mistralai/Mistral-7B-v0.1"),
 
     # a custom BPE tokenizer (using the HF implementation)
-    "bpe": lambda vocab_size, dataset_name, simplify, num_reserved_tokens: BPETokenizer(
-        vocab_size=vocab_size, dataset_name=dataset_name, simplify=simplify, num_reserved_tokens=num_reserved_tokens
+    "bpe": lambda vocab_size, dataset_names, simplify, num_reserved_tokens: BPETokenizer(
+        vocab_size=vocab_size, dataset_names=dataset_names, simplify=simplify, num_reserved_tokens=num_reserved_tokens
     ),
 }
 
@@ -310,7 +310,7 @@ TOKENIZER_DICT = {
 def build_tokenizer(
         tokenizer_type, 
         vocab_size, 
-        dataset_name,
+        dataset_names,
         simplify,
         num_reserved_tokens
     ) -> TokenizerClass:
@@ -320,5 +320,5 @@ def build_tokenizer(
     assert tokenizer_type in TOKENIZER_DICT, \
         f"Tokenizer type {tokenizer_type} not found. The available tokenizers are: {list(TOKENIZER_DICT.keys())}"
     return TOKENIZER_DICT[tokenizer_type](
-        vocab_size=vocab_size, dataset_name=dataset_name, simplify=simplify, num_reserved_tokens=num_reserved_tokens
+        vocab_size=vocab_size, dataset_names=dataset_names, simplify=simplify, num_reserved_tokens=num_reserved_tokens
     )
