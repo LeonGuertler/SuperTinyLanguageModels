@@ -319,10 +319,10 @@ class BaseTrainer:
 
             with context_manager:
                 with self.ctx: 
-                    output, aux_loss, additional_info_sub_dict = self.DDP_model(x)
-                    loss = self.loss_fn(output, y)
-                    if aux_loss is not None:
-                        loss += aux_loss
+                    output, loss, additional_info_sub_dict = self.DDP_model(x)
+                    # loss = self.loss_fn(output, y)
+                    # if aux_loss is not None:
+                    #     loss += aux_loss
 
 
                 # Scale loss to simulate larger effective batch size

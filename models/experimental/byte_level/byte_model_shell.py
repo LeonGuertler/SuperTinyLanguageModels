@@ -22,8 +22,8 @@ def cross_entropy_loss_fn(logits, y, ignore_index=-1):
     Returns:
         Tensor: The computed cross entropy loss.
     """
-    logits = logits.view(-1, logits.size(-1))  # (B*S, V)
-    y = y.view(-1)  # (B*S,)
+    logits = logits.reshape(-1, logits.size(-1))  # (B*S, V)
+    y = y.reshape(-1)  # (B*S,)
     #print(logits.size(), y.size())
     return torch.nn.functional.cross_entropy(logits, y, ignore_index=ignore_index)
 
@@ -108,7 +108,11 @@ class ByteAutoencoderModelShell(torch.nn.Module):
         """
         # Pass the token_ids through the embedding model
         # to get embeddings and target_ids (B, S, H) and (B, S)
-        embeddings, target_ids, avg_chunk_len = self.embedding_model(token_ids)
+        embeddings, target_ids, chunk_loss, avg_chunk_len = self.embedding_model(token_ids)
+
+        # index embeddings and targets to turn autoregressive
+        embeddings = embeddings[:, :-1]
+        target_ids = target_ids[:, 1:]
         
         # Pass the embeddings through the core model
         core_output = self.core_model(embeddings)
@@ -125,7 +129,7 @@ class ByteAutoencoderModelShell(torch.nn.Module):
         )
 
         # Aux loss 1: Target Chunk length
-        chunk_loss = (avg_chunk_len - self.target_chunk_len) ** 2
+        # chunk_loss = (avg_chunk_len - self.target_chunk_len) ** 2
 
         # Aux loss 2: Max Chunk length
         over_length = torch.clamp(
@@ -135,9 +139,10 @@ class ByteAutoencoderModelShell(torch.nn.Module):
         length_loss = torch.sum(over_length)
 
 
-        total_loss = loss + \
-            self.chunk_len_loss_weight * chunk_loss + \
-            self.chunk_len_penalty * length_loss
+        total_loss = loss + self.chunk_len_loss_weight* chunk_loss
+        #+ \
+            # self.chunk_len_loss_weight * chunk_loss + \
+            # self.chunk_len_penalty * length_loss
 
         #print(f"Total Loss: {total_loss}, Chunk Loss: {chunk_loss}, BCE Loss: {loss}")
 

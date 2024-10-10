@@ -1,5 +1,24 @@
 model:
-  core_model_type: pass_through
+  core_model_type: generic 
+  num_layers: 12
+  
+  ffn:
+    ffn_type: generic
+    ffn_dim: 1536
+    activation: gelu
+    normalization: rms_norm
+    bias: false
+    dropout: 0.0
+
+  attn:
+    attn_type: causal
+    num_kv_heads: 8
+    num_q_heads: 8
+    normalization: rms_norm
+    bias: false
+    dropout: false
+    pos_enc_cfg:
+      positional_encoding_type: rope
 
   # byte-level related
   hidden_dim: 384
@@ -14,7 +33,7 @@ model:
   chunk_len_loss_weight: 0.1
   chunk_len_penalty: 0.1
 
-  context_window: 8192
+  context_window: 2048
 
   embedding_model_type: byte_level
   tokenizer_type: bpe
@@ -29,13 +48,13 @@ model:
 
   model_shell_type: byte_autoencoder_shell
   embedding_weight_tying: true
-  ffn_weight_tying: false
+  ffn_weight_tying: true
   cproj_weight_tying: false
   positional_encoding_type: rope
 
 trainer:
   trainer_type: base_trainer
-  dataset: fineweb_edu_10B
+  dataset: simple_en_wiki
   batch_size: 12
   gradient_accumulation_steps: 4
 

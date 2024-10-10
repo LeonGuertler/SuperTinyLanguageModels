@@ -78,6 +78,8 @@ class TokenizerEncoder(torch.nn.Module):
         threshold = 0.8  # Adjust as needed
         end_of_chunk = probs > threshold
 
+        chunk_loss = torch.mean(torch.pow(probs-0.75, 2))
+
         batch_size, seq_len = end_of_chunk.size()
         device = x.device
 
@@ -135,7 +137,7 @@ class TokenizerEncoder(torch.nn.Module):
 
                 output_tensor[batch, i, :chunk_len, :] = chunk
                 output_token_ids[batch, i, :chunk_len] = chunk_ids
-        return output_tensor, output_token_ids, sum(avg_chunk_len)/len(avg_chunk_len)
+        return output_tensor, output_token_ids, chunk_loss, sum(avg_chunk_len)/len(avg_chunk_len)
 
 
 
@@ -261,7 +263,7 @@ class ByteLevelEmbedder(EmbedderInterface):
         self.register_buffer("pad_token_vector", pad_token_vector)
         # Pass through delimiter model
         x_embedded = self.byte_embedder(x)
-        x, output_token_ids, chunk_len = self.delimiter_model(
+        x, output_token_ids, chunk_loss, avg_chunk_len = self.delimiter_model(
             x=x_embedded,
             pad_token_vector=self.pad_token_vector,
             x_ids=x,
@@ -271,7 +273,7 @@ class ByteLevelEmbedder(EmbedderInterface):
         # Pass through word encoding model
         x = self.word_encoding_model(x)
 
-        return x, output_token_ids, chunk_len
+        return x, output_token_ids, chunk_loss, avg_chunk_len
 
     def tokenize_input(self, input_string, truncate=False, add_eot=True):
         token_ids = self.byte_tokenizer.encode(input_string)
