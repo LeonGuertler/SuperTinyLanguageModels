@@ -16,7 +16,7 @@ def get_tokenizer_path(tokenizer_type, vocab_size, dataset_name, simplify, num_r
     ## TODO: find better solution
     
     tokenizer_folder = os.path.join(
-        project_root, "models", "components", "tokenizer_models"
+        project_root, "components", "tokenizer_models"
     )
 
     # create folder if not exists

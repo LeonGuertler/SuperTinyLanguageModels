@@ -78,7 +78,7 @@ class ModelShell(torch.nn.Module):
         if isinstance(model_input, str):
             # use inference function of the embedding model
             model_input = self.embedding_model.tokenize_input(model_input, truncate=True, add_eot=False)
-        x = torch.tensor(model_input, device=self.device, dtype=torch.long).unsqueeze(0).clone().detach()
+        x = torch.tensor(model_input, device=self.device, dtype=torch.long).unsqueeze(0)
         x = self.embedding_model(model_input)
 
         # pass the embeddings through the core model

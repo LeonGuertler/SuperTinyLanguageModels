@@ -25,11 +25,17 @@ class DatasetInterface(torch.utils.data.IterableDataset):
         """
         super().__init__()
         self.cfg = cfg
-        self.dataset_name = self.cfg["trainer"]["dataset"]
+        dataset_names = self.cfg["trainer"]["dataset"]
         self.context_window = self.cfg["model"]["context_window"]
+         # Ensure dataset_names is a list
+        if isinstance(dataset_names, str):
+            dataset_names = [dataset_names]
+        
+        # Create a unique identifier for the combined datasets
+        combined_dataset_name = '_'.join(dataset_names)
         self.data_path = os.path.join(
             self.cfg["general"]["paths"]["data_dir"],
-            self.dataset_name,
+            combined_dataset_name,
             f'{self.cfg["model"]["tokenizer_type"]}-{self.cfg["model"]["vocab_size"]}-{self.cfg["trainer"]["dataloader"]["name"]}',
             f"{split}.bin"
         )

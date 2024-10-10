@@ -151,13 +151,21 @@ def prepare_data(cfg):
     Split the data, process & tokenize it, and store 
     it as memmap bin files
     """
-    # check if the data is already preprocessed
+    # Check if the data is already preprocessed
     dataloader_name = cfg["trainer"]["dataloader"]["name"]
-    dataset_name = cfg["trainer"]["dataset"]
+    dataset_names = cfg["trainer"]["dataset"]
+    
+    # Ensure dataset_names is a list
+    if isinstance(dataset_names, str):
+        dataset_names = [dataset_names]
+    
+    # Create a unique identifier for the combined datasets
+    combined_dataset_name = '_'.join(dataset_names)
+    
     tokenized_data_folder = os.path.join(
         cfg["general"]["paths"]["data_dir"],
-        dataset_name,
-        f'{cfg["model"]["tokenizer_type"]}-{cfg["model"]["vocab_size"]}-{cfg["trainer"]["dataloader"]["name"]}',
+        combined_dataset_name,
+        f'{cfg["model"]["tokenizer_type"]}-{cfg["model"]["vocab_size"]}-{dataloader_name}',
     )
 
     # check if already exists (check len because some datasets use differen filenames
@@ -176,7 +184,7 @@ def prepare_data(cfg):
 
     # load the dataset
     split_dataset = load_data(
-        dataset_name=dataset_name,
+        dataset_names=dataset_names,
     )
 
     processor_object = DATALOADER_PROCESSORS[dataloader_name](
