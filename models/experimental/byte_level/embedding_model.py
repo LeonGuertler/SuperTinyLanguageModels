@@ -141,20 +141,31 @@ class TokenizerEncoder(torch.nn.Module):
 
 class TokenizerEncoder(torch.nn.Module):
     """
-    Take seq of byte embeddings, return transformed sequence and attention mask.
+    Take seq of byte embeddings, return sequence of delimiters. (binary)
     """
 
-    def __init__(self, num_delimiter_layers, byte_hidden):
+    def __init__(
+        self,
+        num_delimiter_layers,
+        byte_hidden,
+        max_chunk_length,
+        max_num_chunks,
+        min_chunk_length,
+    ):
         super().__init__()
 
         self.num_delimiter_layers = num_delimiter_layers
+        self.max_chunk_length = max_chunk_length
+        self.min_chunk_length = 5 #min_chunk_length  # Add min_chunk_length
+        self.max_num_chunks = max_num_chunks
         self.byte_hidden = byte_hidden
 
         self.transformer = torch.nn.ModuleList(
             [
                 GenericTransformerBlock(
                     hidden_dim=self.byte_hidden,
-                    context_window=2048, #5 * 2048,
+                    context_window=5 * 2048,
+                    use_rope=True,
                     ffn_cfg={
                         "ffn_type": "generic",
                         "ffn_dim": 4 * self.byte_hidden,
@@ -170,9 +181,6 @@ class TokenizerEncoder(torch.nn.Module):
                         "normalization": "rms_norm",
                         "bias": False,
                         "dropout": False,
-                        "pos_enc_cfg": {
-                            "positional_encoding_type": "rope"
-                        }
                     },
                 )
                 for _ in range(self.num_delimiter_layers)
@@ -181,111 +189,100 @@ class TokenizerEncoder(torch.nn.Module):
 
         self.end_of_seq_head = torch.nn.Linear(
             self.byte_hidden,
-            1,  # Output logits for delimiter prediction
+            1,  # 2 because we just need to predict whether it's a <sep> or <end>
             bias=True,
-        ) # [Hello ][World!] (12, 32) -> (12, 1) 
+        )
 
-    def forward(self, x, x_ids):
+    def forward(self, x, pad_token_vector, x_ids, pad_token_id):
         # Pass through transformer blocks
         x_transformed = x
         for block in self.transformer:
             x_transformed = block(x_transformed)
 
-        # Predict delimiters
+        # Pass through end_of_seq_head
         logits = self.end_of_seq_head(x_transformed).squeeze(-1)  # Shape: (batch, seq_len)
 
         # Apply sigmoid activation
         probs = torch.sigmoid(logits)
-
         # Determine chunk boundaries using a threshold
-        threshold = 0.5  # Adjust as needed
-        end_of_chunk = probs > threshold  # Shape: (batch, seq_len)
+        threshold = 0.8  # Adjust as needed
+        end_of_chunk = probs > threshold
 
-        chunk_len_loss = torch.mean(torch.pow(probs-0.25, 2)) #torch.mean(torch.sum(probs, dim=1)) # change to exp. val. 0.85
-        
+        # Compute chunk loss (optional)
+        chunk_loss = torch.mean(torch.pow(probs - 0.75, 2))
 
         batch_size, seq_len = end_of_chunk.size()
         device = x.device
 
-        # Initialize lists to store chunk boundaries and average chunk lengths
-        chunk_spans = []
+        chunk_indices = []
         avg_chunk_len = []
-
-        # Set minimum and maximum chunk lengths
-        min_chunk_len = 3
-        max_chunk_len = 16
-
         for batch in range(batch_size):
-            # Get predicted end positions
-            ends = torch.nonzero(end_of_chunk[batch], as_tuple=False).squeeze(-1)
+            starts = []
+            ends = []
+            start_idx = 0
+            idx = 0
+            while idx < seq_len:
+                current_chunk_len = idx - start_idx + 1
+                if current_chunk_len >= self.max_chunk_length:
+                    # Force a chunk boundary
+                    ends.append(idx)
+                    starts.append(start_idx)
+                    start_idx = idx + 1
+                elif (
+                    end_of_chunk[batch, idx].item()
+                    and current_chunk_len >= self.min_chunk_length
+                ):
+                    # Set a chunk boundary
+                    ends.append(idx)
+                    starts.append(start_idx)
+                    start_idx = idx + 1
+                idx += 1
+            # After loop, check if any remaining tokens
+            if start_idx < seq_len:
+                ends.append(seq_len - 1)
+                starts.append(start_idx)
+            starts = torch.tensor(starts, device=device)
+            ends = torch.tensor(ends, device=device)
+            chunk_lengths = ends - starts + 1  # +1 because ends are inclusive
+            chunk_indices.append((starts, ends))
+            avg_chunk_len.append(chunk_lengths.float().mean())
 
-            # If no ends detected, set the end to the last token
-            if ends.numel() == 0:
-                ends = torch.tensor([seq_len - 1], device=device)
-            else:
-                ends = ends + 1  # Adjust ends to point after the chunk end
+        # Initialize output tensors by repeating pad_token_vector
+        output_tensor = pad_token_vector.repeat(
+            batch_size, self.max_num_chunks, self.max_chunk_length, 1
+        )
 
-            # Ensure ends are sorted and unique
-            ends, _ = torch.sort(ends)
+        # Initialize output_token_ids with pad_token_id
+        output_token_ids = torch.full(
+            (batch_size, self.max_num_chunks, self.max_chunk_length),
+            pad_token_id,
+            device=device,
+            dtype=torch.long,
+        )
 
-            # Initialize starts
-            starts = torch.cat([torch.tensor([0], device=device), ends[:-1]])
-
-            # Adjust chunk boundaries to enforce min and max chunk lengths
-            adjusted_starts = []
-            adjusted_ends = []
-
-            current_start = 0
-            while current_start < seq_len:
-                # Set the initial end index
-                current_end = min(current_start + max_chunk_len, seq_len)
-
-                # Find the next potential end within the max_chunk_len
-                potential_ends = ends[(ends > current_start) & (ends <= current_end)]
-                if potential_ends.numel() > 0:
-                    current_end = potential_ends[0].item()
-                else:
-                    current_end = min(current_start + max_chunk_len, seq_len)
-
-                # Enforce minimum chunk length
-                if current_end - current_start < min_chunk_len:
-                    # Extend the chunk to satisfy min_chunk_len
-                    current_end = min(current_start + min_chunk_len, seq_len)
-
-                adjusted_starts.append(current_start)
-                adjusted_ends.append(current_end)
-
-                # Move to the next chunk
-                current_start = current_end
-
-            starts = torch.tensor(adjusted_starts, device=device)
-            ends = torch.tensor(adjusted_ends, device=device)
-
-            chunk_lengths = ends - starts
-
-            # Filter out zero-length chunks (shouldn't occur with the above logic)
-            valid = chunk_lengths > 0
-            starts = starts[valid]
-            ends = ends[valid]
-
-            chunk_spans.append((starts, ends))
-            avg_chunk_len.append(chunk_lengths[valid].float().mean())
-
-        avg_chunk_len = sum(avg_chunk_len) / len(avg_chunk_len)
-
-        # Initialize attention masks
-        attention_masks = torch.zeros((batch_size, seq_len, seq_len), dtype=torch.bool, device=device)
-
-        # Build attention masks based on chunks
+        # Populate output_tensor and output_token_ids with actual chunk data
         for batch in range(batch_size):
-            starts, ends = chunk_spans[batch]
-            for start, end in zip(starts.tolist(), ends.tolist()):
-                attention_masks[batch, start:end, start:end] = True
+            starts, ends = chunk_indices[batch]
+            num_chunks = min(len(ends), self.max_num_chunks)
+            for i in range(num_chunks):
+                start = starts[i].item()
+                end = ends[i].item() + 1  # Include the end index
+                chunk = x_transformed[batch, start:end, :]  # Shape: (chunk_len, 128)
+                chunk_ids = x_ids[batch, start:end]
 
-        return x_transformed, x_ids, chunk_len_loss, avg_chunk_len #, attention_masks, chunk_spans, chunk_len_loss # (12, 32), (12, 1), int, (12, 12), List(Tuple(int, int)), 
+                chunk_len = chunk.size(0)
+                if chunk_len > self.max_chunk_length:
+                    chunk = chunk[: self.max_chunk_length]
+                    chunk_ids = chunk_ids[: self.max_chunk_length]
+                    chunk_len = self.max_chunk_length
+
+                output_tensor[batch, i, :chunk_len, :] = chunk
+                output_token_ids[batch, i, :chunk_len] = chunk_ids
+
+        avg_chunk_length = sum(avg_chunk_len) / len(avg_chunk_len)
+        return output_tensor, output_token_ids, chunk_loss, avg_chunk_length
 
 
-        # return output_tensor, output_token_ids, chunk_loss, sum(avg_chunk_len)/len(avg_chunk_len)
 
 class ByteBidirectionEncoding(torch.nn.Module):
     """
