@@ -8,7 +8,7 @@ import torch
 import numpy as np 
 
 from models.components.positional_encoding import build_positional_encodings
-from models.components.layers.tokenizers import build_tokenizer
+from models.components.tokenizers import build_tokenizer
 
 
 class EmbedderInterface(torch.nn.Module):
@@ -104,6 +104,7 @@ class GenericEmbedder(EmbedderInterface):
             vocab_size=model_cfg.get("vocab_size", None),
             dataset_name=model_cfg.get("tokenizer_dataset_name", None),
             simplify=model_cfg.get("tokenizer_simplify", True), # Default True
+            num_reserved_tokens=model_cfg.get("tokenizer_num_reserved_tokens", 0), # By Default, no spaces are reserved
         )
 
         # build the token embeddings

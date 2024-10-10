@@ -5,9 +5,9 @@ FFN, Attn and normalizatio
 
 import torch
 
-from models.components.layers.attention import build_attention
-from models.components.layers.feedforward import build_ffn
-from models.components.layers.normalization import build_normalization
+from models.components.attention import build_attention
+from models.components.feedforward import build_ffn
+from models.components.normalization import build_normalization
 
 
 class GenericTransformerBlock(torch.nn.Module):

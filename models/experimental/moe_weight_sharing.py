@@ -5,11 +5,11 @@ import torch
 import math 
 from models.core_models import GenericTransformer
 
-from models.components.layers.attention import build_attention
-from models.components.layers.feedforward import build_ffn
-from models.components.layers.normalization import build_normalization
+from models.components.attention import build_attention
+from models.components.feedforward import build_ffn
+from models.components.normalization import build_normalization
 
-from models.components.layers.activations import build_activation
+from models.components.activations import build_activation
 
 
 class MoELoRA(torch.nn.Module):

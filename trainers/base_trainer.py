@@ -6,7 +6,7 @@ from omegaconf import OmegaConf
 from contextlib import nullcontext
 
 # local imports
-from trainers import utils, data_utils
+from trainers import utils
 from trainers.evaluator import (
     train_eval_mcq, 
     train_eval_text_modeling,
@@ -174,6 +174,7 @@ class BaseTrainer:
                 * self.gradient_accumulation_steps
                 * iter_num
                 * self.cfg.model["context_window"]
+                * torch.cuda.device_count() if torch.cuda.is_available() else 1 # To account for the divided accumulation steps
             ),
         }
 
@@ -390,7 +391,13 @@ class BaseTrainer:
                 ## print and log the result only on the first GPU after aggregation
                 print(f"All GPU(s): step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
                 if (self.gpu_id == 0 or self.gpu_id is None) and self.use_wandb:
-                    token_num = self.batch_size*self.gradient_accumulation_steps*iter_num*self.cfg["model"]["context_window"]
+                    token_num = (
+                        self.batch_size
+                        *self.gradient_accumulation_steps
+                        *iter_num
+                        *self.cfg["model"]["context_window"]
+                        * torch.cuda.device_count() if torch.cuda.is_available() else 1 # To account for the divided accumulation steps
+                    )
                     wandb.log(
                         {
                             "iter": iter_num,

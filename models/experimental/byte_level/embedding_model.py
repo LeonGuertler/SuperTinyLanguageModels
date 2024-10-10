@@ -7,7 +7,7 @@ the tokenizer(s), token embeddings and positional encodings
 import torch
 
 from models.components.positional_encoding import LearnedPosEncoding
-from models.components.layers.tokenizers import build_tokenizer
+from models.components.tokenizers import build_tokenizer
 from models.embedding_models import EmbedderInterface
 from models.experimental.byte_level.layers import ByteLevelTransformerBlock
 

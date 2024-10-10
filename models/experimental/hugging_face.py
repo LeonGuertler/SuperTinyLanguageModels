@@ -4,7 +4,7 @@ This can be used for finetuning or training from scratch."""
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from models.components.layers.tokenizers import TokenizerClass
+from models.components.tokenizers import TokenizerClass
 from models.embedding_models import EmbedderInterface
 from models.model_shell import ModelShell
 from trainers.base_trainer import BaseTrainer

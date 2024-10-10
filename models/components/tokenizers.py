@@ -7,7 +7,7 @@ from transformers import AutoTokenizer
 
 # local imports
 from trainers.data_utils import load_data
-from models.components.layers import utils
+from models.components import utils
 
 # text processing imports
 import re
@@ -137,70 +137,84 @@ class TiktokenTokenizer(TokenizerClass):
 
 
 class BPETokenizer(TokenizerClass):
-    def __init__(self, vocab_size: int, dataset_name: str, simplify: bool = True):
+    def __init__(
+        self,
+        vocab_size: int,
+        dataset_name: str,
+        simplify: bool = True,
+        num_reserved_tokens: int = 0,
+    ):
         super().__init__()
         self.vocab_size = vocab_size
         self.dataset_name = dataset_name
-        self.simplify = simplify 
+        self.simplify = simplify
+        self.reserved_tokens = [f"[Res{x}]" for x in range(num_reserved_tokens)]
 
         if not utils.check_if_tokenizer_exists(
-            tokenizer_type="bpe", 
-            vocab_size=vocab_size, 
+            tokenizer_type="bpe",
+            vocab_size=vocab_size,
             dataset_name=dataset_name,
-            simplify=simplify
+            simplify=simplify,
+            num_reserved_tokens=len(self.reserved_tokens)
         ):
             self._train_tokenizer()
             self._save()
         else:
             self._load()
-        
+
+        # Update special token IDs after loading or training
         self.pad_token = self.tokenizer.token_to_id("[PAD]")
         self.eot_token = self.tokenizer.token_to_id("[EOT]")
-        self.unk_token = self.tokenizer.token_to_id("[UNK]") 
+        self.unk_token = self.tokenizer.token_to_id("[UNK]")
 
     def _train_tokenizer(self, verbose: bool = True):
         raw_datasets = load_data(dataset_name=self.dataset_name)
 
         # Pattern string without compiling
-        non_english_char_pattern = r'[^a-zA-Z0-9\s' + re.escape(string.punctuation) + r']'
+        non_english_char_pattern = r"[^a-zA-Z0-9\s" + re.escape(string.punctuation) + r"]"
 
-        # Define special tokens
-        special_tokens = ["[PAD]", "[EOT]", "[UNK]"]
+        # Define special tokens, including reserved tokens
+        special_tokens = ["[PAD]", "[EOT]", "[UNK]"] + self.reserved_tokens
 
-        # Define initial alphabet, include digits to ensure they are treated as individual tokens
-        initial_alphabet = list(string.ascii_letters + string.digits + string.punctuation + ' \n\t')
-        
-        
+        # Define initial alphabet
+        initial_alphabet = list(
+            string.ascii_letters + string.digits + string.punctuation + " \n\t"
+        )
+
         # Initialize a new tokenizer
         self.tokenizer = Tokenizer(BPE(unk_token="[UNK]", dropout=0.1))
-        
+
         # Set the decoder to ByteLevel
-        self.tokenizer.decoder = decoders.ByteLevel() 
-        
+        self.tokenizer.decoder = decoders.ByteLevel()
+
         # Initialize the trainer
         trainer = BpeTrainer(
             vocab_size=self.vocab_size,
             min_frequency=5,
             special_tokens=special_tokens,
             initial_alphabet=initial_alphabet,
-            show_progress=verbose
+            show_progress=verbose,
         )
 
         if self.simplify:
             # Set the normalizer to remove non-English characters
-            self.tokenizer.normalizer = NormalizerSequence([
-                NFD(),  # Decompose unicode characters
-                StripAccents(),  # Remove accents
-                Replace(non_english_char_pattern, ""),  # Use pattern string directly
-        ])
+            self.tokenizer.normalizer = NormalizerSequence(
+                [
+                    NFD(),  # Decompose unicode characters
+                    StripAccents(),  # Remove accents
+                    Replace(non_english_char_pattern, ""),  # Use pattern string directly
+                ]
+            )
 
             # Custom pre-tokenizer to split numbers into individual digits
-            self.tokenizer.pre_tokenizer = Sequence([
-                WhitespaceSplit(),  # Split on whitespace
-                # Split digits and isolate them
-                Split(r'\d', behavior='isolated'),  # Each digit is a separate token
-                ByteLevel()  # Byte-level encoding
-            ])
+            self.tokenizer.pre_tokenizer = Sequence(
+                [
+                    WhitespaceSplit(),  # Split on whitespace
+                    # Split digits and isolate them
+                    Split(r"\d", behavior="isolated"),  # Each digit is a separate token
+                    ByteLevel(),  # Byte-level encoding
+                ]
+            )
         
         # Prepare the training data with filtering
         def batch_iterator():
@@ -249,7 +263,8 @@ class BPETokenizer(TokenizerClass):
             tokenizer_type="bpe",
             vocab_size=self.vocab_size,
             dataset_name=self.dataset_name,
-            simplify=self.simplify
+            simplify=self.simplify,
+            num_reserved_tokens=len(self.reserved_tokens),
         )
         self.tokenizer.save(str(tokenizer_path)) 
 
@@ -258,13 +273,17 @@ class BPETokenizer(TokenizerClass):
             tokenizer_type="bpe",
             vocab_size=self.vocab_size,
             dataset_name=self.dataset_name,
-            simplify=self.simplify
+            simplify=self.simplify,
+            num_reserved_tokens=len(self.reserved_tokens),
         )
         self.tokenizer = Tokenizer.from_file(str(tokenizer_path))
         self.vocab = self.tokenizer.get_vocab()
 
         # print vocab size
         print(f"Loaded a BPE tokenizer with {len(self.vocab)} tokens.")
+
+
+
 
 
 
@@ -282,8 +301,8 @@ TOKENIZER_DICT = {
     "mistral_32k": lambda vocab_size, dataset_name, simplify: HuggingfaceTokenizer(tokenizer_path="mistralai/Mistral-7B-v0.1"),
 
     # a custom BPE tokenizer (using the HF implementation)
-    "bpe": lambda vocab_size, dataset_name, simplify: BPETokenizer(
-        vocab_size=vocab_size, dataset_name=dataset_name, simplify=simplify
+    "bpe": lambda vocab_size, dataset_name, simplify, num_reserved_tokens: BPETokenizer(
+        vocab_size=vocab_size, dataset_name=dataset_name, simplify=simplify, num_reserved_tokens=num_reserved_tokens
     ),
 }
 
@@ -293,6 +312,7 @@ def build_tokenizer(
         vocab_size, 
         dataset_name,
         simplify,
+        num_reserved_tokens
     ) -> TokenizerClass:
     """
     Build the tokenizer.
@@ -300,5 +320,5 @@ def build_tokenizer(
     assert tokenizer_type in TOKENIZER_DICT, \
         f"Tokenizer type {tokenizer_type} not found. The available tokenizers are: {list(TOKENIZER_DICT.keys())}"
     return TOKENIZER_DICT[tokenizer_type](
-        vocab_size=vocab_size, dataset_name=dataset_name, simplify=simplify
+        vocab_size=vocab_size, dataset_name=dataset_name, simplify=simplify, num_reserved_tokens=num_reserved_tokens
     )

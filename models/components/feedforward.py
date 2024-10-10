@@ -5,7 +5,7 @@ A collection of FFN blocks
 import torch
 import torch.nn.functional as F
 
-from models.components.layers.activations import build_activation
+from models.components.activations import build_activation
 
 
 class GenericFFN(torch.nn.Module):

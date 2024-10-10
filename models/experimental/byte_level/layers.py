@@ -4,9 +4,9 @@ Shared components of the byte level models.
 
 import torch
 
-from models.components.layers.activations import build_activation
-from models.components.layers.attention import Attention
-from models.components.layers.normalization import build_normalization
+from models.components.activations import build_activation
+from models.components.attention import Attention
+from models.components.normalization import build_normalization
 
 
 class ProjectingFFN(torch.nn.Module):

@@ -78,9 +78,9 @@ DATASET_DICT = {
         lambda_fn=lambda x: {"text": f"Task: Definition: {x['definition']}\nQuestion: {x['inputs']}\nAnswer: {x['targets']}"}
     ),
     "fineweb_edu_100B": lambda: load_dataset("HuggingFaceFW/fineweb-edu", "sample-100BT"),
-    "fineweb_edu_10B": lambda: load_dataset("HuggingFaceFW/fineweb-edu", "sample-10BT")
-
-
+    "fineweb_edu_10B": lambda: load_dataset("HuggingFaceFW/fineweb-edu", "sample-10BT"),
+    "prm800k": lambda: load_dataset("tasksource/PRM800K"),
+    "math_pile": lambda: load_dataset("GAIR/MathPile")
 
 }
 
@@ -100,18 +100,63 @@ def get_dataset_byte_size(dataset):
     return sum([len(item["text"]) for item in dataset])
 
 
-def load_data(dataset_name, shuffle=True):
+def load_data(dataset_names, shuffle=True):
     """Load the data"""
-    assert dataset_name in DATASET_DICT, f"Dataset {dataset_name} not found!"
-    dataset = DATASET_DICT[dataset_name]()
+    # Check if only a single dataset name was provided
+    if isinstance(dataset_names, str):
+        dataset_names = [dataset_names]
 
-    # create dataset split
-    split_dataset = dataset["train"].train_test_split(
+    datasets_list = []
+    for dataset_name in dataset_names:
+        assert dataset_name in DATASET_DICT, f"Dataset {dataset_name} not found!"
+        dataset = DATASET_DICT[dataset_name]()
+        datasets_list.append(dataset["train"])
+
+    # Concatenate datasets if there are multiple datasets
+    if len(datasets_list) > 1:
+        combined_dataset = concatenate_datasets(datasets_list)
+    else:
+        combined_dataset = datasets_list[0]
+
+    # Create dataset split
+    split_dataset = combined_dataset.train_test_split(
         test_size=0.01, seed=489, shuffle=shuffle
     )
 
-    # rename test split to val
+    # Rename test split to val
     split_dataset["val"] = split_dataset.pop("test")
 
-    # return the training and validation datasets
+    # Return the training and validation datasets
     return split_dataset
+
+# def load_data(dataset_names, shuffle=True):
+#     """Load the data"""
+#     # check if only a single dataset name was provided
+#     if isinstance(dataset_names, str):
+#         dataset_names = [dataset_names]
+
+
+#     for dataset_name in dataset_names:
+#         assert dataset_name in DATASET_DICT, f"Dataset {dataset_name} not found!"
+#         dataset = DATASET_DICT[dataset_name]()
+
+
+#     # create dataset split
+#     split_dataset = dataset["train"].train_test_split(
+#         test_size=0.01, seed=489, shuffle=shuffle
+#     )
+
+#     # rename test split to val
+#     split_dataset["val"] = split_dataset.pop("test")
+
+#     # return the training and validation datasets
+#     return split_dataset
+
+
+def load_prm800k_dataset():
+    """ 
+    Load the PRM800k dataset
+    https://arxiv.org/abs/2305.20050
+    https://huggingface.co/datasets/tasksource/PRM800K
+    """
+    pass

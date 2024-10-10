@@ -4,7 +4,7 @@ Simple, flexible core models.
 
 import torch
 
-from models.components.layers.transformer_blocks import GenericTransformerBlock
+from models.components.transformer_blocks import GenericTransformerBlock
 
 
 class GenericTransformer(torch.nn.Module):

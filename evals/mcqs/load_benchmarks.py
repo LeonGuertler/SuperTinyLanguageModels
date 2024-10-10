@@ -252,6 +252,21 @@ def load_commonsense_qa(num_samples=None):
         )
 
 def load_ewok(num_samples=None):
+    """
+    Load the Ewok eval set
+    https://arxiv.org/abs/2405.09605v1
+    https://huggingface.co/datasets/ewok-core
+    """
+    dataset = load_dataset("ewok-core/ewok-core-1.0", trust_remote_code=True)["test"]
+    index_list = get_idx_list(len(dataset), num_samples)
+    for i in index_list:
+        sample = dataset[i] 
+        yield(
+            sample["Context1"],
+            sample["Target1"],
+            [sample["Target2"]]
+        )
+
 
 
 
@@ -314,6 +329,9 @@ EVALS_DICT = {
     "commonsense_qa": lambda num_samples: load_commonsense_qa(
         num_samples=num_samples
     ),
+    "ewok": lambda num_samples: load_ewok(
+        num_samples=num_samples
+    )
 }
 
 
