@@ -1,0 +1,110 @@
+model:
+  core_model_type: hf_core
+  # num_layers: 1
+  model_string: "meta-llama/Llama-3.2-1B"
+  use_lora: true
+  lora_targets: ["q_proj", "k_proj", "v_proj", "c_proj", "gate_proj", "up_proj", "down_proj"]
+  # freeze: true
+  # ffn:
+  #   ffn_type: generic
+  #   ffn_dim: 3072
+  #   activation: gelu
+  #   normalization: rms_norm
+  #   bias: false
+  #   dropout: 0.0
+
+  # attn:
+  #   attn_type: causal
+  #   num_kv_heads: 12
+  #   num_q_heads: 4
+  #   normalization: rms_norm
+  #   bias: false
+  #   dropout: false
+
+  embedding_model_type: hf_embedder
+  tokenizer_type: hf
+  # tokenizer_dataset_name: en_wiki
+  # tokenizer_simplify_data: true
+  vocab_size: 128255
+
+  # hidden_dim: 768
+  context_window: 4096
+
+  lm_head_type: hf_head
+  # lm_head_normalization: rms_norm
+  # lm_head_bias: false
+  # lm_head_dropout: 0.0
+
+  model_shell_type: standard
+  embedding_weight_tying: false
+  ffn_weight_tying: false
+  cproj_weight_tying: false
+  # positional_encoding_type: rope
+
+trainer:
+  trainer_type: base_trainer
+  dataset: simple_en_wiki
+  batch_size: 1
+  gradient_accumulation_steps: 2
+
+  max_iters: 50000
+  eval_interval: 5000
+  log_interval: 10
+  checkpoint_interval: 10000
+  eval_iters: 100
+
+  eval:
+    #mcq_benchmarks:
+    #  - "winogrande"
+    #  - "hellaswag"
+    #  - "arc_easy"
+    #  - "blimp"
+    #  - "piqa"
+    #  - "race_middle"
+    #  - "race_high"
+    #  - "boolq"
+    #  - "openbook_qa_closed"
+    #  - "openbook_qa_open"
+    #  - "copa"
+    #  - "commonsense_qa"
+    #mcq_num_samples: 500
+    eval_byte_metrics: false 
+    text_modeling_eval: false 
+    text_generation_eval: false
+
+  optimizer:
+    optimizer_name: adamW
+    lr: 6.0e-6
+    min_lr: 6.0e-8
+    weight_decay: 0.1
+    beta1: 0.9
+    beta2: 0.95
+    grad_clip: 1.0
+
+  lr_scheduler:
+    name: cosine
+    warmup_iters: 5000
+
+  dataloader:
+    name: standard
+
+  datasampling:
+    name: standard
+
+  loss_fn:
+    name: cross_entropy
+
+general:
+  logging:
+    wandb_log: true
+    wandb_project: SuperTinyLanguageModels
+    wandb_run_name: Null
+    group_name: base_group
+
+  paths:
+    output_dir: outputs
+    data_dir: data
+    checkpoint_dir: checkpoints
+    eval_dir: evals
+  seed: 489
+  device: cuda
