@@ -8,6 +8,10 @@ class BaseEvaluator:
         self.eval_metric: str = ...
         self.eval_logging_path: str = ...
 
+    def set_env_id(self, env_id: str) -> None:
+        """ TODO """
+        self.env_id = env_id
+
     def evaluate(self, model): # -> Dict[str: Any]:
         """Each evaluator must implement its own evaluate method."""
         raise NotImplementedError("Each evaluator must implement its own evaluate method.")

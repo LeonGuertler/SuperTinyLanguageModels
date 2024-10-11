@@ -3,87 +3,23 @@ import evals
 from tqdm import tqdm
 
 def intra_training_evaluation(model, benchmarks):
-    for benchmark in tqdm(benchmarks, desc=f"Evaluating {benchmark}"):
-        print(benchmark)
-        benchmark_evaluator = evals.make(benchmark)
-        print(benchmark_evaluator)
-        input(benchmark_evaluator.evaluate(model=model, verbose=verbose))
+    """
+    Evaluates the model on multiple benchmarks during training.
+    
+    Args:
+        model: The model to evaluate.
+        benchmarks List[str]: A list of benchmark names to evaluate the model on.
+    """
+    results_dict = {}
 
+    # Outer progress bar for benchmarks
+    with tqdm(benchmarks, desc="Evaluating benchmarks", position=0,  leave=True) as benchmark_bar:
+        for benchmark in benchmark_bar:
+            # Create the benchmark evaluator
+            benchmark_evaluator = evals.make(benchmark)
 
+            # Evaluating within the benchmark, tqdm already exists in the yield function
+            results = benchmark_evaluator.evaluate(model=model)
+            results_dict.update(results)
 
-
-
-
-
-# from evals import (
-#     MCQEvaluator,
-#     TextModelingEvaluator,
-#     TextGenerationEvaluator,
-#     MathWordProblemEvaluator
-# )
-
-
-# def train_eval_mcq(model, num_samples, benchmark_list):
-#     """ Create and run the MCQ evaluator """
-#     # wrap so failure doesn't crash the full run
-#     try:
-#         # load the MCQ evaluator
-#         evaluator = MCQEvaluator(
-#             model=model,
-#             num_samples=num_samples,
-#             benchmark_list=benchmark_list,
-#         )
-#         # run the evaluator
-#         return evaluator.evaluate()
-#     except Exception as exc:
-#         print(f"The MCQ evaluator failed: {exc}")
-#         return {}
-
-
-
-# def train_eval_text_modeling(model, topic_list):
-#     """ Test the model """
-#     # wrap so failure doesn't crash the full run
-#     try:
-#         # load the Text Modeling evaluator
-#         evaluator = TextModelingEvaluator(
-#             model=model,
-#             topic_list=topic_list,
-#         )
-#         # run the evaluator
-#         return evaluator.evaluate()
-#     except Exception as exc:
-#         print(f"The text modeling evaluator failed: {exc}")
-#         return {}
-
-
-# def train_eval_text_generation(model):
-#     """ Test the model stext generation capability """
-#     # wrap so failure doesn't crash the full run
-#     try:
-#         # load the Text Generation evaluator
-#         evaluator = TextGenerationEvaluator(
-#             model=model
-#         )
-
-#         # run the evaluator
-#         return evaluator.evaluate()
-#     except Exception as exc:
-#         print(f"The text generation evaluator failed: {exc}")
-#         return {}, ""
-
-# def train_free_form(model, num_samples, benchmark_list):
-#     """ Create and run the free form evaluator """
-#     # wrap so failure doesn't crash the full run 
-#     # try:
-#     # load the free form evaluator
-#     evaluator = MathWordProblemEvaluator(
-#         model=model,
-#         num_samples=num_samples,
-#         benchmark_list=benchmark_list
-#     )
-
-#     return evaluator.evaluate()
-#     # except Exception as exc:
-#     #     print(f"The free form evaluator failed: {exc}")
-#     #     return {}, ""
+    return results_dict

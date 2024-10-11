@@ -4,6 +4,7 @@ Load a benchmark loader, given the benchmark name.
 import numpy as np 
 from datasets import load_dataset
 from tqdm import tqdm 
+from typing import Optional, List
 
 def get_idx_list(dataset_length, num_samples, seed=None, verbose=True):
     """
@@ -20,7 +21,7 @@ def get_idx_list(dataset_length, num_samples, seed=None, verbose=True):
     ).tolist()
 
     if verbose:
-        idx_list = tqdm(idx_list, desc="Loading PIQA samples")
+        idx_list = tqdm(idx_list, desc="Evaluating samples")
     
     return idx_list
 
@@ -327,3 +328,42 @@ def load_ewok(num_samples=None, seed=None):
         )
 
 
+
+# Text Modeling yield functions
+def load_stlm_synthetic_text_modeling(
+    topics: Optional[List[str]] = None, 
+    difficulties: Optional[List[str]] = None,
+    verbose: Optional[bool] = True,
+):
+    """
+    Load the STLM text modeling evaluation set and optionally subsample based on topic and difficulty.
+
+    Args:
+        topic (Optional[List[str]]): List of topics to include. If None, all topics are included.
+        difficulty (Optional[List[str]]): List of difficulty levels to include. If None, all difficulty levels are included.
+
+    Yields:
+        str: Text samples from the dataset that match the specified criteria.
+    
+    Dataset Source:
+        https://huggingface.co/datasets/SuperTinyLanguageModels/text-modeling-eval
+    """
+    # Load the dataset
+    dataset = load_dataset("SuperTinyLanguageModels/text-modeling-eval")["train"]
+
+    # Apply filtering based on topics if provided
+    if topics is not None:
+        dataset = dataset.filter(lambda example: example["topic"] in topics)
+
+    # Apply filtering based on difficulties if provided
+    if difficulties is not None:
+        dataset = dataset.filter(lambda example: example["difficulty"] in difficulties)
+
+    if verbose:
+        iterator = tqdm(dataset, desc="Evaluating Text Modeling samples")
+    else:
+        iterator = dataset
+    
+    # Yield the 'text' field from each filtered sample
+    for sample in iterator:
+        yield sample["text"]

@@ -162,7 +162,8 @@ class BaseTrainer:
 
     def _setup_scaler(self, dtype=torch.float16):
         """Setup the scaler"""
-        self.scaler = torch.cuda.amp.GradScaler(enabled=dtype == torch.float16)
+        # self.scaler = torch.cuda.amp.GradScaler(enabled=dtype == torch.float16)
+        self.scaler = torch.amp.GradScaler(self.model.device, enabled=dtype == torch.float16)
 
 
     @torch.no_grad()
@@ -287,14 +288,14 @@ class BaseTrainer:
         #             )
         #     })
 
-        # get the free form eval results
-        eval_results.update(
-            train_free_form(
-                model=self.model,
-                num_samples=self.cfg["trainer"]["eval"].get("free_form_num_sampels", None),
-                benchmark_list=self.cfg["trainer"]["eval"].get("free_form_benchmarks", [])
-            )
-        )
+        # # get the free form eval results
+        # eval_results.update(
+        #     train_free_form(
+        #         model=self.model,
+        #         num_samples=self.cfg["trainer"]["eval"].get("free_form_num_sampels", None),
+        #         benchmark_list=self.cfg["trainer"]["eval"].get("free_form_benchmarks", [])
+        #     )
+        # )
 
 
 

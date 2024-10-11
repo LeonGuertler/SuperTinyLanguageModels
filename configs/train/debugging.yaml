@@ -53,9 +53,10 @@ trainer:
 
   eval:
     benchmarks:
+      - STLM-Text-Modeling (full)
       - ArcEasy
       - ArcEasySubset
-      - ArcEasyLinearSubset
+      # - ArcEasyLinearSubset
 
 
 
@@ -104,7 +105,7 @@ trainer:
 
 general:
   logging:
-    wandb_log: true
+    wandb_log: false
     wandb_project: SuperTinyLanguageModels
     wandb_run_name: Null
     group_name: base_group

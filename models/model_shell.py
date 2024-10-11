@@ -103,7 +103,14 @@ class ModelShell(torch.nn.Module):
         total_strings = [f"{prefix} {cont}" for prefix, cont in zip(prefixes, continuations)]
         input_tokens = [self.embedding_model.tokenize_input(string, truncate=True) for string in total_strings]
         padded_batch, mask = self.embedding_model.pad_batch(input_tokens, direction="right")
-        input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
+        # Check if padded_batch is already a tensor
+        if isinstance(padded_batch, torch.Tensor):
+            input_tensor = padded_batch.to(device=self.device, dtype=torch.long)
+        else:
+            # If padded_batch is a list or another type, convert it to a tensor
+            input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
+        
+        # input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
         logits, _ = self.forward(input_tensor)
         logits = logits[:, :-1].reshape(-1, logits.size(-1))
         target_tensor = input_tensor[:, 1:].reshape(-1)

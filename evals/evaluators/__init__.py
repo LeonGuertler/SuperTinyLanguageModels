@@ -1,1 +1,2 @@
-from evals.evaluators.mcq_evaluator.evaluator import MCQEvaluator
+from evals.evaluators.mcq_evaluator import MCQEvaluator
+from evals.evaluators.text_modeling_evaluator import TextModelingEvaluator

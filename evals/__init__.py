@@ -11,7 +11,7 @@ from evals.benchmark_registry import register, make
 
 from evals.benchmarks.yield_functions import *
 
-from evals.model_wrappers import LoglikelihoodMCQModelWrapper
+from evals.model_wrappers import *
 
 
 # Register the MCQ benchmarks
@@ -52,7 +52,26 @@ register(
 
 
 # Register the text-modeling benchmarks
-
+register(
+    id="STLM-Text-Modeling (full)",
+    entry_point="evals.evaluators:TextModelingEvaluator",
+    model_wrapper=TextModelingModelWrapper,
+    yield_fn=load_stlm_synthetic_text_modeling,
+    yield_fn_params={
+        "topics": None,
+        "difficulties": None # i.e. full dataset
+    }
+)
+register(
+    id="STLM-Text-Modeling (Science-Hard)",
+    entry_point="evals.evaluators:TextModelingEvaluator",
+    model_wrapper=TextModelingModelWrapper,
+    yield_fn=load_stlm_synthetic_text_modeling,
+    yield_fn_params={
+        "topics": ["Science"],
+        "difficulties": ["Hard"] # i.e. full dataset
+    }
+)
 
 
 

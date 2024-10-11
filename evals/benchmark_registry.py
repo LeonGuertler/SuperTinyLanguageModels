@@ -71,7 +71,10 @@ def make(env_id: str, **kwargs) -> Any:
         env_class = env_spec.entry_point
     
     # Pass additional keyword arguments
-    return env_class(**{**env_spec.kwargs, **kwargs})
+    env = env_class(**{**env_spec.kwargs, **kwargs})
+    # set id
+    env.set_env_id(env_id=env_id)
+    return env
 
 
 

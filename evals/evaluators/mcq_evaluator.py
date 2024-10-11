@@ -12,7 +12,7 @@ class MCQEvaluator(BaseEvaluator):
         yield_fn: Callable, 
         model_wrapper: BaseModelWrapper,
         yield_fn_params: Optional[Dict[str, Any]] = None,
-        eval_metric: Optional[str] = "Acc.",
+        eval_metric: Optional[str] = "Acc",
         eval_logging_path: Optional[str] = "MCQ",
     ):
         super().__init__()
@@ -24,6 +24,9 @@ class MCQEvaluator(BaseEvaluator):
         self.yield_fn = yield_fn(**yield_fn_params)
         self.model_wrapper = model_wrapper
     
+    # def set_env_id(self, env_id: str) -> None:
+    #     """ TODO """
+    #     self.env_id = env_id
 
     def evaluate(self, model):
         """
@@ -43,7 +46,7 @@ class MCQEvaluator(BaseEvaluator):
             total += 1
         accuracy = correct / total if total > 0 else 0
         return {
-            f"{self.eval_logging_path}/{self.benchmark_spec.name}-{self.eval_metric}": accuracy
+            f"{self.eval_logging_path}/{self.env_id}-{self.eval_metric}": accuracy
             }
 
 
