@@ -10,3 +10,4 @@ sentencepiece
 textstat
 language-tool-python
 nltk
+python-dotenv
