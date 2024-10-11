@@ -33,6 +33,7 @@ model:
   lm_head_dropout: 0.0
 
   model_shell_type: standard
+  attention_type: standard
   embedding_weight_tying: true
   ffn_weight_tying: false
   cproj_weight_tying: false

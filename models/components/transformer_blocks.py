@@ -16,7 +16,7 @@ class GenericTransformerBlock(torch.nn.Module):
     FFN, Attn and normalization.
     """
 
-    def __init__(self, hidden_dim, context_window, use_rope, ffn_cfg, attn_cfg):
+    def __init__(self, attention_type, hidden_dim, context_window, use_rope, ffn_cfg, attn_cfg):
         super().__init__()
 
         # build the attn norm
@@ -28,6 +28,7 @@ class GenericTransformerBlock(torch.nn.Module):
 
         # build the attention
         self.attn = build_attention(
+            attention_type=attention_type,
             hidden_dim=hidden_dim,
             context_window=context_window,
             use_rope=use_rope,

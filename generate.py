@@ -20,7 +20,8 @@ def main(cfg):
     device = "cpu" if not torch.cuda.is_available() else "cuda"
     model, _ = build_model(
         checkpoint_path=cfg["model_ckpt"],
-        device=device
+        device=device,
+        attention_type=cfg["attention_type"]
     )
                         
     # put model into eval mode

@@ -3,6 +3,7 @@ A collection of attention layers.
 """
 
 import torch
+from models.components.utils.attention_utils import use_attention_type
 
 
 class Attention(torch.nn.Module):
@@ -12,6 +13,7 @@ class Attention(torch.nn.Module):
 
     def __init__(
         self,
+        attention_type,
         hidden_dim,
         num_q_heads,
         num_kv_heads,
@@ -25,6 +27,9 @@ class Attention(torch.nn.Module):
         assert num_kv_heads % num_q_heads == 0, "num_kv_heads must be divisible by num_q_heads"
 
         group_size = num_kv_heads // num_q_heads
+
+        # set the attention_type
+        self.attention_type = attention_type
 
         # key, query, value projections for all heads
         self.c_attn = torch.nn.Linear(
@@ -79,7 +84,8 @@ class Attention(torch.nn.Module):
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         # flash attention
         # pylint: disable=not-callable
-        y = torch.nn.functional.scaled_dot_product_attention(
+        y, attn_components = use_attention_type(
+            attention_type=self.attention_type,
             query=q,
             key=k,
             value=v,
@@ -87,6 +93,10 @@ class Attention(torch.nn.Module):
             dropout_p=self.attn_dropout.p if self.training else 0,
             is_causal=self.is_causal,
         )
+
+        # store the attention components
+        self.attn_components = attn_components
+
         # pylint: enable=not-callable
         y = (
             y.transpose(1, 2).contiguous().view(B, S, H)
@@ -130,7 +140,8 @@ def compute_freqs_cis(seq_len, head_dim):
 
 
 ATTENTION_DICT = {
-    "causal": lambda hidden_dim, context_window, use_rope, attn_cfg: Attention(
+    "causal": lambda attention_type, hidden_dim, context_window, use_rope, attn_cfg: Attention(
+        attention_type=attention_type,
         hidden_dim=hidden_dim,
         num_kv_heads=attn_cfg["num_kv_heads"],
         num_q_heads=attn_cfg.get("num_q_heads", attn_cfg["num_kv_heads"]),
@@ -139,7 +150,8 @@ ATTENTION_DICT = {
         context_window=context_window,
         is_causal=True,
     ),
-    "bidirectional": lambda hidden_dim, context_window, use_rope, attn_cfg: Attention(
+    "bidirectional": lambda attention_type, hidden_dim, context_window, use_rope, attn_cfg: Attention(
+        atttention_type=attention_type,
         hidden_dim=hidden_dim,
         num_kv_heads=attn_cfg["num_kv_heads"],
         num_q_heads=attn_cfg.get("num_q_heads", attn_cfg["num_kv_heads"]),
@@ -151,7 +163,7 @@ ATTENTION_DICT = {
 }
 
 
-def build_attention(hidden_dim, context_window, use_rope, attn_cfg):
+def build_attention(attention_type, hidden_dim, context_window, use_rope, attn_cfg):
     """
     Build an attention layer
 
@@ -162,6 +174,7 @@ def build_attention(hidden_dim, context_window, use_rope, attn_cfg):
         attn_cfg: attention config
     """
     return ATTENTION_DICT[attn_cfg["attn_type"]](
+        attention_type=attention_type,
         hidden_dim=hidden_dim,
         context_window=context_window,
         use_rope=use_rope,

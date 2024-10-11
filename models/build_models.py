@@ -3,7 +3,7 @@ Contains the build functions for the embedder,
 core model, lm head and the model shell.
 """
 import torch
-
+from omegaconf import OmegaConf
 
 
 from models.core_models import GenericTransformer
@@ -25,7 +25,7 @@ from models.experimental.moe_weight_sharing import (
 )
 
 
-def build_model(model_cfg=None, checkpoint_path=None, device="cuda"):
+def build_model(model_cfg=None, checkpoint_path=None, device="cuda", **kwargs):
     """
     Either initialize or load a model, depending on
     whether a config or checkpoint was provided
@@ -45,6 +45,12 @@ def build_model(model_cfg=None, checkpoint_path=None, device="cuda"):
             checkpoint_path,
             map_location=torch.device(device),
         )
+
+        # update the attention type if provided
+        if checkpoint["config"]["model"].get("attention_type", None) is None:
+            cfg = OmegaConf.create({"attention_type": f"{kwargs.get('attention_type', 'standard')}"})
+            checkpoint['config']['model'] = OmegaConf.merge(cfg, checkpoint['config']['model'])
+
         model = initialize_model(checkpoint["config"]["model"])
 
         # load the model weights
