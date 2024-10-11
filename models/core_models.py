@@ -23,7 +23,7 @@ class GenericTransformer(torch.nn.Module):
                 "h": torch.nn.ModuleList(
                     [
                         GenericTransformerBlock(
-                            attention_type=model_cfg["attention_type"],
+                            attention_type=model_cfg.get("attention_type", "standard"),
                             hidden_dim=model_cfg["hidden_dim"],
                             context_window=model_cfg["context_window"],
                             use_rope=model_cfg["positional_encoding_type"] == "rope",
