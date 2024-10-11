@@ -6,7 +6,7 @@ import hydra
 import torch
 
 from models.build_models import build_model
-from models.generator import build_generator
+from models.generators import build_generator
 
 
 @hydra.main(config_path="configs", config_name="generate")

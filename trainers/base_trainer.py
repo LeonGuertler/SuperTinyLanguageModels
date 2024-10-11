@@ -165,10 +165,40 @@ class BaseTrainer:
         # self.scaler = torch.cuda.amp.GradScaler(enabled=dtype == torch.float16)
         self.scaler = torch.amp.GradScaler(self.model.device, enabled=dtype == torch.float16)
 
+    @torch.no_grad()
+    def _get_validation_loss(self, eval_iters):
+        """ Estimate performance on validation set """
+        accumulated_loss = 0
+        accumulated_aux_loss = 0
+        accumulated_total_loss = 0
+
+        for i, (x, y) in enumerate(self.val_dataloader):
+            x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+            y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+
+            with self.ctx:
+                output, aux_loss = self.model(x)
+                loss = self.loss_fn(output, y)
+
+                accumulated_loss += loss.item()
+                if aux_loss is not None:
+                    total_loss = aux_loss + loss
+                    accumulated_aux_loss += aux_loss.item()
+                    accumulated_total_loss += total_loss.item()
+
+            if eval_iters is not None and i>= eval_iters:
+                break
+
+        return {
+            "Validation/loss": accumulated_loss/eval_iters,
+            "Validation/aux_loss": accumulated_aux_loss/eval_iters,
+            "Validation/total_loss": accumulated_total_loss/eval_iters
+        }
+
 
     @torch.no_grad()
     def estimate_performance(self, iter_num, eval_iters=None):
-        """Estimate the loss"""
+        """Estimate the model performance"""
         # Initialize eval results
         eval_results = {
             "iter": iter_num,
@@ -177,143 +207,31 @@ class BaseTrainer:
                 * self.gradient_accumulation_steps
                 * iter_num
                 * self.cfg.model["context_window"]
-                * torch.cuda.device_count() if torch.cuda.is_available() else 1 # To account for the divided accumulation steps
+                * (torch.cuda.device_count() if torch.cuda.is_available() else 1) # To account for the divided accumulation steps
             ),
         }
 
         # Make sure the model is in eval mode
         self.model.eval()
 
-        # try the evaluator
-        eval_results.update(
-            intra_training_evaluation(
-                model=self.model,
-                benchmarks=self.cfg["trainer"]["eval"].get("benchmarks", []),
-            )
-        )
+        # run the model on external eval sets
+        eval_results.update(intra_training_evaluation(
+            model=self.model,
+            benchmarks=self.cfg["trainer"]["eval"].get("benchmarks", []),
+        ))
 
-        # Initialize accumulators
-        total_loss = 0.0
-        total_bytes = 0
-        total_token_count = 0  # For regular loss and perplexity
-
-        # Initialize accumulators for byte-level metrics
-        total_byte_loss = 0.0
-
-        # Determine the device
-        device = self.gpu_id if self.gpu_id is not None else self.model.device
-
-        for i, (x, y) in enumerate(self.val_dataloader):
-            # Move tensors to the appropriate device
-            x = x.to(device)
-            y = y.to(device)
-
-            with self.ctx:
-                output, _ = self.model(x)
-                loss = torch.nn.functional.cross_entropy(
-                    output.view(-1, output.size(-1)),
-                    y.view(-1),
-                    reduction='sum'
-                )
-
-            # Accumulate token-level metrics
-            total_loss += loss.item()
-            total_token_count += y.numel()  # Use numel() for total tokens
-
-            if self.evaluate_byte_metrics:
-                # Compute byte counts for current batch
-                y_tokens = y.view(-1).cpu().numpy()
-                byte_counts = self.model.embedding_model.get_byte_lengths(y_tokens)
-                batch_byte_count = byte_counts.sum()
-                total_bytes += batch_byte_count
-
-                # Accumulate byte-level loss
-                avg_loss_per_token = loss.item() / y.numel()
-                total_byte_loss += avg_loss_per_token * batch_byte_count
-
-            # Check if we've reached the evaluation iteration limit
-            if eval_iters is not None and i >= eval_iters:
-                break
-
-        # Calculate average metrics
-        avg_loss = total_loss / total_token_count if total_token_count > 0 else float('inf')
-        avg_perplexity = np.exp(avg_loss) if avg_loss < 100 else float('inf')  # Avoid overflow
-
-        # Store in eval_results
-        eval_results["Validation/Loss"] = aggregate_value(avg_loss, self.cfg.general.device)
-        eval_results["Validation/Perplexity"] = aggregate_value(avg_perplexity, self.cfg.general.device)
-
-        if self.evaluate_byte_metrics:
-            if total_bytes > 0:
-                avg_byte_loss = aggregate_value(total_byte_loss, self.cfg.general.device) / total_bytes
-                avg_byte_perplexity = np.exp(avg_byte_loss) if avg_byte_loss < 100 else float('inf')  # Avoid overflow
-            else:
-                avg_byte_loss = float('inf')
-                avg_byte_perplexity = float('inf')
-
-            # Byte-normalized metrics
-            eval_results["Validation/Loss (Bytes)"] = avg_byte_loss
-            eval_results["Validation/Perplexity (Bytes)"] = avg_byte_perplexity
-
-
-        
-
-        # # get the mcq eval results
-        # eval_results.update(
-        #     train_eval_mcq(
-        #         model=self.model,
-        #         num_samples=self.cfg["trainer"]["eval"].get("mcq_num_samples", None),
-        #         benchmark_list=self.cfg["trainer"]["eval"].get("mcq_benchmarks", []),
-        #     )
-        # )
-
-        # # get the text modeling eval results
-        # if self.cfg["trainer"]["eval"].get("text_modeling_eval", False):
-        #     eval_results.update(
-        #         train_eval_text_modeling(
-        #             model=self.model,
-        #             topic_list=self.cfg["trainer"]["eval"].get("text_modeling_topics", []),
-        #         )
-        #     )
-
-        # # get the text generation eval results
-        # if self.cfg["trainer"]["eval"].get("text_generation_eval", False):
-        #     text_generation_results, text_generation_sample_html = train_eval_text_generation(
-        #         model=self.model
-        #     )
-        #     eval_results.update(text_generation_results)
-        #     eval_results.update({
-        #         "Generated Text": wandb.Html(
-        #                 text_generation_sample_html
-        #             )
-        #     })
-
-        # # get the free form eval results
-        # eval_results.update(
-        #     train_free_form(
-        #         model=self.model,
-        #         num_samples=self.cfg["trainer"]["eval"].get("free_form_num_sampels", None),
-        #         benchmark_list=self.cfg["trainer"]["eval"].get("free_form_benchmarks", [])
-        #     )
-        # )
-
-
-
-        # set model back into train mode
-        self.model.train()
+        # get validation loss
+        eval_results.update(self._get_validation_loss(eval_iters=eval_iters))
 
         # print the eval results
-        print_evaluation_results(
-            iter_num=iter_num,
-            eval_results=eval_results
-        )
+        print_evaluation_results(iter_num=iter_num, eval_results=eval_results)
 
         # log the evaluation results
         if (self.gpu_id==0 or self.gpu_id is None) and self.use_wandb: # ensure only the first GPU logs
-            wandb.log(
-                eval_results,
-                step=eval_results["token_num"]
-            )
+            wandb.log(eval_results, step=eval_results["token_num"])
+
+        # set model back into train mode
+        self.model.train()
 
         return eval_results
 
@@ -385,13 +303,12 @@ class BaseTrainer:
             else:
                 lr = self.optimizer.param_groups[0]["lr"]
 
-            # estimate the loss on the train/val sets
-            if (
-                not iter_num % self.cfg["trainer"]["eval_interval"]
-            ): # run on first iter to prevent bugs causing it to crash
+            # estimate model performance
+            # run on first iter to prevent bugs causing it to crash
+            if (not iter_num % self.cfg["trainer"]["eval_interval"]): 
                 self.estimate_performance(
                     iter_num=iter_num,
-                    eval_iters=self.cfg["trainer"].get("eval_iters", 100)
+                    eval_iters=self.cfg["trainer"].get("val_loss_iters", 100)
                 )
 
             # save checkpoints

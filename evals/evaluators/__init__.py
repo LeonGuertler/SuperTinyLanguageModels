@@ -1,2 +1,3 @@
 from evals.evaluators.mcq_evaluator import MCQEvaluator
 from evals.evaluators.text_modeling_evaluator import TextModelingEvaluator
+from evals.evaluators.free_form_evaluator import FreeFormEvaluator

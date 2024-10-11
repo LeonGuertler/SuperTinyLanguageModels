@@ -379,7 +379,20 @@ class AdaptiveGenerator(torch.nn.Module):
         """Embed the input using the underlying model's embedding."""
         return self.model.embed(x)
 
-class EntropyTemperatureGenerator(torch.nn.Module):
+class BaseGenerator(torch.nn.Module):
+    """ TODO """
+    def __init__(self, model):
+        super().__init__()
+        """ TODOD """
+        self.model = model 
+        self.device = self.model.device
+
+    @torch.no_grad()
+    def generate(self, input_text):
+        """ TODO """
+        raise NotImplementedError("Each Generator needs to implement the generate function")
+
+class EntropyTemperatureGenerator(BaseGenerator):
     '''
     From: https://arxiv.org/pdf/2403.14541
     Entropy based temepraure adjusts the temperature based on the entropy of the logits.
@@ -481,7 +494,7 @@ class EntropyTemperatureGenerator(torch.nn.Module):
 
 
 
-class BeamSearchGenerator(torch.nn.Module):
+class BeamSearchGenerator(BaseGenerator):
     def __init__(self, model, generate_cfg, device="cuda"):
         super().__init__()
         self.model = model
@@ -566,13 +579,13 @@ class BeamSearchGenerator(torch.nn.Module):
         logits[0, unique_tokens] /= penalty ** counts.float()
 
 
-class StandardGenerator(torch.nn.Module):
+class StandardGenerator(BaseGenerator):
     """Standard Generator Wrapper for GPT models"""
 
     def __init__(self, model, generate_cfg, device="cuda"):
         """Initialize the model and the configuration"""
-        super().__init__()
-        self.model = model
+        super().__init__(model)
+        # self.model = model
         self.device = device 
         self.model = self.model.to(torch.device(device))
         self.generate_config = generate_cfg
@@ -639,6 +652,67 @@ class StandardGenerator(torch.nn.Module):
         """Embed the input"""
         return self.model.embed(x)
 
+
+
+class StandardGenerator(BaseGenerator):
+    """Standard Generator Wrapper for GPT models"""
+
+    def __init__(self, model):
+        """Initialize the model and the configuration"""
+        super().__init__(model)
+        # self.model = model
+        # self.device = model.device 
+
+    @torch.no_grad()
+    def generate(self, input_text, max_new_tokens=100, temperature=1.0, top_k=None):
+        """
+        Take a conditioning sequence of indices idx (LongTensor of shape (b,t)) and complete
+        the sequence max_new_tokens times, feeding the predictions back into the model each time.
+        Most likely you'll want to make sure to be in model.eval() mode of operation for this.
+        """
+        idx = self.model.embedding_model.tokenize_input(
+            input_string=input_text,
+            add_eot=False,
+            truncate=True
+        )
+        # push to device
+        idx = torch.tensor(idx).unsqueeze(0).to(torch.device(self.device))
+        for _ in range(max_new_tokens):
+            # forward the model to get the logits for the index in the sequence
+            logits, _ = self.model.inference(idx)
+            # pluck the logits at the final step and scale by desired temperature
+            logits = logits / temperature
+            # logits might have shape (b,t,v) or (t,v)
+            # optionally crop the logits to only the top k options
+            if top_k is not None:
+                v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
+                ## for batched logits
+                if len(logits.shape) == 3:
+                    logits[logits < v[:, :, [-1]]] = -float("Inf")
+                ## for single logits
+                else:
+                    logits[logits < v[:, [-1]]] = -float("Inf")
+
+            # apply softmax to convert logits to (normalized) probabilities
+            probs = torch.nn.functional.softmax(logits, dim=-1)
+            
+            idx_next = torch.multinomial(probs, num_samples=1)
+
+            # check if done
+            if idx_next == self.model.embedding_model.eot_token:
+                break
+
+            idx = torch.cat((idx, idx_next), dim=1)
+
+        return self.model.embedding_model.decode(idx.tolist())
+
+    def forward(self, x):
+        """Call the underlying model"""
+        return self.model(x)
+
+    def embed(self, x):
+        """Embed the input"""
+        return self.model.embed(x) 
 
 GENERATOR_DICT = {
     "standard": lambda model, generate_cfg, device: StandardGenerator(model=model, generate_cfg=generate_cfg, device=device), 

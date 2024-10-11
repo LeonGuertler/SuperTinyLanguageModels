@@ -1,4 +1,13 @@
+# Work in Progress
+## TODO
+- change the generators to accept custom default values on initialization
+- train LLama-3.2 is a value model
+- standalone eval script for model (MATH) for easy search and prompting
+- add start thought and end thought tokens to LLama
+- fix the print_evaluation_results function to be pretty again (maybe return eval results as dicts, and process to wandb string afterwards)
+
 # Super Tiny Language Models
+
 
 [Model Interfaces](models/README.md) | [Full Configs](configs/full_configs/) | [Intro Paper](https://arxiv.org/abs/2405.14159) | [Discord](https://discord.gg/wwTruDPH)
 

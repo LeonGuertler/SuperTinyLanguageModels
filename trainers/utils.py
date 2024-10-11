@@ -2,7 +2,7 @@
 
 import importlib
 import inspect
-import os
+import os, re
 import pkgutil
 import numpy as np
 from prettytable import PrettyTable
@@ -129,71 +129,46 @@ def restore_print_override(original_print):
 
 
 
-# Function to print evaluation results and benchmark results
 def print_evaluation_results(iter_num, eval_results):
-    val_table = PrettyTable(["Metric", "Value"])
-    mcq_table = PrettyTable(["Benchmark", "Accuracy"])
-    text_modeling_table = PrettyTable(
-        [
-            "Topic", "Difficulty", "Byte Acc.", 
-            "Byte Lev. Dist.", "Byte Perplexity"
-        ]
-    )
-    text_generation_table = PrettyTable(
-        [
-            "Metric", "Value"
-        ]
-    )
+    """
+    This function processes and visualizes the evaluation results.
+    The input format is a dictionary where each key has a logging path/metric_name format.
+    Keys without the '/' should be ignored. 
+    The function prints tables for each unique logging path.
+    """
+    
+    # Keys to be ignored (e.g., 'token_num', 'iter')
+    ignore_keys = set(["token_num", "iter"])
+    
+    # Filter out keys that don't have a "/"
+    valid_keys = {k: v for k, v in eval_results.items() if "/" in k and k.split("/")[0] not in ignore_keys}
+    
+    # Identify unique logging paths (the part before "/")
+    logging_paths = set([k.split("/")[0] for k in valid_keys])
+    
+    # Dictionary to store tables for each logging path
+    tables = {}
 
-    text_modeling_struct = {}
-    for eval_name in eval_results.keys():
-        if "Validation" in eval_name:
-            val_table.add_row(
-                [eval_name, eval_results[eval_name]]
-            )
-        elif "Text Modeling" in eval_name:
-            metric = eval_name.split(")/")[0].replace(
-                "Text Modeling (", ""
-            )
-            category = eval_name.split("/")[1].split("-")[0]
-            difficulty = eval_name.split("/")[1].split("-")[1]
-            if category not in text_modeling_struct:
-                text_modeling_struct[category] = {}
-            if difficulty not in text_modeling_struct[category]:
-                text_modeling_struct[category][difficulty] = {}
-            text_modeling_struct[category][difficulty][metric] = eval_results[eval_name]
-        elif "MCQ" in eval_name:
-            mcq_table.add_row(
-                [eval_name, eval_results[eval_name]]
-            )
-        elif "Text Generation" in eval_name:
-            text_generation_table.add_row(
-                [eval_name.replace('Text Generation/',''), eval_results[eval_name]]
-            )
-        elif eval_name in ["iter", "token_num"]:
-            continue # skip these
-        else:
-            print(f"Eval pretty print received: {eval_name} metric without printing it. It'll still be logged in wandb")
+    # Loop through each logging path and generate a table
+    for table_name in logging_paths:
+        # Collect columns for the table (the part after "/")
+        columns = sorted(set([k.split("/")[1] for k in valid_keys if table_name == k.split("/")[0]]))
+        
+        # Initialize a table with the logging path as the category and columns for the metrics
+        table = PrettyTable(["Evaluation"] + columns)
+        
+        # Collect values for the current logging path
+        row_values = {col: "" for col in columns}
+        for k, v in valid_keys.items():
+            logging_path, col_name = k.split("/")
+            if logging_path == table_name:
+                row_values[col_name] = v
+        
+        # Add the row to the table
+        table.add_row([table_name] + [row_values[col] for col in columns])
+        tables[table_name] = table
 
-    # populate text modeling table
-    for category in text_modeling_struct.keys():
-        for difficulty in text_modeling_struct[category].keys():
-            text_modeling_table.add_row(
-                [
-                    category, 
-                    difficulty,
-                    text_modeling_struct[category][difficulty]["Byte Acc."],
-                    text_modeling_struct[category][difficulty]["Byte Lev. Dist."],
-                    text_modeling_struct[category][difficulty]["Byte Perplexity"]
-                ]
-            )
-
-
-    print(f"Token Num: {eval_results['token_num']}\tIteration {iter_num} - Validation Results")
-    print(val_table)
-    print(f"\n MCQ Results")
-    print(mcq_table)
-    print(f"\n Text-Modeling Results")
-    print(text_modeling_table)
-    print(f"\n Text-Generation Results")
-    print(text_generation_table)
+    # Print all tables
+    for table_name, table in tables.items():
+        print(f"\nResults for {table_name}:")
+        print(table)

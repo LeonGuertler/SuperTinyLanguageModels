@@ -5,15 +5,15 @@ import torch
 
 # Define the metrics and their computations
 METRIC_EVALUATIONS = {
-    "Byte Acc.": lambda results_dict: (
+    "Byte Accuracy": lambda results_dict: (
         results_dict["total_correct_bytes"] / results_dict["total_bytes"]
         if results_dict["total_bytes"] > 0 else 0.0
     ),
-    "Perplexity": lambda results_dict: (
+    "Byte Perplexity": lambda results_dict: (
         torch.exp(torch.tensor(results_dict["total_loss"] / results_dict["total_tokens"])).item()
         if results_dict["total_tokens"] > 0 else float('inf')
     ),
-    "Levenshtein": lambda results_dict: (
+    "Byte Levenshtein": lambda results_dict: (
         results_dict["total_edit_distance"] / results_dict["total_bytes"]
         if results_dict["total_bytes"] > 0 else float('inf')
     ),
@@ -28,21 +28,14 @@ class TextModelingEvaluator(BaseEvaluator):
         yield_fn: Callable,
         yield_fn_params: Optional[Dict[str, Any]] = None,
         chunk_size: Optional[int] = 100,
-        eval_metric: Optional[str] = "Byte Acc.",
         eval_logging_path: Optional[str] = "Text Modeling"
     ):
         super().__init__()
-        self.eval_metric = eval_metric
         self.eval_logging_path = eval_logging_path
         self.model_wrapper = model_wrapper
         self.yield_fn = yield_fn(**(yield_fn_params or {}))
         self.chunk_size = chunk_size
 
-        # Assert correct parameters
-        assert self.eval_metric in METRIC_EVALUATIONS, (
-            f"Provided metric '{self.eval_metric}' for Text Modeling Eval is not available. "
-            f"Options are: {list(METRIC_EVALUATIONS.keys())}"
-        )
 
     def evaluate(self, model):
         """
@@ -88,9 +81,8 @@ class TextModelingEvaluator(BaseEvaluator):
             results["total_loss"] += local_results["loss"]
             results["total_tokens"] += local_results["tokens"]
 
-        # Compute the final metric
-        final_metric_value = METRIC_EVALUATIONS[self.eval_metric](results)
-
         return {
-            f"{self.eval_logging_path}/{self.eval_metric}": final_metric_value
+            f"{self.eval_logging_path}/Byte Accuracy": METRIC_EVALUATIONS["Byte Accuracy"](results),
+            f"{self.eval_logging_path}/Byte Perplexity": METRIC_EVALUATIONS["Byte Perplexity"](results),
+            f"{self.eval_logging_path}/Byte Levenshtein": METRIC_EVALUATIONS["Byte Levenshtein"](results),
         }
