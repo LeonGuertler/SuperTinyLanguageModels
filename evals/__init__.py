@@ -10,8 +10,11 @@ from evals.benchmark_registry import register, make
 
 
 from evals.benchmarks.yield_functions import *
+from evals.benchmarks.extraction_functions import *
 
 from evals.model_wrappers import *
+
+from models.generators import *
 
 
 # Register the MCQ benchmarks
@@ -75,6 +78,46 @@ register(
 
 
 # Register the Free Form benchmarks
+register(
+    id="MATH",
+    entry_point="evals.evaluators:FreeFormEvaluator",
+    model_wrapper=FreeFormModelWrapper,
+    model_generator=StandardGenerator,
+    answer_extraction_function=answer_extraction_math,
+    yield_fn=load_math,
+    yield_fn_params={
+        "num_samples": None, # all
+        "seed": 489
+    },
+)
+register(
+    id="MATH-small",
+    entry_point="evals.evaluators:FreeFormEvaluator",
+    model_wrapper=FreeFormModelWrapper,
+    model_generator=StandardGenerator,
+    answer_extraction_function=answer_extraction_math,
+    yield_fn=load_math,
+    yield_fn_params={
+        "num_samples": 100, # all
+        "seed": 489
+    },
+)
+
+
+
+
+register(
+    id="GSM8K",
+    entry_point="evals.evaluators:FreeFormEvaluator",
+    model_wrapper=FreeFormModelWrapper,
+    model_generator=StandardGenerator,
+    answer_extraction_function=answer_extraction_gsm8k,
+    yield_fn=load_gsm8k,
+    yield_fn_params={
+        "num_samples": None, # all
+        "seed": 489 # few-shot etc. should be mentioned here
+    }
+)
 
 
 

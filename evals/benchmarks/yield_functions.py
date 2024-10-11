@@ -328,6 +328,88 @@ def load_ewok(num_samples=None, seed=None):
         )
 
 
+# Free Form Eval yield functions
+def load_gsm8k(num_samples=None, seed=None):
+    """
+    Load the GSM8K eval set
+    https://huggingface.co/datasets/gsm8k
+
+    Args:
+        num_samples (Optional[int]): Number of samples to load. If None, load all.
+        seed (Optional[int]): Seed for random sampling.
+
+    Yields:
+        Tuple[str, str, List[str]]: (question, answer)
+    """
+    dataset = load_dataset("gsm8k", "main", trust_remote_code=True)["test"]
+    index_list = get_idx_list(
+        dataset_length=len(dataset),
+        num_samples=num_samples,
+        seed=seed
+    )
+    for i in index_list:
+        sample = dataset[i]
+        yield (
+            sample["question"],
+            sample["answer"],
+        )
+
+
+
+def load_math(num_samples=None, seed=None):
+    """
+    Load the MATH eval set
+    https://huggingface.co/datasets/lighteval/MATH
+
+    Args:
+        num_samples (Optional[int]): Number of samples to load. If None, load all.
+        seed (Optional[int]): Seed for random sampling.
+
+    Yields:
+        Tuple[str, str, List[str]]: (question, answer)
+    """
+    dataset = load_dataset("lighteval/MATH", "all", trust_remote_code=True)["test"]
+    index_list = get_idx_list(
+        dataset_length=len(dataset),
+        num_samples=num_samples,
+        seed=seed
+    )
+    for i in index_list:
+        sample = dataset[i]
+        yield (
+            sample["problem"],
+            sample["solution"],
+        )
+
+
+def load_drop(num_samples=None, seed=None):
+    """
+    Load the DROP eval set
+    https://huggingface.co/datasets/drop
+
+    Args:
+        num_samples (Optional[int]): Number of samples to load. If None, load all.
+        seed (Optional[int]): Seed for random sampling.
+
+    Yields:
+        Tuple[str, str, List[str]]: (question + passage, answer)
+    """
+    dataset = load_dataset("drop", "drop", trust_remote_code=True)["validation"]
+    index_list = get_idx_list(
+        dataset_length=len(dataset),
+        num_samples=num_samples,
+        seed=seed
+    )
+    for i in index_list:
+        sample = dataset[i]
+        combined_question = f"Passage: {sample['passage']} Question: {sample['question']}"
+        yield (
+            combined_question,
+            sample["answer"],
+        )
+
+
+
 
 # Text Modeling yield functions
 def load_stlm_synthetic_text_modeling(
@@ -367,3 +449,7 @@ def load_stlm_synthetic_text_modeling(
     # Yield the 'text' field from each filtered sample
     for sample in iterator:
         yield sample["text"]
+
+
+
+# Text Generation yield functions

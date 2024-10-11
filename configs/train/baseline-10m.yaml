@@ -11,16 +11,17 @@ model:
     dropout: 0.0
 
   attn:
+    attention_type: standard
     attn_type: causal
     num_kv_heads: 8
-    num_q_heads: 8
+    num_q_heads: 4
     normalization: rms_norm
     bias: false
     dropout: false
 
   embedding_model_type: generic
   tokenizer_type: bpe
-  tokenizer_dataset_names: simple_en_wiki
+  tokenizer_dataset_names: [simple_en_wiki]
   tokenizer_simplify_data: true
   vocab_size: 4000
 
@@ -40,7 +41,7 @@ model:
 
 trainer:
   trainer_type: base_trainer
-  dataset: openwebtext
+  dataset: [simple_en_wiki]
   batch_size: 24
   gradient_accumulation_steps: 10
 
@@ -51,29 +52,19 @@ trainer:
   eval_iters: 1000
 
   eval:
-    mcq_benchmarks:
-      - "winogrande"
-      - "hellaswag"
-      - "arc_easy"
-      - "blimp"
-      - "piqa"
-      - "race_middle"
-      - "race_high"
-      - "boolq"
-      - "openbook_qa_closed"
-      - "openbook_qa_open"
-      - "copa"
-      - "commonsense_qa"
-    mcq_num_samples: 1000
-    eval_byte_metrics: true 
-    text_modeling_eval: true 
-    text_generation_eval: true
+    benchmarks:
+      - MATH-small
+      - STLM-Text-Modeling (full)
+      - ArcEasy
+      - ArcEasySubset
+      # - ArcEasyLinearSubset
+    val_loss_iters: 1000
 
   optimizer:
     optimizer_name: adamW
     lr: 5.0e-4
     min_lr: 5.0e-5
-    weight_decay: 0.01
+    weight_decay: 0.1
     beta1: 0.9
     beta2: 0.98
     grad_clip: 1.0

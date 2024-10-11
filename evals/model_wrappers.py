@@ -131,3 +131,35 @@ class TextModelingModelWrapper(BaseModelWrapper):
             'loss': total_loss,
             'tokens': total_tokens
         }
+
+
+
+
+class FreeFormModelWrapper(BaseModelWrapper):
+    """ TODO """
+    def __init__(self, model, model_generator, generator_params):
+        """ TODO """
+        super().__init__()
+        self.model = model
+
+        # check if a generator was provided, if not, 
+        # assume the model is already wrapped in one
+        if model_generator is not None:
+            # wrap the model in the generator
+            if generator_params is None:
+                self.model = model_generator(
+                    model=self.model
+                )
+            else:
+                self.model = model_generator(
+                    model=self.model,
+                    **generator_params
+                )
+
+
+    def __call__(self, input_text:str) -> str:
+        """ TODO """
+        return self.model.generate(
+            input_text=input_text
+        )[0] # assume sample-by-sample for now
+

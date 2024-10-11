@@ -53,33 +53,12 @@ trainer:
 
   eval:
     benchmarks:
+      - MATH-small
       - STLM-Text-Modeling (full)
       - ArcEasy
       - ArcEasySubset
       # - ArcEasyLinearSubset
-
-
-
-    # mcq_benchmarks:
-    #   - "winogrande"
-    #   - "hellaswag"
-    #   - "arc_easy"
-    #   - "blimp"
-    #   - "piqa"
-    #   - "race_middle"
-    #   - "race_high"
-    #   - "boolq"
-    #   - "openbook_qa_closed"
-    #   - "openbook_qa_open"
-    #   - "copa"
-    #   - "commonsense_qa"
-    #   - "ewok"
-    # mcq_num_samples: 1000
-    # eval_byte_metrics: true 
-    # text_modeling_eval: true 
-    # text_generation_eval: true
-    # free_form_benchmarks:
-    #   - "gsm8k"
+    val_loss_iters: 1000
 
   optimizer:
     optimizer_name: adamW
