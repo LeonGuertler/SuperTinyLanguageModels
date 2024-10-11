@@ -32,8 +32,7 @@ class LoRALinear(nn.Module):
     def forward(self, x):
         # Perform the forward pass of the original linear layer
         original_output = self.original_layer(x)
-        print(x.shape, self.lora_A.shape, self.lora_B.shape, original_output.shape, self.original_layer.weight.shape)
-        
+ 
         # Compute the LoRA output
         lora_out = self.lora_dropout(x @ self.lora_A) @ self.lora_B
         
@@ -58,10 +57,11 @@ def build_model(model_cfg):
     model = AutoModelForCausalLM.from_pretrained(
         model_str,
         trust_remote_code=True,
-        attn_implementation=attn_impl,
-        torch_dtype=torch.float32,
+        # attn_implementation=attn_impl,
+        # torch_dtype=torch.float16,
         token=os.getenv("HF_TOKEN")
     )
+    model.half()
     use_lora = model_cfg.get("use_lora", False)
     if use_lora:
         targets = model_cfg.get("lora_targets", [])
@@ -69,25 +69,20 @@ def build_model(model_cfg):
         for name, param in model.named_parameters():
             if "lora" not in name:
                 param.requires_grad = False
-                print(f"Freezing {name}.")
 
         # Iterate over the model modules to find the target layers and replace them with LoRA layers
         for target in targets:
             for name, module in model.named_modules():
                 if target in name and isinstance(module, nn.Linear):
-                    print(f"Found target layer {name}.")
                     
                     # Replace the module with a LoRALayer (wrap the original Linear layer)
-                    print(f"Replacing {name} with LoRA layer. OG shape: {module.weight.shape}")
                     lora_layer = LoRALinear(module)
-                    print(f"New shape: {lora_layer.lora_A.shape} x {lora_layer.lora_B.shape}")
                     
                     # We need to set the new LoRA layer into the model hierarchy
                     parent_name, attr_name = name.rsplit('.', 1)  # Split the module name to get parent and attribute
                     parent_module = dict(model.named_modules())[parent_name]  # Access the parent module
                     
                     setattr(parent_module, attr_name, lora_layer)
-                    print(f"Replaced {name} with LoRA layer.")
 
     # quantize = model_cfg.get("quantize", False)
     # if quantize:
@@ -139,6 +134,8 @@ class HFEmbedder(EmbedderInterface):
         model_string = model_cfg["model_string"]
         self.tokenizer = HFTokenizerWrapper(model_string)
         self.embeddings = build_model(model_cfg).get_input_embeddings()
+        # clear torch memory
+        torch.cuda.empty_cache()
 
     def decode(self, token_ids):
         """
@@ -188,23 +185,21 @@ class HFTransformerCore(torch.nn.Module):
     def __init__(self, model_cfg):
         super().__init__()
         self.model = build_model(model_cfg = model_cfg)
-
-        if model_cfg.get("freeze", True):
-            ## freeze the parameters
-            print("Note: Freezing the parameters of the hf_core model.")
-            for param in self.model.parameters():
-                param.requires_grad = False
+        # del the models' embeddings and head
+        del self.model.model.embed_tokens
+        # del self.model.lm_head
 
     def forward(self, x):
         """
         Calls the huggingface model in question, and returns the last hidden state.
         """
         ## get the hidden states
-        hidden_states = self.model(inputs_embeds = x, output_hidden_states = True).hidden_states
+        output = self.model(inputs_embeds = x)
+        return output.logits
 
-        ## return the last hidden state
-        if isinstance(hidden_states, tuple):
-            return hidden_states[-1]
+        # ## return the last hidden state
+        # if isinstance(hidden_states, tuple):
+        #     return hidden_states[-1]
 
         
 
@@ -215,7 +210,11 @@ class HFLMHead(torch.nn.Module):
 
     def __init__(self, model_cfg):
         super().__init__()
-        self.lm_head = build_model(model_cfg = model_cfg).get_output_embeddings()
+        # self.lm_head = build_model(model_cfg = model_cfg).get_output_embeddings()
+        self.lm_head = nn.Identity()
+        # clear torch memory
+        torch.cuda.empty_cache()
+
     
     def forward(self, x):
         """
