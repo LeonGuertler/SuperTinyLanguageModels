@@ -14,7 +14,7 @@ class FreeFormEvaluator(BaseEvaluator):
         yield_fn: Callable,
         answer_extraction_function: Callable,
         model_wrapper: BaseModelWrapper,
-        model_generator: Optional[BaseGenerator] = None, # if no generated is provided, the model must be wrapped outside
+        model_generator, #: Optional[BaseGenerator] = None, # if no generated is provided, the model must be wrapped outside
         generator_params: Optional[Dict[str, Any]] = None, 
         yield_fn_params: Optional[Dict[str, Any]] = None,
         eval_logging_path: Optional[str] = "FreeForm"
