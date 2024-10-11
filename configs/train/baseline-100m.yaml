@@ -20,7 +20,7 @@ model:
 
   embedding_model_type: generic
   tokenizer_type: bpe
-  tokenizer_dataset_names: [en_wiki, MATH]
+  tokenizer_dataset_names: [en_wiki, MATH] # GSM8k
   tokenizer_simplify_data: true
   tokenizer_num_reserved_tokens: 20
   vocab_size: 20000
@@ -40,7 +40,7 @@ model:
 
 trainer:
   trainer_type: base_trainer
-  dataset: MATH #[fineweb_edu_10B, MATH]
+  dataset: MATH #[fineweb_edu_10B, MATH] # GSM8k
   batch_size: 24
   gradient_accumulation_steps: 20
 

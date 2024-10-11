@@ -24,9 +24,6 @@ class MCQEvaluator(BaseEvaluator):
         self.yield_fn = yield_fn(**yield_fn_params)
         self.model_wrapper = model_wrapper
     
-    # def set_env_id(self, env_id: str) -> None:
-    #     """ TODO """
-    #     self.env_id = env_id
 
     def evaluate(self, model):
         """

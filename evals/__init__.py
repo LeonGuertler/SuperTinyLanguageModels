@@ -74,6 +74,9 @@ register(
 )
 
 
+# Register the Free Form benchmarks
+
+
 
 
 
