@@ -9,6 +9,36 @@ from models.embedding_models import EmbedderInterface
 from models.model_shell import ModelShell
 from trainers.base_trainer import BaseTrainer
 
+import dotenv
+dotenv.load_dotenv()
+import os
+
+import torch.nn as nn
+
+class LoRALayer(nn.Module):
+    def __init__(self, original_weight, r=8, lora_alpha=32, lora_dropout=0.1):
+        super(LoRALayer, self).__init__()
+        self.r = r
+        self.lora_alpha = lora_alpha
+        self.lora_dropout = nn.Dropout(p=lora_dropout)
+        self.original_weight = original_weight
+        in_features, out_features = original_weight.shape
+        
+        # Initialize the low-rank matrices
+        self.lora_A = nn.Parameter(torch.randn(in_features, r) * 0.01)
+        self.lora_B = nn.Parameter(torch.randn(r, out_features) * 0.01)
+        self.lora_A.requires_grad = True
+        self.lora_B.requires_grad = True
+        
+        # Scale factor for the LoRA layers
+        self.scaling = lora_alpha / r
+
+    def forward(self, x):
+        lora_out = self.lora_dropout(x @ self.lora_A) @ self.lora_B
+        original_out = x @ self.original_weight
+        # return self.original_layer(x) + lora_out * self.scaling
+        return original_out + lora_out * self.scaling
+
 def build_model(model_cfg):
     '''
     Helper function to build a model from the huggingface model hub.
@@ -29,14 +59,37 @@ def build_model(model_cfg):
         trust_remote_code=True,
         attn_implementation=attn_impl,
         torch_dtype=torch.float32,
+        token=os.getenv("HF_TOKEN")
     )
+    use_lora = model_cfg.get("use_lora", False)
+    if use_lora:
+        targets = model_cfg.get("lora_targets", [])
+        nps = [(name, param) for name, param in model.named_parameters()]
+        # now iterate over original model parameters and freeze them
+        for name, param in nps:
+            if "lora" not in name:
+                param.requires_grad = False
+                print(f"Freezing {name}.")
+        for target in targets:
+            # iterate over params to find targets, and replace them with LoRA layers
+            
+            for name, param in nps:
+                if target in name:
+                    print(f"Found target {name}.")
+                    # get the LoRA layer
+                    lora_layer = LoRALayer(param)
+                    # replace the parameter with the LoRA layer
+                    setattr(model, name, lora_layer)
+                    print(f"Replaced {name} with LoRA layer.")
 
+    # quantize = model_cfg.get("quantize", False)
+    # if quantize:
     return model
 
 
 class HFTokenizerWrapper(TokenizerClass):
     def __init__(self, hf_tokenizer_name):
-        self.hf_tokenizer = AutoTokenizer.from_pretrained(hf_tokenizer_name)
+        self.hf_tokenizer = AutoTokenizer.from_pretrained(hf_tokenizer_name, token=os.getenv("HF_TOKEN"))
         self.eot_token = self.hf_tokenizer.eos_token_id
         self.pad_token = self.hf_tokenizer.pad_token_id
         self.vocab_size = self.hf_tokenizer.vocab_size
@@ -193,3 +246,38 @@ class MockTrainer(BaseTrainer):
     def _save_model(self, iter_num=0):
         """We don't want to save the model in this case..."""
         pass
+
+
+# def get_qk_scores_during_forward_pass(model):
+#     """
+#     Set up hooks to extract Q and K projections from the model during its forward pass.
+#     """
+#     raw_attentions = []
+#     hooks = []
+
+#     def attention_hook_qwen(module, input, output):
+#         """Hook to capture the attention for Qwen 2 models."""
+#         qk = output  # Raw attention logits (QK^T)
+#         raw_attentions.append(qk.detach())
+
+#     def attention_hook_gpt2(module, input, output):
+#         """Hook to capture the attention for GPT-2 models."""
+#         qkv = output  # shape: (batch_size, seq_len, 3 * hidden_size)
+#         hidden_size = qkv.shape[-1] // 3
+#         q, k, v = qkv.split(hidden_size, dim=-1)
+#         raw_attentions.append(q.detach())
+#         raw_attentions.append(k.detach())
+
+#     # Register hooks based on the model type
+#     if 'Qwen' in model.core_model.model.__class__.__name__:
+#         for name, module in model.named_modules():
+#             if 'q_proj' in name or 'k_proj' in name:
+#                 hook = module.register_forward_hook(attention_hook_qwen)
+#                 hooks.append(hook)
+#     elif 'GPT2' in model.core_model.model.__class__.__name__:
+#         for name, module in model.named_modules():
+#             if 'c_attn' in name:
+#                 hook = module.register_forward_hook(attention_hook_gpt2)
+#                 hooks.append(hook)
+#     else:
+#         raise ValueError("Unsupported model type: {}".format(model.core_model.model.__class__.__name__))
