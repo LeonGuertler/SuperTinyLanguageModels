@@ -15,29 +15,30 @@ import os
 
 import torch.nn as nn
 
-class LoRALayer(nn.Module):
-    def __init__(self, original_weight, r=8, lora_alpha=32, lora_dropout=0.1):
-        super(LoRALayer, self).__init__()
-        self.r = r
-        self.lora_alpha = lora_alpha
-        self.lora_dropout = nn.Dropout(p=lora_dropout)
-        self.original_weight = original_weight
-        in_features, out_features = original_weight.shape
+class LoRALinear(nn.Module):
+    def __init__(self, original_layer: nn.Linear, r=8, lora_alpha=32, lora_dropout=0.1):
+        super(LoRALinear, self).__init__()
+        self.original_layer = original_layer  # Store the original nn.Linear layer
+        self.r = r  # Rank of the LoRA approximation
+        self.lora_alpha = lora_alpha  # Scaling factor for LoRA
+        self.scaling = lora_alpha / r  # Scale factor
+        self.lora_dropout = nn.Dropout(p=lora_dropout)  # Dropout for LoRA
         
-        # Initialize the low-rank matrices
+        # Low-rank matrices
+        in_features, out_features = original_layer.weight.T.shape
         self.lora_A = nn.Parameter(torch.randn(in_features, r) * 0.01)
         self.lora_B = nn.Parameter(torch.randn(r, out_features) * 0.01)
-        self.lora_A.requires_grad = True
-        self.lora_B.requires_grad = True
-        
-        # Scale factor for the LoRA layers
-        self.scaling = lora_alpha / r
 
     def forward(self, x):
+        # Perform the forward pass of the original linear layer
+        original_output = self.original_layer(x)
+        print(x.shape, self.lora_A.shape, self.lora_B.shape, original_output.shape, self.original_layer.weight.shape)
+        
+        # Compute the LoRA output
         lora_out = self.lora_dropout(x @ self.lora_A) @ self.lora_B
-        original_out = x @ self.original_weight
-        # return self.original_layer(x) + lora_out * self.scaling
-        return original_out + lora_out * self.scaling
+        
+        # Add the LoRA output to the original output, scaled by self.scaling
+        return original_output + lora_out * self.scaling
 
 def build_model(model_cfg):
     '''
@@ -64,22 +65,28 @@ def build_model(model_cfg):
     use_lora = model_cfg.get("use_lora", False)
     if use_lora:
         targets = model_cfg.get("lora_targets", [])
-        nps = [(name, param) for name, param in model.named_parameters()]
-        # now iterate over original model parameters and freeze them
-        for name, param in nps:
+        # Freeze original model parameters except LoRA layers
+        for name, param in model.named_parameters():
             if "lora" not in name:
                 param.requires_grad = False
                 print(f"Freezing {name}.")
+
+        # Iterate over the model modules to find the target layers and replace them with LoRA layers
         for target in targets:
-            # iterate over params to find targets, and replace them with LoRA layers
-            
-            for name, param in nps:
-                if target in name:
-                    print(f"Found target {name}.")
-                    # get the LoRA layer
-                    lora_layer = LoRALayer(param)
-                    # replace the parameter with the LoRA layer
-                    setattr(model, name, lora_layer)
+            for name, module in model.named_modules():
+                if target in name and isinstance(module, nn.Linear):
+                    print(f"Found target layer {name}.")
+                    
+                    # Replace the module with a LoRALayer (wrap the original Linear layer)
+                    print(f"Replacing {name} with LoRA layer. OG shape: {module.weight.shape}")
+                    lora_layer = LoRALinear(module)
+                    print(f"New shape: {lora_layer.lora_A.shape} x {lora_layer.lora_B.shape}")
+                    
+                    # We need to set the new LoRA layer into the model hierarchy
+                    parent_name, attr_name = name.rsplit('.', 1)  # Split the module name to get parent and attribute
+                    parent_module = dict(model.named_modules())[parent_name]  # Access the parent module
+                    
+                    setattr(parent_module, attr_name, lora_layer)
                     print(f"Replaced {name} with LoRA layer.")
 
     # quantize = model_cfg.get("quantize", False)
