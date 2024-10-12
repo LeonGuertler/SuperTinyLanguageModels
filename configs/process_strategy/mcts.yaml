@@ -1,0 +1,6 @@
+type: mcts
+max_process_tokens: 200
+max_tree_depth: 5
+max_child_nodes: 3
+value_threshold: 0.5
+expansion_prompt: "In one sentence, can you further explain the reasoning of '{reasoning}'?"

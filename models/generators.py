@@ -657,11 +657,23 @@ class StandardGenerator(BaseGenerator):
 class StandardGenerator(BaseGenerator):
     """Standard Generator Wrapper for GPT models"""
 
-    def __init__(self, model):
+    def __init__(self, model, generate_cfg, device="cuda"):
         """Initialize the model and the configuration"""
         super().__init__(model)
-        # self.model = model
-        # self.device = model.device 
+        self.device = device 
+        self.model = self.model.to(torch.device(device))
+        self.generate_config = generate_cfg
+
+    def default_generate(self, input_text):
+        """
+        Generate text using the default generation method
+        """
+        return self.generate(
+            input_text,
+            self.generate_config["max_new_tokens"],
+            self.generate_config["temperature"],
+            self.generate_config["top_k"],
+        )
 
     @torch.no_grad()
     def generate(self, input_text, max_new_tokens=100, temperature=1.0, top_k=None):

@@ -1,0 +1,13 @@
+defaults:
+  - generator: beam_search
+  - process_strategy: standard
+  - _self_
+model_ckpt: "checkpoints/...pt"
+value_model_ckpt: "checkpoints/...pt"
+attention_type: standard_detailed
+samples_per_input_text: 20
+output_path: "outputs/"
+step_token: "[/step]"
+
+## input_text should be a filepath?
+# input_text: "Earth is the third planet from the Sun and the only astronomical object known to harbor life. This is enabled by Earth being an ocean world, the only one in the Solar System sustaining liquid surface water."

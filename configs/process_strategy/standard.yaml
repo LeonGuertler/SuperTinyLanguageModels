@@ -1,0 +1,3 @@
+type: standard
+max_process_tokens: 200
+value_threshold: 0.5

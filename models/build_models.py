@@ -50,6 +50,8 @@ def build_model(model_cfg=None, checkpoint_path=None, device="cuda", **kwargs):
         if checkpoint["config"]["model"].get("attention_type", None) is None:
             cfg = OmegaConf.create({"attention_type": f"{kwargs.get('attention_type', 'standard')}"})
             checkpoint['config']['model'] = OmegaConf.merge(cfg, checkpoint['config']['model'])
+        elif checkpoint["config"]["model"].get("attention_type", None) == "standard":
+            checkpoint["config"]["model"]["attention_type"] = f"{kwargs.get('attention_type', 'standard')}"
 
         model = initialize_model(checkpoint["config"]["model"])
 

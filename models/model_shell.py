@@ -119,6 +119,38 @@ class ModelShell(torch.nn.Module):
         ll = ll * mask
         ll = ll.view(input_tensor.size(0), -1).sum(dim=1)
         return -ll
+    
+    @torch.no_grad()
+    def evaluate(self, model_input, token=None):
+        """
+        Evaluate the model on the input text. Then, fetch the log likelihood of the specified token_ids
+        Args:
+            input_text: str
+            fetch_token_id: int
+            
+        Returns:
+            ll: torch.tensor(B)
+        """
+        # check if input is string
+        if isinstance(model_input, str):
+            # use inference function of the embedding model
+            model_input = self.embedding_model.tokenize_input(model_input, truncate=True, add_eot=False) # tokenize input, shape (S,)
+        x = torch.tensor(model_input, device=self.device, dtype=torch.long).unsqueeze(0) # convert to tensor, shape (B, S)
+        x = self.embedding_model(model_input) # pass through the embedding model
+        x = self.core_model(x) # pass through the core model
+        
+        if token is None:
+            # if token is None, return the final token logits
+            values = [self.model_head.inference(x)]
+            return values
+        else:
+            # if token is not None, return the logits at the given token's indexes
+            x = self.model_head(x) # pass through the model head
+            token_id = self.embedding_model.tokenizer.token_to_id(token) # get the token_id
+            step_indices = [i for i, token in enumerate(x[0]) if token == token_id] # get the indices of the token_id
+            values = x[:, step_indices] # get the values of the token_id
+            values = values.squeeze(0) # remove the batch dimension
+            return values
 
 
     @torch.no_grad()
