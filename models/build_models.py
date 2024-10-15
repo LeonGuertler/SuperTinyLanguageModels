@@ -25,6 +25,8 @@ from models.experimental.moe_weight_sharing import (
 )
 
 
+
+
 def build_model(model_cfg=None, checkpoint_path=None, device="cuda", **kwargs):
     """
     Either initialize or load a model, depending on
@@ -47,9 +49,9 @@ def build_model(model_cfg=None, checkpoint_path=None, device="cuda", **kwargs):
         )
 
         # update the attention type if provided
-        if checkpoint["config"]["model"].get("attention_type", None) is None:
-            cfg = OmegaConf.create({"attention_type": f"{kwargs.get('attention_type', 'standard')}"})
-            checkpoint['config']['model'] = OmegaConf.merge(cfg, checkpoint['config']['model'])
+        # if checkpoint["config"]["model"].get("attention_type", None) is None:
+        #     cfg = OmegaConf.create({"attention_type": f"{kwargs.get('attention_type', 'standard')}"})
+        #     checkpoint['config']['model'] = OmegaConf.merge(cfg, checkpoint['config']['model'])
 
         model = initialize_model(checkpoint["config"]["model"])
 

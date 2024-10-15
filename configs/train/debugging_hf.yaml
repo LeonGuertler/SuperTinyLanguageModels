@@ -1,25 +1,16 @@
 model:
-  core_model_type: generic
-  num_layers: 1
-  
-  ffn:
-    ffn_type: generic
-    ffn_dim: 1536
-    activation: gelu
-    normalization: rms_norm
-    bias: false
-    dropout: 0.0
+  core_model_type: hf_core
+  hf_model_name: "meta-llama/Llama-3.2-1B"
+  tokenizer_type: llama_3.2_1B
 
-  attn:
-    attn_type: causal
-    num_kv_heads: 8
-    num_q_heads: 4
-    normalization: rms_norm
-    bias: false
-    dropout: false
+  embedding_model_type: hf_embedder
+  lm_head_type: generic
 
-  embedding_model_type: generic
-  tokenizer_type: bpe
+
+
+
+
+
   tokenizer_dataset_names: [simple_en_wiki]
   tokenizer_simplify_data: true
   tokenizer_num_reserved_tokens: 20
@@ -28,7 +19,6 @@ model:
   hidden_dim: 384
   context_window: 2048
 
-  lm_head_type: generic
   lm_head_normalization: rms_norm
   lm_head_bias: false
   lm_head_dropout: 0.0
@@ -41,7 +31,7 @@ model:
 
 trainer:
   trainer_type: base_trainer
-  dataset: [prm800k]
+  dataset: [simple_en_wiki, simple_en_wiki]
   batch_size: 24
   gradient_accumulation_steps: 10
 

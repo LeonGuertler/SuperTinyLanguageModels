@@ -42,6 +42,9 @@ class BaseTrainer:
         lr_scheduler=None,
         loaded_train_config=None,
     ) -> None:
+
+
+    
         self.model = model
         # print model stats and save them 
         total_params_formated = print_model_stats(model)

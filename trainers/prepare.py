@@ -48,6 +48,141 @@ class StandardProcessor:
                 arr[idx : idx + len(arr_batch)] = arr_batch
                 idx += len(arr_batch)
             arr.flush()
+
+
+class PRM800KProcessor(StandardProcessor):
+    """ TODO """
+    def __init__(self, embedder):
+        super().__init__(embedder)
+        self.start_of_thought_token = 4999 #embedder.start_of_thought_token
+        self.end_of_thought_token = 4998 #embedder.end_of_thought_token
+
+        self.start_of_answer_token = 4997 #embedder.start_of_answer_token
+        self.end_of_answer_token = 4996 #embedder.end_of_answer_token
+
+        self.answer_pad_token = -99
+
+
+
+    def process(self, example):
+        """
+        Create all possible completions with labels and return them.
+        """
+        input(example)
+        question = example["question"]["problem"]
+        question_ids = self.embedder.tokenize_input(question)
+        return_list = [(question_ids, [self.answer_pad_token]*len(question_ids))]
+
+        steps = example["steps"]
+        for step in steps:
+            tmp_list = []
+            for current_ids, current_labels in return_list:
+                for completion in step["completions"]:
+                    completion_ids = self.embedder.tokenize_input(completion["text"])
+
+                    # add start and end tokens to the completion
+                    completion_ids = [self.start_of_thought_token] + completion_ids + [self.end_of_thought_token]
+                    completion_labels = [-99] * (len(completion_ids)+1) + [completion["rating"]]
+
+                    tmp_list.append(
+                        (
+                            current_ids + completion_ids,
+                            current_labels + completion_labels
+                        )
+                    )
+
+            input(tmp_list)
+            return_list = tmp_list.copy()
+        return [{"ids":x[0], "targets":x[1], "len":len(x[0])} for x in return_list] # for x in return_list}
+
+
+
+# { "steps": [ 
+#     { "completions": [ 
+#         { "text": "7.8 minutes is the same as 7 minutes and 0.8 minutes.", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 0 }, 
+#     { "completions": [ 
+#         { "text": "Right, and since there are 60 seconds in a minute, then there are 60 * 7 = 420 seconds in 7 minutes.", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 0 }, 
+#     { "completions": [ 
+#         { "text": "And since there are 60 seconds in a minute, then there are 60 * 0.8 = 48 seconds in 0.8 minutes.", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 0 }, 
+#     { "completions": [ 
+#         { "text": "So, in total, there are 420 + 48 = 468 seconds in 7.8 minutes.", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 0 }, 
+#     { "completions": [ 
+#         { "text": "Right. Let's check our work. 7.8 minutes is the same as 7 minutes and 0.8 minutes.", "rating": 0, "flagged": false }, 
+#         { "text": "Exactly.\n\n# Answer\n\n468", "rating": 1, "flagged": false }, 
+#         { "text": "That's correct.\n\n# Answer\n\n468", "rating": 1, "flagged": false }, 
+#         { "text": "Correct.\n\n# Answer\n\n468", "rating": 1, "flagged": false }, 
+#         { "text": "That's correct.\n\n# Answer\n\n468", "rating": 1, "flagged": false }, 
+#         { "text": "Correct.\n\n# Answer\n\n468", "rating": 1, "flagged": false }, 
+#         { "text": "That's right!\n\n# Answer\n\n468", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 1 } 
+# ], "total_time": 92405, "finish_reason": "solution" }
+
+
+# { "steps": [ 
+#     { "completions": [ 
+#         { "text": "Let's call our two-digit integers x.", "rating": 0, "flagged": false }, 
+#         { "text": "Let's first think about the remainders when we divide by 8.", "rating": 0, "flagged": false }, 
+#         { "text": "So we need to find the number of positive two-digit integers that are 2 more than a multiple of 8.", "rating": 1, "flagged": false }, 
+#         { "text": "So we're looking for numbers that are two more than a multiple of 8.", "rating": 0, "flagged": false }, 
+#         { "text": "So we have to find the number of integers that are two more than a multiple of 8.", "rating": 0, "flagged": false }, 
+#         { "text": "Let's write out the first few multiples of 8.", "rating": 0, "flagged": false }, 
+#         { "text": "So if a number leaves a remainder of 2 when divided by 8, it's of the form 8n+2.", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 6 }, 
+#     { "completions": [ 
+#         { "text": "So we want to know the number of positive two-digit integers of the form 8n+2.", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 0 }, 
+#     { "completions": [ 
+#         { "text": "I think we should just plug in numbers and see what happens.", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 0 }, 
+#     { "completions": [ 
+#         { "text": "Ok let's start with n=1.", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 0 }, 
+#     { "completions": [ 
+#         { "text": "8*1+2=10 which is a two-digit integer.", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 0 }, 
+#     { "completions": [ 
+#         { "text": "Let's try n=2.", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 0 }, 
+#     { "completions": [ 
+#         { "text": "8*2+2=18 which is also a two-digit integer.", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 0 }, 
+#     { "completions": [ 
+#         { "text": "And if we keep going we'll see that all the numbers of the form 8n+2 are two-digit integers.", "rating": -1, "flagged": false }, 
+#         { "text": "Let's try n=3.", "rating": 0, "flagged": false }, 
+#         { "text": "Let's try n=3.", "rating": 0, "flagged": false }, 
+#         { "text": "Let's try n=3.", "rating": 0, "flagged": false }, 
+#         { "text": "3, 4, 5 and 6 work as well.", "rating": 0, "flagged": false }, 
+#         { "text": "But if n=3, then 8*3+2=26 which is a three-digit integer.", "rating": 0, "flagged": false }, 
+#         { "text": "And if we keep going like this, we'll see that every integer of the form 8n+2 is a two-digit integer.", "rating": 0, "flagged": false } 
+#         ], "human_completion": {
+#              "text": "And let's keep plugging numbers until we get a three-digit number.", "rating": null, "source": "human", "flagged": false, "corrected_rating": null }, "chosen_completion": null }, 
+#     { "completions": [ 
+#         { "text": "That would be n=13.", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 0 }, 
+#     { "completions": [ 
+#         { "text": "Right, since 8*13+2 is 102.", "rating": -1, "flagged": false }, 
+#         { "text": "So there are 13-1+1=13 positive two-digit integers that leave a remainder of 2 when divided by 8.", "rating": -1, "flagged": false }, 
+#         { "text": "Because 8*13+2=106.", "rating": 1, "flagged": false }, 
+#         { "text": "Because 8*13+2=106 is a three-digit number.", "rating": 1, "flagged": false }, 
+#         { "text": "Ok so there are 13-1+1=13 positive two-digit integers that leave a remainder of 2 when divided by 8.", "rating": -1, "flagged": false }, 
+#         { "text": "Because 8*13+2=106.", "rating": 1, "flagged": false }, 
+#         { "text": "So there are 13-1+1=13 two-digit positive integers that leave a remainder of 2 when divided by 8.\n\n# Answer\n\n13", "rating": -1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 5 }, 
+#     { "completions": [ 
+#         { "text": "Right. So there are 13-1+1=13 positive two-digit integers that leave a remainder of 2 when divided by 8.\n\n# Answer\n\n13", "rating": -1, "flagged": false }, 
+#         { "text": "So there are 13-1+1=13 two-digit integers that leave a remainder of 2 when divided by 8.", "rating": -1, "flagged": false }, 
+#         { "text": "So the number of positive two-digit integers of the form 8n+2 is 12.\n\n# Answer\n\n12", "rating": 1, "flagged": false }, 
+#         { "text": "Right. So the number of positive two-digit integers that leave a remainder of 2 when divided by 8 is 13.\n\n# Answer\n\n13", "rating": -1, "flagged": false }, 
+#         { "text": "Right. But we want to know the number of positive two-digit integers of the form 8n+2.", "rating": 0, "flagged": false }, 
+#         { "text": "Right. So the number of positive two-digit integers of the form 8n+2 is 12.", "rating": 0, "flagged": false }, 
+#         { "text": "Yes. So the number of positive two-digit integers that leave a remainder of 2 when divided by 8 is 12.\n\n# Answer\n\n12", "rating": 1, "flagged": false } 
+#         ], "human_completion": null, "chosen_completion": 2 } 
+# ], "total_time": 1099187, "finish_reason": "solution" }
+
     
 class ByteLevelProcessor(StandardProcessor):
     """
@@ -141,7 +276,8 @@ class DualByteLevelProcessor(StandardProcessor):
 DATALOADER_PROCESSORS = {
     "standard": StandardProcessor,
     "byte_pooling": ByteLevelProcessor,
-    "dual_byte_pooling": DualByteLevelProcessor
+    "dual_byte_pooling": DualByteLevelProcessor,
+    "prm800k": PRM800KProcessor
 }
 
 

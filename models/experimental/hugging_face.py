@@ -94,90 +94,95 @@ def build_model(model_cfg):
     return model
 
 
-class HFTokenizerWrapper(TokenizerClass):
-    def __init__(self, hf_tokenizer_name):
-        self.hf_tokenizer = AutoTokenizer.from_pretrained(hf_tokenizer_name, token=os.getenv("HF_TOKEN"))
-        self.eot_token = self.hf_tokenizer.eos_token_id
-        self.pad_token = self.hf_tokenizer.pad_token_id
-        self.vocab_size = self.hf_tokenizer.vocab_size
-        if self.pad_token is None:
-            self.pad_token = self.eot_token
-
-    def encode(self, text):
-        """Encode a text into tokens."""
-        return self.hf_tokenizer.encode(text, add_special_tokens=False)
-
-    def encode_batch(self, texts):
-        """Encode a batch of texts into tokens.
-
-        Default implementation is to loop over the texts"""
-        self.hf_tokenizer.batch_encode_plus(
-            texts,
-            padding=True,
-            return_tensors="pt",
-        )
-
-    def decode(self, tokens):
-        """Decode a list of tokens into a string."""
-        return self.hf_tokenizer.decode(tokens, skip_special_tokens=True)
-
-    def decode_batch(self, token_lists):
-        """Decode a list of token lists into a list of strings.
-
-        Default implementation is to loop over the token lists."""
-        return self.hf_tokenizer.batch_decode(token_lists, skip_special_tokens=True)
-
-
+from models.components.tokenizers import HuggingfaceTokenizer, build_tokenizer
 class HFEmbedder(EmbedderInterface):
     """
     A class for loading in models from the Hugging Face model hub
     """
-
     def __init__(self, model_cfg):
         super().__init__()
-        self.model_cfg = model_cfg
-        model_string = model_cfg["model_string"]
-        self.tokenizer = HFTokenizerWrapper(model_string)
-        self.embeddings = build_model(model_cfg).get_input_embeddings()
+        self.model_cfg = model_cfg 
 
-    def decode(self, token_ids):
-        """
-        Decode the token ids
-        """
-        return self.tokenizer.decode_batch(token_ids)
+        self.tokenizer = HuggingfaceTokenizer(
+            tokenizer_path=model_cfg["hf_model_name"]
+        )
+
+        self.token_embedder = AutoModelForCausalLM.from_pretrained(
+            model_cfg["hf_model_name"],
+            trust_remote_code=True,
+            torch_dtype=torch.float32,
+        ).model.embed_tokens
+
+        self.eot_token = self.tokenizer.eot_token
 
     def forward(self, token_ids):
-        """
-        Forward pass for the model
-        """
-        return self.embeddings(token_ids)
+        x = self.token_embedder(token_ids)
+        return x 
 
     def tokenize_input(self, input_string, truncate=False, add_eot=True):
-        """This function should take a single input string and returns
-
-        the tokenized input.
-        Args:
-            input_string: str
-            truncate: bool - whether to perform (left) truncation
-            add_eot: bool
-        Returns:
-            typically token_ids of shape (S,)
+        """
+        Tokenize an input string.
         """
         token_ids = self.tokenizer.encode(input_string)
         if add_eot:
-            token_ids.append(self.tokenizer.eot_token)
+            token_ids.append(self.eot_token)
         if truncate:
             token_ids = self.truncate([token_ids])[0]
         return token_ids
-
+    
     def pad_batch(self, token_lists, direction="right"):
-        """Pad the token lists into a tensor, and returns a mask"""
-        return self.tokenizer.pad_batch(token_lists, direction)
+        """Pad a list of token lists to the same length,
+        and return the padded tensor, and mask tensor.
+        Args:
+            token_lists: list of lists of tokens
+            direction: str
+        """
+        return self.tokenizer.pad_batch(token_lists, direction=direction)
 
     def truncate(self, token_lists):
-        """Truncate the token lists to the max length of the model"""
+        # get model max length
         max_length = self.model_cfg["context_window"]
-        return [tokens[-max_length:] for tokens in token_lists]
+        return [token_seq[-max_length:] for token_seq in token_lists]
+
+    def decode(self, tokens):
+        """
+        Decode a tensor of tokens into a string.
+        """
+        return self.tokenizer.decode_batch(tokens)
+
+
+class HFTransformerCore(torch.nn.Module):
+    def __init__(self, model_cfg):
+        super().__init__()
+        full_model = AutoModelForCausalLM.from_pretrained(
+            model_cfg["hf_model_name"],
+            trust_remote_code=True,
+            torch_dtype=torch.float32,
+        )
+        
+        self.layers = full_model.model.layers
+
+        self._update_causal_mask = full_model._update_causal_mask
+
+        self.rotary_emb = full_model.rotary_emb
+
+        
+
+
+
+
+    def forward(self, x):
+        causal_mask = self._update_causal_mask(
+            attention_mask, inputs_embeds, cache_position, past_key_values, output_attentions
+        )
+        hidden_states = inputs_embeds
+
+        # create position embeddings to be shared across the decoder layers
+        position_embeddings = self.rotary_emb(hidden_states, position_ids)
+
+
+
+
 
 
 class HFTransformerCore(torch.nn.Module):

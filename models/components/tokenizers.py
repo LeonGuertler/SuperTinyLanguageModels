@@ -299,6 +299,7 @@ TOKENIZER_DICT = {
     "llama_32k": lambda vocab_size, dataset_name, simplify: HuggingfaceTokenizer(tokenizer_path="chavinlo/alpaca-native"),
     "opt_50k": lambda vocab_size, dataset_name, simplify: HuggingfaceTokenizer(tokenizer_path="facebook/opt-1.3b"),
     "mistral_32k": lambda vocab_size, dataset_name, simplify: HuggingfaceTokenizer(tokenizer_path="mistralai/Mistral-7B-v0.1"),
+    "llama_3.2_1B": lambda vocab_size, dataset_name, simplify: HuggingfaceTokenizer(tokenizer_path="meta-llama/Llama-3.2-1B"),
 
     # a custom BPE tokenizer (using the HF implementation)
     "bpe": lambda vocab_size, dataset_names, simplify, num_reserved_tokens: BPETokenizer(

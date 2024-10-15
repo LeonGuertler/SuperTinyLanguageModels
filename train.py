@@ -32,7 +32,7 @@ def ddp_main(rank, world_size, cfg):
         model, loaded_train_config = build_model( # train_config is not None when loading checkpoints
             model_cfg=cfg["model"],
             checkpoint_path=cfg["model"].get("checkpoint_path", None),
-        device=cfg["general"]["device"]
+            device=cfg["general"]["device"]
         )
         model.to(cfg["general"]["device"])
         model.train()
