@@ -7,17 +7,11 @@ from contextlib import nullcontext
 
 # local imports
 from trainers import utils
-from trainers.evaluator import intra_training_evaluation
-# from trainers.evaluator import (
-#     train_eval_mcq, 
-#     train_eval_text_modeling,
-#     train_eval_text_generation,
-#     train_free_form,
-# )
 from trainers.utils import (
     wandbify_evaluation_results,
     aggregate_value, 
-    print_evaluation_results
+    print_evaluation_results,
+    intra_training_evaluation
 )
 from models.utils import print_model_stats
 

@@ -31,7 +31,7 @@ register(
     }
 )
 register(
-    id="ArcEasySubset",
+    id="ArcEasy-Subset",
     entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_arc_easy,
@@ -42,7 +42,7 @@ register(
     }
 )
 register(
-    id="ArcEasyLinearSubset",
+    id="ArcEasy-STLMSubset",
     entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_arc_easy,
@@ -64,7 +64,7 @@ register(
     }
 )
 register(
-    id="BlimpSubset",
+    id="Blimp-Subset",
     entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_blimp,
@@ -86,7 +86,7 @@ register(
     }
 )
 register(
-    id="HellaswagSubset",
+    id="Hellaswag-Subset",
     entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_hellaswag,
@@ -97,7 +97,7 @@ register(
     }
 )
 register(
-    id="HellaswagLinearSubset",
+    id="Hellaswag-STLMSubset",
     entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_hellaswag,
@@ -118,7 +118,7 @@ register(
     }
 )
 register(
-    id="MMLUSubset",
+    id="MMLU-Subset",
     entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_mmlu,
@@ -139,7 +139,7 @@ register(
     }
 )
 register(
-    id="WinograndeSubset",
+    id="Winogrande-Subset",
     entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_winogrande,
@@ -149,13 +149,256 @@ register(
     }
 )
 
+# Truthful QA # TODO add paper (maybe also M1)
+register(
+    id="TruthfulQA-M2",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_truthful_qa_m2,
+    yield_fn_params={
+        "version": "original",
+        "num_samples": None, # i.e. all samples
+        "seed": 489
+    }
+)
+register(
+    id="TruthfulQA-M2-Subset",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_truthful_qa_m2,
+    yield_fn_params={
+        "version": "original",
+        "num_samples": 100,
+        "seed": 489
+    }
+)
+register(
+    id="TruthfulQA-M2-STLMSubset",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_truthful_qa_m2,
+    yield_fn_params={
+        "version": "stlm_eval",
+        "num_samples": None, # i.e. all samples
+        "seed": 489
+    }
+)
+
+
+# PIQA # TODO add paper
+register(
+    id="PIQA",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_piqa,
+    yield_fn_params={
+        "num_samples": None, # i.e all samples
+        "seed": 489
+    }
+)
+register(
+    id="PIQA-Subset",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_piqa,
+    yield_fn_params={
+        "num_samples": 100, 
+        "seed": 489
+    }
+)
+
+# BoolQ # TODO add paper
+register(
+    id="BoolQ",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_boolq,
+    yield_fn_params={
+        "num_samples": None, # i.e all samples
+        "seed": 489
+    }
+)
+register(
+    id="BoolQ-Subset",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_boolq,
+    yield_fn_params={
+        "num_samples": 100, 
+        "seed": 489
+    }
+)
+
+# Race # TODO add paper 
+register(
+    id="RACEMiddle",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_race,
+    yield_fn_params={
+        "num_samples": None, # i.e all samples
+        "version": "middle",
+        "seed": 489
+    }
+)
+register(
+    id="RACEMiddle-Subset",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_race,
+    yield_fn_params={
+        "num_samples": 100, 
+        "version": "middle",
+        "seed": 489
+    }
+)
+
+register(
+    id="RACEHigh",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_race,
+    yield_fn_params={
+        "num_samples": None, # i.e all samples
+        "version": "high",
+        "seed": 489
+    }
+)
+register(
+    id="RACEHigh-Subset",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_race,
+    yield_fn_params={
+        "num_samples": 100, 
+        "version": "high",
+        "seed": 489
+    }
+)
+
+
+# Openbook QA # TODO add paper
+register(
+    id="OpenbookQAOpen",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_openbook_qa,
+    yield_fn_params={
+        "num_samples": None, # i.e. all samples
+        "version": "open",
+        "seed": 489
+    }
+)
+register(
+    id="OpenbookQAOpen-Subset",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_openbook_qa,
+    yield_fn_params={
+        "num_samples": 100,
+        "version": "open",
+        "seed": 489
+    }
+)
+
+register(
+    id="OpenbookQAClosed",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_openbook_qa,
+    yield_fn_params={
+        "num_samples": None, # i.e. all samples
+        "version": "closed",
+        "seed": 489
+    }
+)
+register(
+    id="OpenbookQAClosed-Subset",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_openbook_qa,
+    yield_fn_params={
+        "num_samples": 100,
+        "version": "closed",
+        "seed": 489
+    }
+)
+
+
+# Copa # TODO add paper
+register(
+    id="Copa",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_copa,
+    yield_fn_params={
+        "num_samples": None, # i.e. all samples
+        "seed": 489
+    }
+)
+register(
+    id="Copa-Subset",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_copa,
+    yield_fn_params={
+        "num_samples": 100,
+        "seed": 489
+    }
+)
+
+# Commonsense QA # TODO add paper
+register(
+    id="CommonsenseQA",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_commonsense_qa,
+    yield_fn_params={
+        "num_samples": None, # i.e. all samples
+        "seed": 489
+    }
+)
+register(
+    id="CommonsenseQA-Subset",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_commonsense_qa,
+    yield_fn_params={
+        "num_samples": 100,
+        "seed": 489
+    }
+)
+
+# Ewok # TODO add paper
+register(
+    id="Ewok",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_ewok,
+    yield_fn_params={
+        "num_samples": None, # i.e. all samples
+        "seed": 489
+    }
+)
+register(
+    id="Ewok-Subset",
+    entry_point="evals.evaluator:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_ewok,
+    yield_fn_params={
+        "num_samples": 100,
+        "seed": 489
+    }
+)
+
+
 
 
 # Register the text-modeling benchmarks
 register(
     id="STLM-Text-Modeling (full)",
     entry_point="evals.evaluators:BasicTextModelingEvaluator",
-    model_wrapper=TextModelingModelWrapper,
+    model_wrapper=BasicTextModelingModelWrapper,
     yield_fn=load_stlm_synthetic_text_modeling,
     yield_fn_params={
         "topics": None,
@@ -165,7 +408,7 @@ register(
 register(
     id="STLM-Text-Modeling (Science-Easy)",
     entry_point="evals.evaluators:BasicTextModelingEvaluator",
-    model_wrapper=TextModelingModelWrapper,
+    model_wrapper=BasicTextModelingModelWrapper,
     yield_fn=load_stlm_synthetic_text_modeling,
     yield_fn_params={
         "topics": ["Science"],
@@ -175,7 +418,7 @@ register(
 register(
     id="STLM-Text-Modeling (Science-Medium)",
     entry_point="evals.evaluators:BasicTextModelingEvaluator",
-    model_wrapper=TextModelingModelWrapper,
+    model_wrapper=BasicTextModelingModelWrapper,
     yield_fn=load_stlm_synthetic_text_modeling,
     yield_fn_params={
         "topics": ["Science"],
@@ -185,11 +428,88 @@ register(
 register(
     id="STLM-Text-Modeling (Science-Hard)",
     entry_point="evals.evaluators:BasicTextModelingEvaluator",
-    model_wrapper=TextModelingModelWrapper,
+    model_wrapper=BasicTextModelingModelWrapper,
     yield_fn=load_stlm_synthetic_text_modeling,
     yield_fn_params={
         "topics": ["Science"],
         "difficulties": ["Hard"] # i.e. full dataset
+    }
+)
+register(
+    id="STLM-Text-Modeling (Science)",
+    entry_point="evals.evaluators:BasicTextModelingEvaluator",
+    model_wrapper=BasicTextModelingModelWrapper,
+    yield_fn=load_stlm_synthetic_text_modeling,
+    yield_fn_params={
+        "topics": ["Science"],
+        "difficulties": None # i.e. full dataset
+    }
+)
+register(
+    id="STLM-Text-Modeling (Conversational)",
+    entry_point="evals.evaluators:BasicTextModelingEvaluator",
+    model_wrapper=BasicTextModelingModelWrapper,
+    yield_fn=load_stlm_synthetic_text_modeling,
+    yield_fn_params={
+        "topics": ["Conversational"],
+        "difficulties": None # i.e. full dataset
+    }
+)
+register(
+    id="STLM-Text-Modeling (Ethics)",
+    entry_point="evals.evaluators:BasicTextModelingEvaluator",
+    model_wrapper=BasicTextModelingModelWrapper,
+    yield_fn=load_stlm_synthetic_text_modeling,
+    yield_fn_params={
+        "topics": ["Ethics"],
+        "difficulties": None # i.e. full dataset
+    }
+)
+register(
+    id="STLM-Text-Modeling (Literature)",
+    entry_point="evals.evaluators:BasicTextModelingEvaluator",
+    model_wrapper=BasicTextModelingModelWrapper,
+    yield_fn=load_stlm_synthetic_text_modeling,
+    yield_fn_params={
+        "topics": ["Literature"],
+        "difficulties": None # i.e. full dataset
+    }
+)
+register(
+    id="STLM-Text-Modeling (Code)",
+    entry_point="evals.evaluators:BasicTextModelingEvaluator",
+    model_wrapper=BasicTextModelingModelWrapper,
+    yield_fn=load_stlm_synthetic_text_modeling,
+    yield_fn_params={
+        "topics": ["Code"],
+        "difficulties": None # i.e. full dataset
+    }
+)
+
+
+
+
+# Register the teacher-text-modeling benchmarks
+register(
+    id="Teacher-Text-Modeling (full)",
+    entry_point="evals.evaluators:TeacherTextModelingEvaluator",
+    model_wrapper=TextGenerationModelWrapper,
+    model_generator=StandardGenerator,
+    yield_fn=load_basic_eval_prompt_list,
+    yield_fn_params={
+        "seed": 489,
+    }
+)
+
+# Register the text-generation benchmarks
+register(
+    id="Text-Generation (full)",
+    entry_point="evals.evaluators:TextGenerationEvaluator",
+    model_wrapper=TextGenerationModelWrapper,
+    model_generator=StandardGenerator,
+    yield_fn=load_basic_eval_prompt_list,
+    yield_fn_params={
+        "seed": 489,
     }
 )
 
@@ -198,7 +518,7 @@ register(
 register(
     id="MATH",
     entry_point="evals.evaluators:FreeFormEvaluator",
-    model_wrapper=FreeFormModelWrapper,
+    model_wrapper=TextGenerationModelWrapper,
     model_generator=StandardGenerator,
     answer_extraction_function=answer_extraction_math,
     yield_fn=load_math,
@@ -208,9 +528,9 @@ register(
     },
 )
 register(
-    id="MATH-small",
+    id="MATH-Subset",
     entry_point="evals.evaluators:FreeFormEvaluator",
-    model_wrapper=FreeFormModelWrapper,
+    model_wrapper=TextGenerationModelWrapper,
     model_generator=StandardGenerator,
     answer_extraction_function=answer_extraction_math,
     yield_fn=load_math,
@@ -221,12 +541,10 @@ register(
 )
 
 
-
-
 register(
     id="GSM8K",
     entry_point="evals.evaluators:FreeFormEvaluator",
-    model_wrapper=FreeFormModelWrapper,
+    model_wrapper=TextGenerationModelWrapper,
     model_generator=StandardGenerator,
     answer_extraction_function=answer_extraction_gsm8k,
     yield_fn=load_gsm8k,
@@ -235,93 +553,15 @@ register(
         "seed": 489 # few-shot etc. should be mentioned here
     }
 )
-
-
-
-
-
-
-# EVALS_DICT = {
-#     "arc_easy": lambda num_samples: load_arc_easy(
-#         version="original",
-#         num_samples=num_samples
-#     ),
-#     "stlm_eval_arc_easy": lambda num_samples: load_arc_easy(
-#         version="stlm_eval",
-#         num_samples=num_samples
-#     ),
-#     "hellaswag": lambda num_samples: load_hellaswag(
-#         version="original",
-#         num_samples=num_samples
-#     ),
-#     "stlm_eval_hellaswag": lambda num_samples: load_hellaswag(
-#         version="stlm_eval",
-#         num_samples=num_samples
-#     ),
-#     "winogrande": lambda num_samples: load_winogrande(
-#         version="original",
-#         num_samples=num_samples
-#     ),
-#     "stlm_eval_winogrande": lambda num_samples: load_winogrande(
-#         version="stlm_eval",
-#         num_samples=num_samples
-#     ),
-#     "truthful_qa": lambda num_samples: load_truthful_qa_m2(
-#         version="original",
-#         num_samples=num_samples
-#     ),
-#     "stlm_eval_truthful_qa": lambda num_samples: load_truthful_qa_m2(
-#         version="stlm_eval",
-#         num_samples=num_samples
-#     ),
-#     "blimp": lambda num_samples: load_blimp(
-#         num_samples=num_samples
-#     ),
-#     "mmlu": lambda num_samples: load_mmlu(
-#         num_samples=num_samples
-#     ),
-#     "piqa": lambda num_samples: load_piqa(
-#         num_samples=num_samples
-#     ),
-#     "boolq": lambda num_samples: load_boolq(
-#         num_samples=num_samples
-#     ),
-#     "race_middle": lambda num_samples: load_race(
-#         version="middle",
-#         num_samples=num_samples
-#     ),
-#     "race_high": lambda num_samples: load_race(
-#         version="high",
-#         num_samples=num_samples
-#     ),
-#     "openbook_qa_open": lambda num_samples: load_openbook_qa(
-#         version="open",
-#         num_samples=num_samples
-#     ),
-#     "openbook_qa_closed": lambda num_samples: load_openbook_qa(
-#         version="closed",
-#         num_samples=num_samples
-#     ),
-#     "copa": lambda num_samples: load_copa(
-#         num_samples=num_samples
-#     ),
-#     "commonsense_qa": lambda num_samples: load_commonsense_qa(
-#         num_samples=num_samples
-#     ),
-#     "ewok": lambda num_samples: load_ewok(
-#         num_samples=num_samples
-#     )
-# }
-
-
-
-
-# def load_benchmark(benchmark_name, num_samples):
-#     """
-#     Given the benchmark name, build the benchmark
-#     """
-#     assert benchmark_name in EVALS_DICT, \
-#         f"Benchmark {benchmark_name} not found. The available benchmarks are: {list(EVALS_DICT.keys())}"
-#     return EVALS_DICT[benchmark_name](
-#         num_samples=num_samples
-#     )
+register(
+    id="GSM8K-Subset",
+    entry_point="evals.evaluators:FreeFormEvaluator",
+    model_wrapper=TextGenerationModelWrapper,
+    model_generator=StandardGenerator,
+    answer_extraction_function=answer_extraction_gsm8k,
+    yield_fn=load_gsm8k,
+    yield_fn_params={
+        "num_samples": 100, 
+        "seed": 489 # few-shot etc. should be mentioned here
+    }
+)

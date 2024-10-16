@@ -409,6 +409,18 @@ def load_drop(num_samples=None, seed=None):
         )
 
 
+def load_basic_eval_prompt_list(seed=None):
+    """ TODO """
+    dataset = load_dataset("SuperTinyLanguageModels/basic-eval-prompts")["train"]
+    index_list = get_idx_list(
+        dataset_length=len(dataset),
+        num_samples=None,
+        seed=seed
+    )
+    for i in index_list:
+        yield dataset[i]["prompt"]
+        
+
 
 
 # Text Modeling yield functions

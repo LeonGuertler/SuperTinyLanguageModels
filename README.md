@@ -1,20 +1,28 @@
 # Work in Progress
 ## TODO
-- change the generators to accept custom default values on initialization
 - update the remaining evals
-- add the teacher perplexity to the text based evals (maybe average teacher perplexity)
 - update the base-trainer
+
+- for model generators in evals, make sure they have a proper interface
+- change the generators to accept custom default values on initialization
+
+- add text generation evaluator
 
 - double-check byte-level metric calculations
 - fix the huggingface model loading! Maybe seperate this from the main code or something
-- fix free form evals
+
+
+- add ffn methods
+- add attention methods
+- add optimizers
+
 
 - add idea list to readme
-
 - add tutorial to read-me (maybe the global dynamic tokenization)
 
 
 - fix the loading for classification datasets (PRM800K)
+- simplify the prepare structure a bit
 
 # Super Tiny Language Models
 

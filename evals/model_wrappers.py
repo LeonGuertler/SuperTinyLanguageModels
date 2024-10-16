@@ -37,7 +37,7 @@ class LoglikelihoodMCQModelWrapper(BaseModelWrapper):
         return results
 
 
-class TextModelingModelWrapper(BaseModelWrapper):
+class BasicTextModelingModelWrapper(BaseModelWrapper):
     """ TODO """
     def __init__(self, model, chunk_size):
         """ TODO """
@@ -133,9 +133,7 @@ class TextModelingModelWrapper(BaseModelWrapper):
         }
 
 
-
-
-class FreeFormModelWrapper(BaseModelWrapper):
+class TextGenerationModelWrapper(BaseModelWrapper):
     """ TODO """
     def __init__(self, model, model_generator, generator_params):
         """ TODO """

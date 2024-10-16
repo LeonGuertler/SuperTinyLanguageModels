@@ -2,14 +2,42 @@
 
 import importlib
 import inspect
-import os, re
+import os, re, wandb
 import pkgutil
 import numpy as np
 from prettytable import PrettyTable
 from collections import defaultdict
+from typing import Optional, List, Dict, Any
 
 import torch 
 import torch.distributed as dist
+
+import evals
+from tqdm import tqdm
+
+def intra_training_evaluation(model, benchmarks):
+    """
+    Evaluates the model on multiple benchmarks during training.
+    
+    Args:
+        model: The model to evaluate.
+        benchmarks List[str]: A list of benchmark names to evaluate the model on.
+    """
+    results_list = []
+
+    # Outer progress bar for benchmarks
+    with tqdm(benchmarks, desc="Evaluating benchmarks", position=0,  leave=True) as benchmark_bar:
+        for benchmark in benchmark_bar:
+            try:
+                # Create the benchmark evaluator
+                benchmark_evaluator = evals.make(benchmark)
+
+                # Evaluating within the benchmark, tqdm already exists in the yield function
+                results = benchmark_evaluator.evaluate(model=model)
+                results_list.append(results)
+            except Exception as e:
+                print(f"[EXCEPTION] during intra_training_evaluation on {benchmark}. \nDetails:{e}")
+    return results_list
 
 def set_seed(seed):
     """Setup the trainer"""
@@ -128,18 +156,16 @@ def restore_print_override(original_print):
     __builtin__.print = original_print
 
 
-
-
-def print_evaluation_results(eval_results, benchmark_results):
+def print_evaluation_results(eval_results: Dict[str, Any], benchmark_results: List[Dict[str, Any]]):
     """
-    This function processes and visualizes the evaluation results and benchmark results.
+    Processes and visualizes the evaluation results and benchmark results.
 
     Args:
         eval_results (dict): Dictionary containing evaluation metrics and other related information.
         benchmark_results (list of dict): List of dictionaries containing benchmark results.
     """
     # Helper function to format numerical values
-    def format_value(metric_name, value):
+    def format_value(metric_name: str, value: Any) -> str:
         if isinstance(value, float):
             if 'accuracy' in metric_name.lower():
                 # Format as percentage with two decimal places
@@ -213,6 +239,14 @@ def print_evaluation_results(eval_results, benchmark_results):
                 results = benchmark.get("results", {})
                 all_metrics.update(results.keys())
 
+            # Remove 'Generated Text (html)' if present
+            all_metrics.discard("Generated Text (html)")
+
+            if not all_metrics:
+                print(f"\nBenchmark Type: {benchmark_type}")
+                print("No numerical metrics to display.")
+                continue
+
             # Sort metrics for consistent column ordering
             sorted_metrics = sorted(all_metrics)
 
@@ -235,35 +269,43 @@ def print_evaluation_results(eval_results, benchmark_results):
             print(f"\nBenchmark Type: {benchmark_type}")
             print(table)
     else:
-        print("No benchmark results to display.")
+        print("\nNo benchmark results to display.")
 
 
-def wandbify_evaluation_results(benchmark_results, convert_accuracy_to_percentage=False):
+def wandbify_evaluation_results(benchmark_results: List[Dict[str, Any]], convert_accuracy_to_percentage: bool = False) -> Dict[str, Any]:
     """
     Processes the benchmark_results list of dicts 
     to be logged in Weights & Biases (wandb), formatting keys based on the number of metrics.
-    
+
     Args:
         benchmark_results (list of dict): List of dictionaries containing benchmark results.
         convert_accuracy_to_percentage (bool): 
             If True, multiplies accuracy metrics by 100 to represent them as percentages.
-    
+
     Returns:
         dict: A flat dictionary formatted for wandb logging with keys structured based on metric count.
     """
+    import wandb
+
     wandb_log_dict = {}
-    
+
     for benchmark in benchmark_results:
         benchmark_type = benchmark.get("benchmark_type", "Unknown_Type")
         benchmark_name = benchmark.get("benchmark_name", "Unnamed_Benchmark")
         results = benchmark.get("results", {})
-        num_metrics = len(results)
-        
+        num_metrics = len(results) - ("Generated Text (html)" in results)
+
         for metric, value in results.items():
+            if metric == "Generated Text (html)":
+                # Handle HTML content separately using wandb.Html
+                key = f"{benchmark_type} / {benchmark_name} / {metric}"
+                wandb_log_dict[key] = wandb.Html(value)
+                continue  # Skip further processing for HTML content
+
             # Optionally convert accuracy metrics to percentages
-            if  convert_accuracy_to_percentage and "accuracy" in metric.lower() and isinstance(value, float):
+            if convert_accuracy_to_percentage and "accuracy" in metric.lower() and isinstance(value, float):
                 value = value * 100
-            
+
             # Format the key based on the number of metrics
             if num_metrics == 1:
                 # Single Metric Format: "benchmark_type / benchmark_name (metric)"
@@ -271,7 +313,7 @@ def wandbify_evaluation_results(benchmark_results, convert_accuracy_to_percentag
             else:
                 # Multiple Metrics Format: "benchmark_type (benchmark_name) / metric"
                 key = f"{benchmark_type} ({benchmark_name}) / {metric}"
-            
+
             wandb_log_dict[key] = value
-    
+
     return wandb_log_dict

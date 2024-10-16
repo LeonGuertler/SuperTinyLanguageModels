@@ -46,23 +46,61 @@ trainer:
   gradient_accumulation_steps: 10
 
   max_iters: 1000
-  eval_interval: 500
+  eval_interval: 50
   log_interval: 10
   checkpoint_interval: 5000
   eval_iters: 1000
 
   eval:
     benchmarks:
-      - MATH-small
-      #- STLM-Text-Modeling (full)
-      #- STLM-Text-Modeling (Science-Easy)
-      #- STLM-Text-Modeling (Science-Medium)
-      #- STLM-Text-Modeling (Science-Hard)
-      #- ArcEasy
-      #- ArcEasySubset
-      #- Blimp
-      #- Hellaswag
-      # - ArcEasyLinearSubset
+      - ArcEasy
+      - ArcEasy-Subset
+      - ArcEasy-STLMSubset
+      - Blimp
+      - Blimp-Subset
+      - Hellaswag
+      - Hellaswag-Subset
+      - Hellaswag-STLMSubset
+      - MMLU
+      - MMLU-Subset
+      - Winogrande
+      - Winogrande-Subset
+      - TruthfulQA-M2
+      - Truthful-M2-Subset
+      - TruthfulQA-M2-STLMSubset
+      - PIQA
+      - PIQA-Subset
+      - BoolQ
+      - BoolQ-Subset
+      - RACEMiddle
+      - RACEMiddle-Subset
+      - RACEHigh
+      - RACEHigh-Subset
+      - OpenbookQAOpen
+      - OpenbookQAOpen-Subset
+      - OpenbookQAClosed
+      - OpenbookQAClosed-Subset
+      - Copa
+      - Copa-Subset
+      - CommonsenseQA
+      - CommonsenseQA-Subset
+      - Ewok
+      - Ewok-Subset
+      - STLM-Text-Modeling (full)
+      - STLM-Text-Modeling (Science-Easy)
+      - STLM-Text-Modeling (Science-Medium)
+      - STLM-Text-Modeling (Science-Hard)
+      - STLM-Text-Modeling (Science)
+      - STLM-Text-Modeling (Conversational)
+      - STLM-Text-Modeling (Ethics)
+      - STLM-Text-Modeling (Literature)
+      - STLM-Text-Modeling (Code)
+      - Teacher-Text-Modeling (full)
+      - Text-Generation (full)
+      - MATH
+      - MATH-Subset
+      - GSM8K
+      - GSM8k-Subset
     val_loss_iters: 1000
 
   optimizer:
