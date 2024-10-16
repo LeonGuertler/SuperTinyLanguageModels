@@ -135,7 +135,9 @@ register(
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_winogrande,
     yield_fn_params={
+        "version": "original",
         "num_samples": None, # i.e. all samples
+        "seed": 489,
     }
 )
 register(
@@ -144,7 +146,19 @@ register(
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_winogrande,
     yield_fn_params={
+        "version": "original",
         "num_samples": 100,
+        "seed": 489
+    }
+)
+register(
+    id="Winogrande-STLMSubset",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_winogrande,
+    yield_fn_params={
+        "version": "stlm_eval",
+        "num_samples": None, # i.e. all samples
         "seed": 489
     }
 )
@@ -188,7 +202,7 @@ register(
 # PIQA # TODO add paper
 register(
     id="PIQA",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_piqa,
     yield_fn_params={
@@ -198,7 +212,7 @@ register(
 )
 register(
     id="PIQA-Subset",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_piqa,
     yield_fn_params={
@@ -210,7 +224,7 @@ register(
 # BoolQ # TODO add paper
 register(
     id="BoolQ",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_boolq,
     yield_fn_params={
@@ -220,7 +234,7 @@ register(
 )
 register(
     id="BoolQ-Subset",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_boolq,
     yield_fn_params={
@@ -232,7 +246,7 @@ register(
 # Race # TODO add paper 
 register(
     id="RACEMiddle",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_race,
     yield_fn_params={
@@ -243,7 +257,7 @@ register(
 )
 register(
     id="RACEMiddle-Subset",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_race,
     yield_fn_params={
@@ -255,7 +269,7 @@ register(
 
 register(
     id="RACEHigh",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_race,
     yield_fn_params={
@@ -266,7 +280,7 @@ register(
 )
 register(
     id="RACEHigh-Subset",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_race,
     yield_fn_params={
@@ -280,7 +294,7 @@ register(
 # Openbook QA # TODO add paper
 register(
     id="OpenbookQAOpen",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_openbook_qa,
     yield_fn_params={
@@ -291,7 +305,7 @@ register(
 )
 register(
     id="OpenbookQAOpen-Subset",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_openbook_qa,
     yield_fn_params={
@@ -303,7 +317,7 @@ register(
 
 register(
     id="OpenbookQAClosed",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_openbook_qa,
     yield_fn_params={
@@ -314,7 +328,7 @@ register(
 )
 register(
     id="OpenbookQAClosed-Subset",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_openbook_qa,
     yield_fn_params={
@@ -328,7 +342,7 @@ register(
 # Copa # TODO add paper
 register(
     id="Copa",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_copa,
     yield_fn_params={
@@ -338,7 +352,7 @@ register(
 )
 register(
     id="Copa-Subset",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_copa,
     yield_fn_params={
@@ -350,7 +364,7 @@ register(
 # Commonsense QA # TODO add paper
 register(
     id="CommonsenseQA",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_commonsense_qa,
     yield_fn_params={
@@ -360,7 +374,7 @@ register(
 )
 register(
     id="CommonsenseQA-Subset",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_commonsense_qa,
     yield_fn_params={
@@ -372,7 +386,7 @@ register(
 # Ewok # TODO add paper
 register(
     id="Ewok",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_ewok,
     yield_fn_params={
@@ -382,7 +396,7 @@ register(
 )
 register(
     id="Ewok-Subset",
-    entry_point="evals.evaluator:MCQEvaluator",
+    entry_point="evals.evaluators:MCQEvaluator",
     model_wrapper=LoglikelihoodMCQModelWrapper,
     yield_fn=load_ewok,
     yield_fn_params={
