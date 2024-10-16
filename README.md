@@ -1,6 +1,12 @@
 # Work in Progress
 ## TODO
-- update the remaining evals
+
+- fix reformer attention
+- fix sparse attention
+- fix Differentiable Attention
+
+
+
 - update the base-trainer
 
 - for model generators in evals, make sure they have a proper interface
@@ -11,6 +17,10 @@
 - double-check byte-level metric calculations
 - fix the huggingface model loading! Maybe seperate this from the main code or something
 
+- implement positional encoding at the beginning of the pipeline (learned, absolute, sin-cos, etc.)
+
+
+- add the attention mask tracking back in
 
 - add ffn methods
 - add attention methods

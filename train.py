@@ -98,7 +98,6 @@ def main(cfg):
     if "checkpoint_path" in cfg["model"]:
         cfg["model"]["checkpoint_path"] = hydra.utils.to_absolute_path(cfg["model"]["checkpoint_path"])
 
-
     create_folder_structure(path_config=cfg["general"]["paths"])
 
     # process data 

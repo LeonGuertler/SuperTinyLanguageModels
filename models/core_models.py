@@ -23,10 +23,8 @@ class GenericTransformer(torch.nn.Module):
                 "h": torch.nn.ModuleList(
                     [
                         GenericTransformerBlock(
-                            attention_type=model_cfg.get("attention_type", "standard"),
                             hidden_dim=model_cfg["hidden_dim"],
                             context_window=model_cfg["context_window"],
-                            use_rope=model_cfg["positional_encoding_type"] == "rope",
                             ffn_cfg=model_cfg["ffn"],
                             attn_cfg=model_cfg["attn"],
                         )
@@ -69,16 +67,10 @@ class GenericTransformer(torch.nn.Module):
         # apply dropout
         x = self.transformer.drop(x)
 
-        # init matrices to get attention dict
-        self.attn_components = []
-
         # pass through the transformer blocks
         for block in self.transformer.h:
             x = block(x)
             
-            # append the attention components
-            self.attn_components.append(block.attn.attn_components)
-
         return x
 
 

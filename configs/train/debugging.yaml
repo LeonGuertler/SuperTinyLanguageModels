@@ -11,12 +11,16 @@ model:
     dropout: 0.0
 
   attn:
-    attn_type: causal
+    attn_type: generic_attention
     num_kv_heads: 8
-    num_q_heads: 4
+    num_q_heads: 8 # has to be == num_kv_heads for alibi attention
     normalization: rms_norm
     bias: false
     dropout: false
+    #depth: 1
+    #k_reduction_factor: 4
+    #share_kv_proj: True
+    #nb_features: 64
 
   embedding_model_type: generic
   tokenizer_type: bpe
@@ -37,12 +41,12 @@ model:
   embedding_weight_tying: true
   ffn_weight_tying: false
   cproj_weight_tying: false
-  positional_encoding_type: rope
+  embedding_positional_encoding: sincos
 
 trainer:
   trainer_type: base_trainer
   dataset: [simple_en_wiki]
-  batch_size: 24
+  batch_size: 12
   gradient_accumulation_steps: 10
 
   max_iters: 1000
@@ -53,11 +57,16 @@ trainer:
 
   eval:
     benchmarks:
+      #- Ewok-Subset
+      #- Blimp-Subset
+      #- Teacher-Text-Modeling (full)
+      #- Text-Generation (full)
+      #- STLM-Text-Modeling (full)
+
       #- ArcEasy
       #- ArcEasy-Subset
       #- ArcEasy-STLMSubset
       #- Blimp
-      - Blimp-Subset
       #- Hellaswag
       #- Hellaswag-Subset
       #- Hellaswag-STLMSubset
@@ -85,8 +94,6 @@ trainer:
       #- CommonsenseQA
       #- CommonsenseQA-Subset
       #- Ewok
-      - Ewok-Subset
-      - STLM-Text-Modeling (full)
       #- STLM-Text-Modeling (Science-Easy)
       #- STLM-Text-Modeling (Science-Medium)
       #- STLM-Text-Modeling (Science-Hard)
@@ -95,8 +102,6 @@ trainer:
       #- STLM-Text-Modeling (Ethics)
       #- STLM-Text-Modeling (Literature)
       #- STLM-Text-Modeling (Code)
-      - Teacher-Text-Modeling (full)
-      - Text-Generation (full)
       #- MATH
       #- MATH-Subset
       #- GSM8K
@@ -127,7 +132,7 @@ trainer:
 
 general:
   logging:
-    wandb_log: true
+    wandb_log: false
     wandb_project: SuperTinyLanguageModels
     wandb_run_name: Null
     group_name: base_group

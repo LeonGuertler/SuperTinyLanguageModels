@@ -23,6 +23,8 @@ def intra_training_evaluation(model, benchmarks):
         model: The model to evaluate.
         benchmarks List[str]: A list of benchmark names to evaluate the model on.
     """
+    if benchmarks is None:
+        return []
     results_list = []
 
     # Outer progress bar for benchmarks
