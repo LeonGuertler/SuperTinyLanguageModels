@@ -17,14 +17,12 @@ class FreeFormEvaluator(BaseEvaluator):
         model_generator, #: Optional[BaseGenerator] = None, # if no generated is provided, the model must be wrapped outside
         generator_params: Optional[Dict[str, Any]] = None, 
         yield_fn_params: Optional[Dict[str, Any]] = None,
-        eval_logging_path: Optional[str] = "FreeForm"
     ):
         super().__init__()
         """ TODO """
-        self.eval_logging_path = eval_logging_path
         self.yield_fn = yield_fn(**yield_fn_params)
         self.generator_params = generator_params
-        self.extract_answer = answer_extraction_function
+        self.answer_extraction_function = answer_extraction_function
         self.model_wrapper = model_wrapper 
         self.model_generator = model_generator
 
@@ -57,8 +55,8 @@ class FreeFormEvaluator(BaseEvaluator):
 
 
             # extract final answers
-            true_answer = self.extract_answer(answer)
-            model_answer = self.extract_answer(generated_answer)
+            true_answer = self.answer_extraction_function(answer)
+            model_answer = self.answer_extraction_function(generated_answer)
 
             # comopare answers (numerical comparison)
             if self._compare_math_answers(
@@ -71,6 +69,10 @@ class FreeFormEvaluator(BaseEvaluator):
 
         accuracy = correct / total if total > 0 else 0
         return {
-            f"{self.eval_logging_path}/{self.env_id} (Acc.)": accuracy
-        }    
+            "benchmark_type": "Free Form",
+            "benchmark_name": self.env_id,
+            "results": {
+                "Accuracy": accuracy
+            }
+        }
 

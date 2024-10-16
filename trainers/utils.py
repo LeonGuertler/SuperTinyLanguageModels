@@ -6,6 +6,7 @@ import os, re
 import pkgutil
 import numpy as np
 from prettytable import PrettyTable
+from collections import defaultdict
 
 import torch 
 import torch.distributed as dist
@@ -129,46 +130,148 @@ def restore_print_override(original_print):
 
 
 
-def print_evaluation_results(iter_num, eval_results):
+def print_evaluation_results(eval_results, benchmark_results):
     """
-    This function processes and visualizes the evaluation results.
-    The input format is a dictionary where each key has a logging path/metric_name format.
-    Keys without the '/' should be ignored. 
-    The function prints tables for each unique logging path.
+    This function processes and visualizes the evaluation results and benchmark results.
+
+    Args:
+        eval_results (dict): Dictionary containing evaluation metrics and other related information.
+        benchmark_results (list of dict): List of dictionaries containing benchmark results.
     """
-    
-    # Keys to be ignored (e.g., 'token_num', 'iter')
-    ignore_keys = set(["token_num", "iter"])
-    
-    # Filter out keys that don't have a "/"
-    valid_keys = {k: v for k, v in eval_results.items() if "/" in k and k.split("/")[0] not in ignore_keys}
-    
-    # Identify unique logging paths (the part before "/")
-    logging_paths = set([k.split("/")[0] for k in valid_keys])
-    
-    # Dictionary to store tables for each logging path
-    tables = {}
+    # Helper function to format numerical values
+    def format_value(metric_name, value):
+        if isinstance(value, float):
+            if 'accuracy' in metric_name.lower():
+                # Format as percentage with two decimal places
+                return f"{value * 100:.2f}%"
+            else:
+                return f"{value:.4g}"
+        return value
 
-    # Loop through each logging path and generate a table
-    for table_name in logging_paths:
-        # Collect columns for the table (the part after "/")
-        columns = sorted(set([k.split("/")[1] for k in valid_keys if table_name == k.split("/")[0]]))
-        
-        # Initialize a table with the logging path as the category and columns for the metrics
-        table = PrettyTable(["Evaluation"] + columns)
-        
-        # Collect values for the current logging path
-        row_values = {col: "" for col in columns}
-        for k, v in valid_keys.items():
-            logging_path, col_name = k.split("/")
-            if logging_path == table_name:
-                row_values[col_name] = v
-        
-        # Add the row to the table
-        table.add_row([table_name] + [row_values[col] for col in columns])
-        tables[table_name] = table
+    # Process and print evaluation results
+    if eval_results:
+        # Keys to be ignored (e.g., 'token_num', 'iter')
+        ignore_keys = set(["token_num", "iter"])
 
-    # Print all tables
-    for table_name, table in tables.items():
-        print(f"\nResults for {table_name}:")
-        print(table)
+        # Filter out keys that don't have a "/" and are not in ignore_keys
+        valid_keys = {
+            k: v for k, v in eval_results.items()
+            if "/" in k and k.split("/")[0] not in ignore_keys
+        }
+
+        if valid_keys:
+            # Identify unique logging paths (the part before "/")
+            logging_paths = set(k.split("/")[0] for k in valid_keys)
+
+            # Dictionary to store tables for each logging path
+            tables = {}
+
+            # Loop through each logging path and generate a table
+            for table_name in logging_paths:
+                # Collect columns for the table (the part after "/")
+                columns = sorted(
+                    set(k.split("/")[1] for k in valid_keys if k.startswith(f"{table_name}/"))
+                )
+
+                # Initialize a table with the logging path as the category and columns for the metrics
+                table = PrettyTable(["Evaluation"] + columns)
+                table.align = "l"
+
+                # Collect values for the current logging path
+                row_values = {}
+                for col in columns:
+                    key = f"{table_name}/{col}"
+                    value = valid_keys.get(key, "N/A")
+                    row_values[col] = format_value(col, value)
+
+                # Add the row to the table
+                table.add_row([table_name] + [row_values[col] for col in columns])
+                tables[table_name] = table
+
+            # Print all evaluation tables
+            for table_name, table in tables.items():
+                print(f"\nResults for {table_name}:")
+                print(table)
+        else:
+            print("No valid evaluation results to display.")
+    else:
+        print("No evaluation results provided.")
+
+    # Process and print benchmark results
+    if benchmark_results:
+        # Group benchmarks by their type
+        benchmarks_by_type = defaultdict(list)
+        for benchmark in benchmark_results:
+            benchmark_type = benchmark.get("benchmark_type", "Unknown Type")
+            benchmarks_by_type[benchmark_type].append(benchmark)
+
+        # Iterate through each benchmark type and create tables accordingly
+        for benchmark_type, benchmarks in benchmarks_by_type.items():
+            # Collect all unique metrics for this benchmark type
+            all_metrics = set()
+            for benchmark in benchmarks:
+                results = benchmark.get("results", {})
+                all_metrics.update(results.keys())
+
+            # Sort metrics for consistent column ordering
+            sorted_metrics = sorted(all_metrics)
+
+            # Initialize PrettyTable with Benchmark Name and dynamic metrics
+            table = PrettyTable(["Benchmark Name"] + sorted_metrics)
+            table.align = "l"
+
+            for benchmark in benchmarks:
+                benchmark_name = benchmark.get("benchmark_name", "Unnamed Benchmark")
+                results = benchmark.get("results", {})
+                # Prepare row with formatted values or 'N/A' if metric is missing
+                row = [benchmark_name]
+                for metric in sorted_metrics:
+                    value = results.get(metric, "N/A")
+                    formatted_value = format_value(metric, value)
+                    row.append(formatted_value)
+                table.add_row(row)
+
+            # Print the benchmark table with its type as header
+            print(f"\nBenchmark Type: {benchmark_type}")
+            print(table)
+    else:
+        print("No benchmark results to display.")
+
+
+def wandbify_evaluation_results(benchmark_results, convert_accuracy_to_percentage=False):
+    """
+    Processes the benchmark_results list of dicts 
+    to be logged in Weights & Biases (wandb), formatting keys based on the number of metrics.
+    
+    Args:
+        benchmark_results (list of dict): List of dictionaries containing benchmark results.
+        convert_accuracy_to_percentage (bool): 
+            If True, multiplies accuracy metrics by 100 to represent them as percentages.
+    
+    Returns:
+        dict: A flat dictionary formatted for wandb logging with keys structured based on metric count.
+    """
+    wandb_log_dict = {}
+    
+    for benchmark in benchmark_results:
+        benchmark_type = benchmark.get("benchmark_type", "Unknown_Type")
+        benchmark_name = benchmark.get("benchmark_name", "Unnamed_Benchmark")
+        results = benchmark.get("results", {})
+        num_metrics = len(results)
+        
+        for metric, value in results.items():
+            # Optionally convert accuracy metrics to percentages
+            if  convert_accuracy_to_percentage and "accuracy" in metric.lower() and isinstance(value, float):
+                value = value * 100
+            
+            # Format the key based on the number of metrics
+            if num_metrics == 1:
+                # Single Metric Format: "benchmark_type / benchmark_name (metric)"
+                key = f"{benchmark_type} / {benchmark_name} ({metric})"
+            else:
+                # Multiple Metrics Format: "benchmark_type (benchmark_name) / metric"
+                key = f"{benchmark_type} ({benchmark_name}) / {metric}"
+            
+            wandb_log_dict[key] = value
+    
+    return wandb_log_dict

@@ -14,7 +14,11 @@ from trainers.evaluator import intra_training_evaluation
 #     train_eval_text_generation,
 #     train_free_form,
 # )
-from trainers.utils import aggregate_value, print_evaluation_results
+from trainers.utils import (
+    wandbify_evaluation_results,
+    aggregate_value, 
+    print_evaluation_results
+)
 from models.utils import print_model_stats
 
 import numpy as np
@@ -187,7 +191,11 @@ class BaseTrainer:
                 if aux_loss is not None:
                     total_loss = aux_loss + loss
                     accumulated_aux_loss += aux_loss.item()
-                    accumulated_total_loss += total_loss.item()
+                else:
+                    total_loss = loss 
+
+                accumulated_total_loss += total_loss.item()
+
 
             if eval_iters is not None and i>= eval_iters:
                 break
@@ -217,20 +225,28 @@ class BaseTrainer:
         # Make sure the model is in eval mode
         self.model.eval()
 
+
         # run the model on external eval sets
-        eval_results.update(intra_training_evaluation(
+        benchmark_results = intra_training_evaluation(
             model=self.model,
             benchmarks=self.cfg["trainer"]["eval"].get("benchmarks", []),
-        ))
+        )
 
         # get validation loss
         eval_results.update(self._get_validation_loss(eval_iters=eval_iters))
 
         # print the eval results
-        print_evaluation_results(iter_num=iter_num, eval_results=eval_results)
+        print_evaluation_results(
+            eval_results=eval_results,
+            benchmark_results=benchmark_results
+        )
 
-        # log the evaluation results
-        if (self.gpu_id==0 or self.gpu_id is None) and self.use_wandb: # ensure only the first GPU logs
+        # log the evaluation results (ensure only the first GPU logs)
+        if (self.gpu_id==0 or self.gpu_id is None) and self.use_wandb:
+            # convert eval results to wandb format
+            eval_results.update(
+                wandbify_evaluation_results(benchmark_results=benchmark_results)
+            )
             wandb.log(eval_results, step=eval_results["token_num"])
 
         # set model back into train mode
@@ -251,8 +267,8 @@ class BaseTrainer:
             y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
 
             # Enable or disable gradient synchronization based on the need for accumulation
-            if self.dist and hasattr(self.DDP_model, 'no_sync'):
-                context_manager = self.DDP_model.no_sync() if i != self.gradient_accumulation_steps - 1 else nullcontext()
+            if self.dist and hasattr(self.DDP_model, 'no_sync') and i != self.gradient_accumulation_steps-1:
+                context_manager = self.DDP_model.no_sync()
             else:
                 context_manager = nullcontext()
 

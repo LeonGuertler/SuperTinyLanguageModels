@@ -19,7 +19,7 @@ METRIC_EVALUATIONS = {
     ),
 }
 
-class TextModelingEvaluator(BaseEvaluator):
+class BasicTextModelingEvaluator(BaseEvaluator):
     """Evaluator for text modeling capabilities."""
 
     def __init__(
@@ -28,10 +28,8 @@ class TextModelingEvaluator(BaseEvaluator):
         yield_fn: Callable,
         yield_fn_params: Optional[Dict[str, Any]] = None,
         chunk_size: Optional[int] = 100,
-        eval_logging_path: Optional[str] = "Text Modeling"
     ):
         super().__init__()
-        self.eval_logging_path = eval_logging_path
         self.model_wrapper = model_wrapper
         self.yield_fn = yield_fn(**(yield_fn_params or {}))
         self.chunk_size = chunk_size
@@ -82,7 +80,11 @@ class TextModelingEvaluator(BaseEvaluator):
             results["total_tokens"] += local_results["tokens"]
 
         return {
-            f"{self.eval_logging_path}/Byte Accuracy": METRIC_EVALUATIONS["Byte Accuracy"](results),
-            f"{self.eval_logging_path}/Byte Perplexity": METRIC_EVALUATIONS["Byte Perplexity"](results),
-            f"{self.eval_logging_path}/Byte Levenshtein": METRIC_EVALUATIONS["Byte Levenshtein"](results),
+            "benchmark_type": "Text Modeling",
+            "benchmark_name": self.env_id,
+            "results": {
+                "Byte Accuracy": METRIC_EVALUATIONS["Byte Accuracy"](results),
+                "Byte Perplexity": METRIC_EVALUATIONS["Byte Perplexity"](results),
+                "Byte Levenshtein": METRIC_EVALUATIONS["Byte Levenshtein"](results)
+            }
         }

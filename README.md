@@ -1,10 +1,20 @@
 # Work in Progress
 ## TODO
 - change the generators to accept custom default values on initialization
-- train LLama-3.2 is a value model
-- standalone eval script for model (MATH) for easy search and prompting
-- add start thought and end thought tokens to LLama
-- fix the print_evaluation_results function to be pretty again (maybe return eval results as dicts, and process to wandb string afterwards)
+- update the remaining evals
+- add the teacher perplexity to the text based evals (maybe average teacher perplexity)
+- update the base-trainer
+
+- double-check byte-level metric calculations
+- fix the huggingface model loading! Maybe seperate this from the main code or something
+- fix free form evals
+
+- add idea list to readme
+
+- add tutorial to read-me (maybe the global dynamic tokenization)
+
+
+- fix the loading for classification datasets (PRM800K)
 
 # Super Tiny Language Models
 

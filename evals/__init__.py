@@ -19,7 +19,7 @@ from models.generators import *
 
 # Register the MCQ benchmarks
 
-# ARC-Easy 
+# ARC-Easy  # TODO cite paper
 register(
     id="ArcEasy",
     entry_point="evals.evaluators:MCQEvaluator",
@@ -37,7 +37,7 @@ register(
     yield_fn=load_arc_easy,
     yield_fn_params={
         "version": "original",
-        "num_samples": 100, # i.e. all samples
+        "num_samples": 100,
         "seed": 489
     }
 )
@@ -53,11 +53,108 @@ register(
     }
 )
 
+# Blimp # TODO cite paper
+register(
+    id="Blimp",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_blimp,
+    yield_fn_params={
+        "num_samples": None, # i.e. all samples
+    }
+)
+register(
+    id="BlimpSubset",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_blimp,
+    yield_fn_params={
+        "num_samples": 100,
+        "seed": 489
+    }
+)
+
+# Hellaswag # TODO cite paper
+register(
+    id="Hellaswag",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_hellaswag,
+    yield_fn_params={
+        "num_samples": None, # i.e. all samples
+        "version": "original"
+    }
+)
+register(
+    id="HellaswagSubset",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_hellaswag,
+    yield_fn_params={
+        "num_samples": 100, 
+        "seed": 489,
+        "version": "original"
+    }
+)
+register(
+    id="HellaswagLinearSubset",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_hellaswag,
+    yield_fn_params={
+        "num_samples": None, # i.e. all samples
+        "version": "stlm_eval"
+    }
+)
+
+# MMLU # TODO cite paper
+register(
+    id="MMLU",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_mmlu,
+    yield_fn_params={
+        "num_samples": None, # i.e. all samples
+    }
+)
+register(
+    id="MMLUSubset",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_mmlu,
+    yield_fn_params={
+        "num_samples": 100,
+        "seed": 489
+    }
+)
+
+# Winogrande # TODO cite paper
+register(
+    id="Winogrande",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_winogrande,
+    yield_fn_params={
+        "num_samples": None, # i.e. all samples
+    }
+)
+register(
+    id="WinograndeSubset",
+    entry_point="evals.evaluators:MCQEvaluator",
+    model_wrapper=LoglikelihoodMCQModelWrapper,
+    yield_fn=load_winogrande,
+    yield_fn_params={
+        "num_samples": 100,
+        "seed": 489
+    }
+)
+
+
 
 # Register the text-modeling benchmarks
 register(
     id="STLM-Text-Modeling (full)",
-    entry_point="evals.evaluators:TextModelingEvaluator",
+    entry_point="evals.evaluators:BasicTextModelingEvaluator",
     model_wrapper=TextModelingModelWrapper,
     yield_fn=load_stlm_synthetic_text_modeling,
     yield_fn_params={
@@ -66,8 +163,28 @@ register(
     }
 )
 register(
+    id="STLM-Text-Modeling (Science-Easy)",
+    entry_point="evals.evaluators:BasicTextModelingEvaluator",
+    model_wrapper=TextModelingModelWrapper,
+    yield_fn=load_stlm_synthetic_text_modeling,
+    yield_fn_params={
+        "topics": ["Science"],
+        "difficulties": ["Easy"]
+    }
+)
+register(
+    id="STLM-Text-Modeling (Science-Medium)",
+    entry_point="evals.evaluators:BasicTextModelingEvaluator",
+    model_wrapper=TextModelingModelWrapper,
+    yield_fn=load_stlm_synthetic_text_modeling,
+    yield_fn_params={
+        "topics": ["Science"],
+        "difficulties": ["Medium"]
+    }
+)
+register(
     id="STLM-Text-Modeling (Science-Hard)",
-    entry_point="evals.evaluators:TextModelingEvaluator",
+    entry_point="evals.evaluators:BasicTextModelingEvaluator",
     model_wrapper=TextModelingModelWrapper,
     yield_fn=load_stlm_synthetic_text_modeling,
     yield_fn_params={

@@ -41,7 +41,7 @@ model:
 
 trainer:
   trainer_type: base_trainer
-  dataset: [prm800k]
+  dataset: [simple_en_wiki]
   batch_size: 24
   gradient_accumulation_steps: 10
 
@@ -54,9 +54,14 @@ trainer:
   eval:
     benchmarks:
       - MATH-small
-      - STLM-Text-Modeling (full)
-      - ArcEasy
-      - ArcEasySubset
+      #- STLM-Text-Modeling (full)
+      #- STLM-Text-Modeling (Science-Easy)
+      #- STLM-Text-Modeling (Science-Medium)
+      #- STLM-Text-Modeling (Science-Hard)
+      #- ArcEasy
+      #- ArcEasySubset
+      #- Blimp
+      #- Hellaswag
       # - ArcEasyLinearSubset
     val_loss_iters: 1000
 
@@ -84,7 +89,7 @@ trainer:
 
 general:
   logging:
-    wandb_log: false
+    wandb_log: true
     wandb_project: SuperTinyLanguageModels
     wandb_run_name: Null
     group_name: base_group
