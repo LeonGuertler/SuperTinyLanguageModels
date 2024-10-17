@@ -309,12 +309,12 @@ def wandbify_evaluation_results(benchmark_results: List[Dict[str, Any]], convert
                 value = value * 100
 
             # Format the key based on the number of metrics
-            if num_metrics == 1:
-                # Single Metric Format: "benchmark_type / benchmark_name (metric)"
-                key = f"{benchmark_type} / {benchmark_name} ({metric})"
-            else:
-                # Multiple Metrics Format: "benchmark_type (benchmark_name) / metric"
-                key = f"{benchmark_type} ({benchmark_name}) / {metric}"
+            # if num_metrics == 1:
+            # Single Metric Format: "benchmark_type / benchmark_name (metric)"
+            key = f"{benchmark_type} / {benchmark_name} ({metric})"
+            # else:
+            #     # Multiple Metrics Format: "benchmark_type (benchmark_name) / metric"
+            #     key = f"{benchmark_type} ({benchmark_name}) / {metric}"
 
             wandb_log_dict[key] = value
 

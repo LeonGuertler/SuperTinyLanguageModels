@@ -35,20 +35,19 @@ class Attention(ABC, torch.nn.Module):
         """
         super().__init__()
         assert hidden_dim % num_kv_heads == 0, "Hidden dim must be divisible by num heads"
-        assert num_kv_heads % num_q_heads == 0, "num_kv_heads must be divisible by num_q_heads"
+        assert num_q_heads % num_kv_heads == 0, "num_q_heads must be divisible by num_kv_heads"
 
         self.is_causal = is_causal
         self.dropout_p = dropout_p
         self.num_q_heads = num_q_heads
         self.num_kv_heads = num_kv_heads
-        self.group_size = self.num_kv_heads // num_q_heads 
-        self.num_grouped_heads = self.num_kv_heads // self.group_size
-        self.group_hidden_dim = hidden_dim // self.group_size
 
-        # key, query, value porjections for all heads
+        self.group_hidden_dim = hidden_dim // self.num_q_heads * self.num_kv_heads
+
+        # key, query, value projections for all heads
         self.c_attn = torch.nn.Linear(
             in_features=hidden_dim,
-            out_features=hidden_dim + 2 * hidden_dim // self.group_size,
+            out_features=hidden_dim + 2 * self.group_hidden_dim,
             bias=bias
         )
 
@@ -79,13 +78,14 @@ class Attention(ABC, torch.nn.Module):
         # calculate query, key, values for all heads in batch
         # move head forward to the batch dim 
         q, k, v = self.c_attn(x).split([H, self.group_hidden_dim, self.group_hidden_dim], dim=-1)
-        k = k.reshape(B, self.num_grouped_heads, S, H // self.num_kv_heads)
-        q = q.reshape(B, self.num_kv_heads, S, H // self.num_kv_heads)
-        v = v.reshape(B, self.num_grouped_heads, S, H // self.num_kv_heads)
+
+        k = k.reshape(B, self.num_kv_heads, S, self.group_hidden_dim//self.num_kv_heads)
+        q = q.reshape(B, self.num_q_heads, S, self.group_hidden_dim//self.num_kv_heads)
+        v = v.reshape(B, self.num_kv_heads, S, self.group_hidden_dim//self.num_kv_heads)
 
         # reshape to have same dim as q
-        k = k.repeat_interleave(self.group_size, dim=1)
-        v = v.repeat_interleave(self.group_size, dim=1)
+        k = k.repeat_interleave(self.num_q_heads//self.num_kv_heads, dim=1)
+        v = v.repeat_interleave(self.num_q_heads//self.num_kv_heads, dim=1)
 
         y = torch.nn.functional.scaled_dot_product_attention(
             query=q,
@@ -103,3 +103,12 @@ class Attention(ABC, torch.nn.Module):
         y = self.c_proj(y)
 
         return y 
+
+
+
+
+
+
+
+
+

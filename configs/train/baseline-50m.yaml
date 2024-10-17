@@ -11,11 +11,11 @@ model:
     dropout: 0.0
 
   attn:
-    attn_type: causal
-    num_kv_heads: 16
-    num_q_heads: 4
+    attn_type: rope_attention
+    num_kv_heads: 4
+    num_q_heads: 8 # has to be == num_kv_heads for alibi attention
     normalization: rms_norm
-    bias: true
+    bias: false
     dropout: false
 
   embedding_model_type: generic
@@ -50,23 +50,13 @@ trainer:
   eval_iters: 100
 
   eval:
-    mcq_benchmarks:
-      - "winogrande"
-      - "hellaswag"
-      - "arc_easy"
-      - "blimp"
-      - "piqa"
-      - "race_middle"
-      - "race_high"
-      - "boolq"
-      - "openbook_qa_closed"
-      - "openbook_qa_open"
-      - "copa"
-      - "commonsense_qa"
-    mcq_num_samples: 500
-    eval_byte_metrics: true 
-    text_modeling_eval: true 
-    text_generation_eval: true
+    benchmarks:
+      - Ewok-Subset
+      - Blimp-Subset
+      - Teacher-Text-Modeling (full)
+      - Text-Generation (full)
+      - STLM-Text-Modeling (full)
+    val_loss_iters: 1000
 
   optimizer:
     optimizer_name: adamW

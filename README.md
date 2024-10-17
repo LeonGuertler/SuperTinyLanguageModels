@@ -3,7 +3,7 @@
 
 - fix reformer attention
 - fix sparse attention
-- fix Differentiable Attention
+- fix Differentiable Attention (easier depth allocation)
 
 
 

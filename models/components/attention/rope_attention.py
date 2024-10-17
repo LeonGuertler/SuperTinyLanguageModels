@@ -5,6 +5,31 @@ import torch
 from models.components.attention import Attention
 from typing import Optional
 
+
+
+class RotaryPEMultiHeadAttention(torch.nn.Module):
+    """
+    Taken from: https://nn.labml.ai/transformers/rope/index.html
+    """
+    def __init__(
+        self, 
+        heads: int, 
+        hidden_dim: int, 
+        rope_percentage: float=0.5,
+        dropout_p: float=0.0
+        ):
+        # super().
+        pass
+
+
+class RoPE(torch.nn.Module):
+    """
+    https://arxiv.org/pdf/2104.09864
+    """
+    pass
+
+
+
 class RoPEAttention(Attention):
     """
     Implements Rotary Positional Embedding (RoPE) within the Attention mechanism.
@@ -46,8 +71,8 @@ class RoPEAttention(Attention):
         # Compute frequencies for RoPE and register as buffer
         # buffering is necessary to ensure correct device
         freqs_cis = compute_freqs_cis(
-            seq_len=context_window,
-            head_dim=hidden_dim // num_kv_heads
+            max_seq_len=context_window,
+            head_dim=hidden_dim // num_q_heads
         )
         self.register_buffer('freqs_cis', freqs_cis)
 
@@ -63,22 +88,23 @@ class RoPEAttention(Attention):
         # calculate query, key, values for all heads in batch
         # move head forward to the batch dim 
         q, k, v = self.c_attn(x).split([H, self.group_hidden_dim, self.group_hidden_dim], dim=-1)
-        k = k.view(B, S, self.num_grouped_heads, H // self.num_kv_heads)
-        q = q.view(B, S, self.num_kv_heads, H // self.num_kv_heads)
-        v = v.view(B, S, self.num_grouped_heads, H // self.num_kv_heads).transpose(1, 2)
+        
+        k = k.reshape(B, S, self.num_kv_heads, self.group_hidden_dim//self.num_kv_heads)
+        q = q.reshape(B, S, self.num_q_heads, self.group_hidden_dim//self.num_kv_heads)
+        v = v.reshape(B, self.num_kv_heads, S, self.group_hidden_dim//self.num_kv_heads)
 
         # apply rope embedding
         q, k = apply_rotary_emb(
-            xq=q, 
-            xk=k, 
+            q=q, 
+            k=k, 
             freqs_cis=self.freqs_cis[:S]
         )
         q = q.transpose(1, 2)
         k = k.transpose(1, 2)
 
         # reshape to have same dim as q
-        k = k.repeat_interleave(self.group_size, dim=1)
-        v = v.repeat_interleave(self.group_size, dim=1)
+        k = k.repeat_interleave(self.num_q_heads//self.num_kv_heads, dim=1)
+        v = v.repeat_interleave(self.num_q_heads//self.num_kv_heads, dim=1)
 
         y = torch.nn.functional.scaled_dot_product_attention(
             query=q,
@@ -106,41 +132,24 @@ def _reshape_for_broadcast(freqs_cis, x):
     return freqs_cis.view(*shape)
 
 
-def apply_rotary_emb(xq, xk, freqs_cis):
+def apply_rotary_emb(q, k, freqs_cis):
     """
-    Apply the rotary embedding to the query and key.
-
-    Args:
-        xq (torch.Tensor): Query tensor of shape (..., head_dim).
-        xk (torch.Tensor): Key tensor of shape (..., head_dim).
-        freqs_cis (torch.Tensor): Precomputed frequencies, shape (seq_len, head_dim).
-
-    Returns:
-        Tuple[torch.Tensor, torch.Tensor]: Rotated queries and keys.
+    Apply the rotary embedding to the query and key
     """
-    xq_ = torch.view_as_complex(xq.float().reshape(*xq.shape[:-1], -1, 2))
-    xk_ = torch.view_as_complex(xk.float().reshape(*xk.shape[:-1], -1, 2))
-    freqs_cis = _reshape_for_broadcast(freqs_cis, xq_)
-    xq_out = torch.view_as_real(xq_ * freqs_cis).flatten(3)
-    xk_out = torch.view_as_real(xk_ * freqs_cis).flatten(3)
-    return xq_out.type_as(xq), xk_out.type_as(xk)
+    q_ = torch.view_as_complex(q.float().reshape(*q.shape[:-1], -1, 2))
+    k_ = torch.view_as_complex(k.float().reshape(*k.shape[:-1], -1, 2))
+    freqs_cis = _reshape_for_broadcast(freqs_cis, q_)
+    q_out = torch.view_as_real(q_ * freqs_cis).flatten(3)
+    k_out = torch.view_as_real(k_ * freqs_cis).flatten(3)
+    return q_out.type_as(q), k_out.type_as(k)
 
 
-def compute_freqs_cis(seq_len, head_dim):
-    """
-    Computes complex frequencies used for rotary positional encodings.
-
-    Args:
-        seq_len (int): Sequence length.
-        head_dim (int): Dimension of each head.
-
-    Returns:
-        torch.Tensor: Frequencies in complex form, shape (seq_len, head_dim).
-    """
+def compute_freqs_cis(max_seq_len, head_dim):
+    """Computes complex frequences used for rotary positional encodings"""
     freqs = 1.0 / (
         10_000 ** (torch.arange(0, head_dim, 2)[: (head_dim // 2)].float() / head_dim)
     )
-    t = torch.arange(seq_len * 2, device=freqs.device, dtype=torch.float32)
+    t = torch.arange(max_seq_len * 2, device=freqs.device, dtype=torch.float32)
     freqs = torch.outer(t, freqs)
     freqs_cis = torch.polar(torch.ones_like(freqs), freqs)  # complex64
     return freqs_cis

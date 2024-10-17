@@ -11,10 +11,9 @@ model:
     dropout: 0.0
 
   attn:
-    attention_type: standard
-    attn_type: causal
-    num_kv_heads: 8
-    num_q_heads: 4
+    attn_type: rope_attention
+    num_kv_heads: 4
+    num_q_heads: 8 # has to be == num_kv_heads for alibi attention
     normalization: rms_norm
     bias: false
     dropout: false
@@ -41,7 +40,7 @@ model:
 
 trainer:
   trainer_type: base_trainer
-  dataset: [simple_en_wiki]
+  dataset: fineweb_edu_10B
   batch_size: 24
   gradient_accumulation_steps: 10
 
@@ -53,11 +52,11 @@ trainer:
 
   eval:
     benchmarks:
-      - MATH-small
+      - Ewok-Subset
+      - Blimp-Subset
+      - Teacher-Text-Modeling (full)
+      - Text-Generation (full)
       - STLM-Text-Modeling (full)
-      - ArcEasy
-      - ArcEasySubset
-      # - ArcEasyLinearSubset
     val_loss_iters: 1000
 
   optimizer:

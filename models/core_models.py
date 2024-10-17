@@ -27,8 +27,9 @@ class GenericTransformer(torch.nn.Module):
                             context_window=model_cfg["context_window"],
                             ffn_cfg=model_cfg["ffn"],
                             attn_cfg=model_cfg["attn"],
+                            depth=i
                         )
-                        for _ in range(model_cfg["num_layers"])
+                        for i in range(model_cfg["num_layers"])
                     ]
                 ),
             }

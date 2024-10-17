@@ -9,6 +9,8 @@ from models.components.attention import build_attention
 from models.components.feedforward import build_ffn
 from models.components.normalization import build_normalization
 
+from typing import Optional
+
 
 class GenericTransformerBlock(torch.nn.Module):
     """
@@ -16,7 +18,7 @@ class GenericTransformerBlock(torch.nn.Module):
     FFN, Attn and normalization.
     """
 
-    def __init__(self, hidden_dim, context_window, ffn_cfg, attn_cfg):
+    def __init__(self, hidden_dim, context_window, ffn_cfg, attn_cfg, depth: Optional[int]=None):
         super().__init__()
 
         # build the attn norm
@@ -31,6 +33,7 @@ class GenericTransformerBlock(torch.nn.Module):
             hidden_dim=hidden_dim,
             context_window=context_window,
             attn_cfg=attn_cfg,
+            depth=depth,
         )
 
         # build the ffn norm
