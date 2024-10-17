@@ -3,24 +3,23 @@
 
 - fix reformer attention
 - fix sparse attention
-- fix Differentiable Attention (easier depth allocation)
 
 
 - add more teacher models (3B Mistral etc.)
 
 
+- clean configs
+
 
 - update the base-trainer
 
-- for model generators in evals, make sure they have a proper interface
-- change the generators to accept custom default values on initialization
+- for model generators in evals, make sure they have a proper interface [bobby]
+- change the generators to accept custom default values on initialization [bobby]
 
 - add text generation evaluator
 
 - double-check byte-level metric calculations
 - fix the huggingface model loading! Maybe seperate this from the main code or something
-
-- implement positional encoding at the beginning of the pipeline (learned, absolute, sin-cos, etc.)
 
 
 - add the attention mask tracking back in

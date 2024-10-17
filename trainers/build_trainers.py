@@ -20,7 +20,7 @@ from trainers.loss_fn import (
     cross_entropy_loss_fn,
     next_token_mlm_loss_fn,
 )
-from trainers.optimizer import configure_nanoGPT_optimizer
+from trainers.optimizers import build_optimizer
 from trainers.scheduler import (
     CosineLRScheduler,
     LRScheduler,
@@ -44,29 +44,7 @@ def ddp_setup(rank, world_size):
     torch.cuda.set_device(rank)
 
 
-OPTIMIZER_DICT = {
-    "nanoGPTadamW": lambda model, trainer_cfg: configure_nanoGPT_optimizer(
-        model=model,
-        weight_decay=trainer_cfg["weight_decay"],
-        learning_rate=trainer_cfg["lr"],
-        betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
-    ),
-    "adamW": lambda model, trainer_cfg: torch.optim.AdamW(
-        model.parameters(),
-        lr=trainer_cfg["lr"],
-        betas=(trainer_cfg["beta1"], trainer_cfg["beta2"]),
-        weight_decay=trainer_cfg["weight_decay"],
-    ),
-}
 
-
-def build_optimizer(model, optimizer_config):
-    """
-    Given the optimizer config, build the optimizer
-    """
-    return OPTIMIZER_DICT[optimizer_config["optimizer_name"]](
-        model=model, trainer_cfg=optimizer_config
-    )
 
 
 SCHEDULER_DICT = {

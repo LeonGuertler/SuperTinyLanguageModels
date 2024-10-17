@@ -1,6 +1,6 @@
 model:
   core_model_type: generic
-  num_layers: 3
+  num_layers: 1
   
   ffn:
     ffn_type: generic
@@ -11,7 +11,7 @@ model:
     dropout: 0.0
 
   attn:
-    attn_type: differentiable_attention
+    attn_type: rope_attention
     num_kv_heads: 4
     num_q_heads: 4 # has to be == num_kv_heads for alibi attention
     normalization: rms_norm
@@ -46,14 +46,13 @@ model:
 trainer:
   trainer_type: base_trainer
   dataset: [simple_en_wiki]
-  batch_size: 12
-  gradient_accumulation_steps: 10
+  batch_size: 4
+  gradient_accumulation_steps: 2
 
   max_iters: 1000
   eval_interval: 50
   log_interval: 10
   checkpoint_interval: 5000
-  eval_iters: 1000
 
   eval:
     benchmarks:
@@ -109,7 +108,7 @@ trainer:
     val_loss_iters: 1000
 
   optimizer:
-    optimizer_name: adamW
+    optimizer_name: rprop
     lr: 5.0e-4
     min_lr: 5.0e-5
     weight_decay: 0.01
