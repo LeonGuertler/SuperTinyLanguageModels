@@ -6,6 +6,9 @@
 - fix Differentiable Attention (easier depth allocation)
 
 
+- add more teacher models (3B Mistral etc.)
+
+
 
 - update the base-trainer
 

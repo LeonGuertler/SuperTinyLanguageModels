@@ -20,7 +20,7 @@ model:
 
   embedding_model_type: generic
   tokenizer_type: bpe
-  tokenizer_dataset_names: en_wiki
+  tokenizer_dataset_names: simple_en_wiki
   tokenizer_simplify_data: true
   vocab_size: 10000
 
@@ -35,11 +35,11 @@ model:
   model_shell_type: standard
   embedding_weight_tying: true
   ffn_weight_tying: true
-  positional_encoding_type: rope
+  embedding_positional_encoding: none
 
 trainer:
   trainer_type: base_trainer
-  dataset: pints
+  dataset: fineweb_edu_10B
   batch_size: 24
   gradient_accumulation_steps: 20
 
