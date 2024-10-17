@@ -34,7 +34,7 @@ model:
 
   model_shell_type: standard
   embedding_weight_tying: true
-  ffn_weight_tying: true
+  ffn_weight_tying: false
   embedding_positional_encoding: none
 
 trainer:
