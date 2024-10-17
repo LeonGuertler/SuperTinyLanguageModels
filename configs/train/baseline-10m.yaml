@@ -36,7 +36,7 @@ model:
   embedding_weight_tying: true
   ffn_weight_tying: false
   cproj_weight_tying: false
-  positional_encoding_type: rope
+  embedding_positional_encoding: none
 
 trainer:
   trainer_type: base_trainer
