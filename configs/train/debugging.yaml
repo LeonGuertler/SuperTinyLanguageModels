@@ -114,7 +114,7 @@ trainer:
 
   optimizer_name: AdamW
   optimizer_params:
-    lr: 1.0e-3
+    lr: 1.0e-3  
     weight_decay: 0.01
     betas: [0.9, 0.98]
 
