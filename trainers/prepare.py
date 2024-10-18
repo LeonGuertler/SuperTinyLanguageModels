@@ -68,13 +68,52 @@ class TextPreProcessor(BasePreProcessor):
             arr.flush() 
 
 
+class DocumentClassificationPreProcessor(BasePreProcessor):
+    """
+    PreProcessor for document classification datasets.
+    Processes 'text' and 'value_label' fields.
+    Assumes that 'value_label' is already numeric (e.g., 0, 1).
+    """
+
+    def __init__(self, embedder):
+        super().__init__(embedder)
+
+    def process(self, sample):
+        # Tokenize the text
+        ids = self.embedder.tokenize_input(sample["text"])
+        # Use the label directly
+        label = int(sample["value_label"])
+        return {"ids": ids, "len": len(ids), "label": label}
+
+    def write_tokenized_data(self, tokenized, tokenized_data_folder):
+        """
+        Writes the tokenized data and labels to disk.
+        """
+        for split, dset in tokenized.items():
+            # Prepare lists to store tokenized inputs and labels
+            inputs = []
+            labels = []
+
+            # Collect tokenized inputs and labels
+            for example in tqdm(dset, desc=f"Processing {split} split"):
+                inputs.append(example["ids"])
+                labels.append(example["label"])
+
+            # Save inputs and labels as NumPy arrays
+            inputs_filename = os.path.join(tokenized_data_folder, f"{split}_inputs.npy")
+            labels_filename = os.path.join(tokenized_data_folder, f"{split}_labels.npy")
+
+            # Save inputs with object dtype since sequences may have variable lengths
+            np.save(inputs_filename, np.array(inputs, dtype=object))
+            # Save labels as integers
+            np.save(labels_filename, np.array(labels, dtype=np.int64))
 
 
 # Dictionary mapping processor names to classes
 PROCESSORS = {
     "text_preprocessor": TextPreProcessor,
+    "text_classification_preprocessor": DocumentClassificationPreProcessor,
 }
-
 
 def prepare_data(cfg):
     """ TODO """
@@ -111,7 +150,7 @@ def prepare_data(cfg):
 
     try:
         # Determine the number of processors to use
-        max_procs = min(os.cpu_count(), 12)
+        max_procs = min(os.cpu_count(), cfg["general"].get("max_num_cores", 12))
         print(f"Using {max_procs} processes for tokenization.")
 
         # Tokenize the dataset

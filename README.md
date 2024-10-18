@@ -3,25 +3,29 @@
 
 - fix reformer attention
 - fix sparse attention
+- for all attentions check attn_mask is handeled correctly
+
 
 
 - create detailed docs for optimizers and scheduler
 - update the config structure for attention and ffn
 
+- if dataset not in dict, check if it is a huggingface dataset and load it
 
-
+- double-check if collate_fn is slowing it down unnecessarily 
 - add more teacher models (3B Mistral etc.)
 
 
 - clean configs
-
+- add proper typing where necessary
 
 - update the base-trainer
 
 - for model generators in evals, make sure they have a proper interface [bobby]
 - change the generators to accept custom default values on initialization [bobby]
+- fix how pad tokens are handled 
 
-- add text generation evaluator
+- use the proper padding token in the collate_fn
 
 - double-check byte-level metric calculations
 - fix the huggingface model loading! Maybe seperate this from the main code or something
@@ -29,7 +33,7 @@
 
 - add the attention mask tracking back in
 
-- add ffn methods
+- add ffn methods [bobby]
 
 
 - add idea list to readme

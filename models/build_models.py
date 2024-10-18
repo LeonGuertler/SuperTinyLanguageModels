@@ -12,7 +12,10 @@ from models.experimental.byte_level.embedding_model import ByteLevelEmbedder
 from models.experimental.byte_level.model_heads import ByteLevelDecoder
 from models.experimental.byte_level.byte_model_shell import ByteModelShell
 from models.experimental.hugging_face import HFEmbedder, HFLMHead, HFTransformerCore
-from models.model_heads import AutoregressiveLMHead
+from models.model_heads import (
+    AutoregressiveLMHead,
+    ClassificationLMHead,
+)
 from models.model_shell import ModelShell
 
 from models.experimental.weight_sharing import (
@@ -120,10 +123,7 @@ MODEL_HEAD_DICT = {
     "generic": lambda model_cfg, embedding_model: AutoregressiveLMHead(model_cfg=model_cfg), 
     "byte_level": lambda model_cfg, embedding_model: ByteLevelDecoder(model_cfg=model_cfg), 
     "hf_head": lambda model_cfg, embedding_model: HFLMHead(model_cfg=model_cfg),
-    "latent_2_seq": lambda model_cfg, embedding_model: VariableLengthLatentDecoder(
-        model_cfg=model_cfg,
-        embedding_model=embedding_model
-    ), 
+    "classification": lambda model_cfg, embedding_model: ClassificationLMHead(model_cfg=model_cfg),
     }
 
 

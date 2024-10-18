@@ -49,16 +49,16 @@ class GenericTransformerBlock(torch.nn.Module):
             ffn_cfg=ffn_cfg,
         )
 
-    def forward(self, x, attention_mask=None):
+    def forward(self, x, attn_mask=None):
         """
         A simple, residual forward
         pass through the GPT block.
         Args:
             x: the input tensor (b, s, h)
-            attention_mask: the attention mask
+            attn_mask: the attention mask
         Returns:
             x: the output tensor (b, s, h)
         """
-        x = x + self.attn(self.attn_norm(x), attention_mask)
+        x = x + self.attn(self.attn_norm(x), attn_mask)
         x = x + self.ffn(self.ffn_norm(x))
         return x

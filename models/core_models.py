@@ -56,7 +56,7 @@ class GenericTransformer(torch.nn.Module):
                         target_module.weight = module.weight
                         target_module.bias = module.bias
 
-    def forward(self, x):
+    def forward(self, x, attn_mask):
         """
         Pass an input through the model
         Args:
@@ -70,7 +70,7 @@ class GenericTransformer(torch.nn.Module):
 
         # pass through the transformer blocks
         for block in self.transformer.h:
-            x = block(x)
+            x = block(x, attn_mask)
             
         return x
 

@@ -172,13 +172,17 @@ class BaseTrainer:
         accumulated_loss = 0
         accumulated_aux_loss = 0
         accumulated_total_loss = 0
+        accumulated_accuracy = 0
 
-        for i, (x, y) in enumerate(self.val_dataloader):
+        for i, (x, y, attn_mask) in enumerate(self.val_dataloader):
             x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
             y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
 
+            if attn_mask is not None:
+                attn_mask = attn_mask.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+
             with self.ctx:
-                output, aux_loss = self.model(x)
+                output, aux_loss = self.model(x, attn_mask)
                 loss = self.loss_fn(output, y)
 
                 accumulated_loss += loss.item()
@@ -190,6 +194,10 @@ class BaseTrainer:
 
                 accumulated_total_loss += total_loss.item()
 
+                # calculate accuracy
+                accumulated_accuracy += (
+                    (torch.argmax(output, dim=-1)==y).sum()/y.numel()
+                ).item()
 
             if eval_iters is not None and i>= eval_iters:
                 break
@@ -197,7 +205,8 @@ class BaseTrainer:
         return {
             "Validation/loss": accumulated_loss/eval_iters,
             "Validation/aux_loss": accumulated_aux_loss/eval_iters,
-            "Validation/total_loss": accumulated_total_loss/eval_iters
+            "Validation/total_loss": accumulated_total_loss/eval_iters,
+            "Validation/accuracy": accumulated_accuracy/eval_iters
         }
 
 
@@ -256,9 +265,13 @@ class BaseTrainer:
         accumulated_loss = 0
         for i in range(self.gradient_accumulation_steps):
             # get the next batch
-            x, y = next(self.train_dataloader_iter)
+            x, y, attn_mask = next(self.train_dataloader_iter)
             x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
             y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+
+            if attn_mask is not None:
+                attn_mask = attn_mask.to(self.gpu_id if self.gpu_id is not None else self.model.device)
+
 
 
             # Enable or disable gradient synchronization based on the need for accumulation
@@ -269,7 +282,7 @@ class BaseTrainer:
 
             with context_manager:
                 with self.ctx: 
-                    output, aux_loss = self.DDP_model(x)
+                    output, aux_loss = self.DDP_model(x, attn_mask)
                     loss = self.loss_fn(output, y)
                     if aux_loss is not None:
                         loss += aux_loss

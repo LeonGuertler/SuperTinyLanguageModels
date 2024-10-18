@@ -30,15 +30,16 @@ model:
   vocab_size: 4000
 
   hidden_dim: 384
-  context_window: 2048
+  context_window: 4096
 
-  lm_head_type: generic
+  lm_head_type: classification
   lm_head_normalization: rms_norm
   lm_head_bias: false
   lm_head_dropout: 0.0
+  lm_head_num_classes: 2
 
   model_shell_type: standard
-  embedding_weight_tying: true
+  embedding_weight_tying: false
   ffn_weight_tying: false
   cproj_weight_tying: false
   embedding_positional_encoding: none
@@ -46,9 +47,10 @@ model:
 trainer:
   trainer_type: base_trainer
 
-  dataset_names: nampdn-ai/tiny-textbooks
-  preprocessor_name: text_preprocessor
-  dataloader_name: random
+  dataset_names: [prm800k]
+  preprocessor_name: text_classification_preprocessor
+  dataloader_name: text_classification
+  use_collate_fn: True
 
 
   batch_size: 12

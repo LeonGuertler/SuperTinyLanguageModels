@@ -1,10 +1,28 @@
 """Utilities for data"""
 
 import os 
+import torch
 import numpy as np
 from datasets import load_dataset, DatasetDict, concatenate_datasets
 from datasets import Features, Value
 
+
+# Define a default preprocessing function
+def default_preprocess(example):
+    # Attempt to find a 'text' field
+    if 'text' in example:
+        return {'text': example['text']}
+    # If 'text' isn't available, try common alternatives
+    elif 'sentence' in example:
+        return {'text': example['sentence']}
+    elif 'content' in example:
+        return {'text': example['content']}
+    elif 'description' in example:
+        return {'text': example['description']}
+    else:
+        # If no known text field exists, concatenate all string fields
+        text = ' '.join([str(value) for key, value in example.items() if isinstance(value, str)])
+        return {'text': text} if text else {'text': ''}
 
 DATASET_DICT = {
     "simple_en_wiki": lambda: load_dataset("wikimedia/wikipedia", "20231101.simple"),
@@ -80,11 +98,12 @@ DATASET_DICT = {
     ),
     "fineweb_edu_100B": lambda: load_dataset("HuggingFaceFW/fineweb-edu", "sample-100BT"),
     "fineweb_edu_10B": lambda: load_dataset("HuggingFaceFW/fineweb-edu", "sample-10BT"),
-    "prm800k": lambda: load_dataset("tasksource/PRM800K"),
+    "prm800k": lambda: load_dataset("LeonGuertler/PRM800K_train2_updated"),
     "MATH": lambda: load_general_dataset(
         dataset_name="lighteval/MATH",
         lambda_fn=lambda x: {"text": f"{x['problem']}\n{x['solution']}"}
-        )
+    ),
+
 
 }
 
@@ -112,8 +131,20 @@ def load_data(dataset_names, shuffle=True):
 
     datasets_list = []
     for dataset_name in dataset_names:
-        assert dataset_name in DATASET_DICT, f"Dataset {dataset_name} not found!"
-        dataset = DATASET_DICT[dataset_name]()
+        if dataset_name in DATASET_DICT:
+            dataset = DATASET_DICT[dataset_name]()
+            # Ensure the dataset has a 'text' field; if not, apply default preprocessing
+            if 'text' not in dataset['train'].column_names:
+                dataset = dataset.map(default_preprocess, remove_columns=dataset['train'].column_names)
+        else:
+            try:
+                # Attempt to load the dataset directly from Hugging Face
+                dataset = load_dataset(dataset_name)
+                # Apply default preprocessing to ensure a 'text' field exists
+                dataset = dataset.map(default_preprocess, remove_columns=dataset['train'].column_names)
+            except Exception as e:
+                raise ValueError(f"Failed to load dataset '{dataset_name}' from Hugging Face. Error: {e}")
+        
         datasets_list.append(dataset["train"])
 
     # Concatenate datasets if there are multiple datasets
@@ -152,3 +183,22 @@ def get_preprocessed_data_path(cfg):
     )
 
     return data_path
+
+
+def collate_fn(batch):
+    inputs, labels = zip(*batch)
+    inputs_padded = torch.nn.utils.rnn.pad_sequence(inputs, batch_first=True, padding_value=0)
+    labels = torch.stack(labels)
+    
+    # Create attention masks (1 for actual tokens, 0 for padding)
+    attn_masks = (inputs_padded != 0)
+    
+    return inputs_padded, labels, attn_masks
+
+def identify_collate_fn(batch):
+    inputs, labels = zip(*batch)
+
+    # stack inputs and labels
+    inputs = torch.stack(inputs)
+    labels = torch.stack(labels)
+    return inputs, labels, None

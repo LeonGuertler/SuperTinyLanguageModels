@@ -18,6 +18,11 @@ from trainers.loss_fn import (
 from trainers.optimizers import build_optimizer
 from trainers.schedulers import build_scheduler
 
+from trainers.data_utils import (
+    collate_fn,
+    identify_collate_fn
+)
+
 
 def ddp_setup(rank, world_size):
     """
@@ -127,12 +132,14 @@ def build_trainer(cfg, model, gpu_id, loaded_train_config):
         dataset=train_dataset,
         batch_size=cfg["trainer"]["batch_size"],
         shuffle=False,
+        collate_fn=collate_fn if cfg.trainer.get("use_collate_fn", False) else identify_collate_fn,
 
     )
     val_dataloader = torch.utils.data.DataLoader(
         dataset=val_dataset,
         batch_size=cfg["trainer"]["batch_size"],
         shuffle=False,
+        collate_fn=collate_fn if cfg.trainer.get("use_collate_fn", False) else identify_collate_fn,
     )
 
     # build loss function

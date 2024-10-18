@@ -84,6 +84,10 @@ class RoPEAttention(Attention):
         k = k.repeat_interleave(self.num_q_heads//self.num_kv_heads, dim=1)
         v = v.repeat_interleave(self.num_q_heads//self.num_kv_heads, dim=1)
 
+        # reshape attn_mask
+        if attn_mask is not None:
+            attn_mask = attn_mask.unsqueeze(1).unsqueeze(2)
+
         y = torch.nn.functional.scaled_dot_product_attention(
             query=q,
             key=k,

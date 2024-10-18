@@ -6,6 +6,7 @@ core model and LM head.
 import torch
 
 from models import core_models, embedding_models, model_heads
+from typing import Optional
 
 
 
@@ -44,7 +45,7 @@ class ModelShell(torch.nn.Module):
         self.device = args[0]
         return super().to(*args, **kwargs)
 
-    def forward(self, token_ids):
+    def forward(self, token_ids, attn_mask: Optional[torch.Tensor] = None):
         """
         The default forward pass is used for trianing and
         accepts the token_ids as input.
@@ -55,7 +56,7 @@ class ModelShell(torch.nn.Module):
         x = self.embedding_model(token_ids)
 
         # pass the embeddings through the core model
-        x = self.core_model(x)
+        x = self.core_model(x, attn_mask)
 
         # pass the core model output through the model head
         x = self.model_head(x)
