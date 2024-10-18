@@ -23,25 +23,25 @@
 
 - for model generators in evals, make sure they have a proper interface [bobby]
 - change the generators to accept custom default values on initialization [bobby]
-- fix how pad tokens are handled 
+- add ffn methods [bobby]
 
+
+- fix how pad tokens are handled (i.e. pass the actual pad token id)
 - use the proper padding token in the collate_fn
+
 
 - double-check byte-level metric calculations
 - fix the huggingface model loading! Maybe seperate this from the main code or something
 
 
-- add the attention mask tracking back in
+- add the attention weight tracking back in
 
-- add ffn methods [bobby]
 
 
 - add idea list to readme
 - add tutorial to read-me (maybe the global dynamic tokenization)
 
 
-- fix the loading for classification datasets (PRM800K)
-- simplify the prepare structure a bit
 
 # Super Tiny Language Models
 

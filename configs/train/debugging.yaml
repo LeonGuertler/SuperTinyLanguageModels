@@ -1,6 +1,6 @@
 model:
   core_model_type: generic
-  num_layers: 1
+  num_layers: 12
   
   ffn:
     ffn_type: generic
@@ -13,7 +13,7 @@ model:
   attn:
     attn_type: rope_attention
     num_kv_heads: 4
-    num_q_heads: 4 # has to be == num_kv_heads for alibi attention
+    num_q_heads: 8 # has to be == num_kv_heads for alibi attention
     normalization: rms_norm
     bias: false
     dropout: false
@@ -32,13 +32,13 @@ model:
   hidden_dim: 384
   context_window: 2048
 
-  lm_head_type: generic
+  lm_head_type: attention
   lm_head_normalization: rms_norm
   lm_head_bias: false
   lm_head_dropout: 0.0
 
   model_shell_type: standard
-  embedding_weight_tying: true
+  embedding_weight_tying: false
   ffn_weight_tying: false
   cproj_weight_tying: false
   embedding_positional_encoding: none
@@ -46,7 +46,7 @@ model:
 trainer:
   trainer_type: base_trainer
 
-  dataset_names: [simple_en_wiki]
+  dataset_names: [fineweb_edu_10B]
   preprocessor_name: text_preprocessor
   dataloader_name: random
 
@@ -61,11 +61,11 @@ trainer:
 
   eval:
     benchmarks:
-      #- Ewok-Subset
-      #- Blimp-Subset
-      #- Teacher-Text-Modeling (full)
-      #- Text-Generation (full)
-      #- STLM-Text-Modeling (full)
+      - Ewok-Subset
+      - Blimp-Subset
+      - Teacher-Text-Modeling (full)
+      - Text-Generation (full)
+      - STLM-Text-Modeling (full)
 
       #- ArcEasy
       #- ArcEasy-Subset
@@ -114,7 +114,7 @@ trainer:
 
   optimizer_name: Soap #AdamW
   optimizer_params:
-    lr: 1.0e-3  
+    lr: 5.0e-4
     #weight_decay: 0.01
     #betas: [0.9, 0.98]
 

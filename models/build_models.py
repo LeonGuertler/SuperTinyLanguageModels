@@ -15,6 +15,7 @@ from models.experimental.hugging_face import HFEmbedder, HFLMHead, HFTransformer
 from models.model_heads import (
     AutoregressiveLMHead,
     ClassificationLMHead,
+    AttentionLMHead
 )
 from models.model_shell import ModelShell
 
@@ -124,6 +125,7 @@ MODEL_HEAD_DICT = {
     "byte_level": lambda model_cfg, embedding_model: ByteLevelDecoder(model_cfg=model_cfg), 
     "hf_head": lambda model_cfg, embedding_model: HFLMHead(model_cfg=model_cfg),
     "classification": lambda model_cfg, embedding_model: ClassificationLMHead(model_cfg=model_cfg),
+    "attention": lambda model_cfg, embedding_model: AttentionLMHead(model_cfg=model_cfg)
     }
 
 

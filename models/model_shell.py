@@ -1,6 +1,6 @@
 """
 The standard Model Shell. It combines the embedding model,
-core model and LM head.
+core model and LM head. 
 """
 
 import torch
@@ -59,7 +59,7 @@ class ModelShell(torch.nn.Module):
         x = self.core_model(x, attn_mask)
 
         # pass the core model output through the model head
-        x = self.model_head(x)
+        x = self.model_head(x, self.embedding_model)
 
         return x
 
