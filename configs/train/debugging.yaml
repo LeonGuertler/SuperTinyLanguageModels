@@ -46,7 +46,7 @@ model:
 trainer:
   trainer_type: base_trainer
 
-  dataset_names: nampdn-ai/tiny-textbooks
+  dataset_names: [simple_en_wiki]
   preprocessor_name: text_preprocessor
   dataloader_name: random
 
@@ -112,11 +112,11 @@ trainer:
       #- GSM8k-Subset
     val_loss_iters: 1000
 
-  optimizer_name: AdamW
+  optimizer_name: Soap #AdamW
   optimizer_params:
     lr: 1.0e-3  
-    weight_decay: 0.01
-    betas: [0.9, 0.98]
+    #weight_decay: 0.01
+    #betas: [0.9, 0.98]
 
   gradient_clipping: 1.0
   

@@ -10,7 +10,8 @@ OFFICIAL_OPTIMIZERS = [
 # List of optimizers from the pytorch_optimizer library
 PYTORCH_OPTIMIZER_OPTIMIZERS = [
     'Lookahead', 'Ranger', 'Ranger21', 'NovoGrad',
-    'DiffGrad', 'SGDP', 'Yogi', 'Lion',
+    'DiffGrad', 'SGDP', 'Yogi', 'Lion', 'Shampoo',
+    'SOAP'
 ]
 
 def build_additional_optimizers():
@@ -66,6 +67,7 @@ def build_optimizer(optimizer_name, model, optimizer_params):
         optim = build_additional_optimizers()
         # Get the correct case-sensitive optimizer name
         additional_name = pytorch_optimizer_map[optimizer_name]
+        input(optim.OPTIMIZER_LIST)
         optimizer_class = getattr(optim, additional_name)
         return optimizer_class(model.parameters(), **optimizer_params)
     

@@ -12,3 +12,4 @@ language-tool-python
 nltk
 python-dotenv
 bitsandbytes
+git+https://github.com/kozistr/pytorch_optimizer.git
