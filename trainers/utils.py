@@ -30,15 +30,15 @@ def intra_training_evaluation(model, benchmarks):
     # Outer progress bar for benchmarks
     with tqdm(benchmarks, desc="Evaluating benchmarks", position=0,  leave=True) as benchmark_bar:
         for benchmark in benchmark_bar:
-            try:
-                # Create the benchmark evaluator
-                benchmark_evaluator = evals.make(benchmark)
+            # try:
+            # Create the benchmark evaluator
+            benchmark_evaluator = evals.make(benchmark)
 
-                # Evaluating within the benchmark, tqdm already exists in the yield function
-                results = benchmark_evaluator.evaluate(model=model)
-                results_list.append(results)
-            except Exception as e:
-                print(f"[EXCEPTION] during intra_training_evaluation on {benchmark}. \nDetails:{e}")
+            # Evaluating within the benchmark, tqdm already exists in the yield function
+            results = benchmark_evaluator.evaluate(model=model)
+            results_list.append(results)
+            # except Exception as e:
+            #     print(f"[EXCEPTION] during intra_training_evaluation on {benchmark}. \nDetails:{e}")
     return results_list
 
 def set_seed(seed):

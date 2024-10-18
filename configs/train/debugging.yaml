@@ -138,7 +138,7 @@ trainer:
 
 general:
   logging:
-    wandb_log: false
+    wandb_log: true
     wandb_project: SuperTinyLanguageModels
     wandb_run_name: Null
     group_name: base_group

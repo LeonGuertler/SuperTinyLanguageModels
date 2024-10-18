@@ -58,7 +58,7 @@ class AutoregressiveLMHead(torch.nn.Module):
         Returns:
             x: torch.tensor(B, V)
         """
-        return self.forward(x[:, -1, :])[0]
+        return self.forward(x)[0][:, -1, :]
 
 
 
@@ -540,6 +540,17 @@ class AttentionLMHead(torch.nn.Module):
 
         y = y - torch.mean(y, dim=-1, keepdim=True)
         return y, None
+
+    def inference(self, x, embedding_model):
+        """
+        Pass the input through the model, then
+        Return the final token logits
+        Args:
+            x: torch.tensor(B, S, H)
+        Returns:
+            x: torch.tensor(B, V)
+        """
+        return self.forward(x, embedding_model)[0][:, -1, :]
 """
 
 Maybe split up for pos/neg at the second last transformer block

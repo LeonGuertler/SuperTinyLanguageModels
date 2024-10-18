@@ -695,6 +695,7 @@ class StandardGenerator(BaseGenerator):
 
             # apply softmax to convert logits to (normalized) probabilities
             probs = torch.nn.functional.softmax(logits, dim=-1)
+
             
             idx_next = torch.multinomial(probs, num_samples=1)
 

@@ -64,7 +64,7 @@ class ModelShell(torch.nn.Module):
         return x
 
     @torch.no_grad()
-    def inference(self, model_input):
+    def inference(self, model_input, attn_mask: Optional[torch.Tensor] = None):
         """
         Takes a string or list of token ids as input,
         and returns the decoded model output. The actual
@@ -83,15 +83,15 @@ class ModelShell(torch.nn.Module):
         x = self.embedding_model(model_input)
 
         # pass the embeddings through the core model
-        x = self.core_model(x)
+        x = self.core_model(x, attn_mask)
 
         # pass the core model output through the model head
-        logits = self.model_head.inference(x)
+        logits = self.model_head.inference(x, self.embedding_model)
 
         return logits, model_input
 
     @torch.no_grad()
-    def loglikelihood(self, prefixes, continuations):
+    def loglikelihood(self, prefixes, continuations, attn_mask: Optional[torch.Tensor] = None):
         """
         Compute the loglikelihood of continuation
         tokens given a prefix.
@@ -112,7 +112,7 @@ class ModelShell(torch.nn.Module):
             input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
         
         # input_tensor = torch.tensor(padded_batch, device=self.device, dtype=torch.long)
-        logits, _ = self.forward(input_tensor)
+        logits, _ = self.forward(input_tensor, attn_mask=attn_mask)
         logits = logits[:, :-1].reshape(-1, logits.size(-1))
         target_tensor = input_tensor[:, 1:].reshape(-1)
         ll = torch.nn.functional.cross_entropy(logits, target_tensor, reduction="none")
