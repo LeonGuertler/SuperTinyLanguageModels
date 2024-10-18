@@ -1,5 +1,6 @@
 """Utilities for data"""
 
+import os 
 import numpy as np
 from datasets import load_dataset, DatasetDict, concatenate_datasets
 from datasets import Features, Value
@@ -87,8 +88,6 @@ DATASET_DICT = {
 
 }
 
-# def load_augmented_prm800k(start_token="[start]")
-
 
 def load_general_dataset(dataset_name, lambda_fn):
     """
@@ -134,34 +133,22 @@ def load_data(dataset_names, shuffle=True):
     # Return the training and validation datasets
     return split_dataset
 
-# def load_data(dataset_names, shuffle=True):
-#     """Load the data"""
-#     # check if only a single dataset name was provided
-#     if isinstance(dataset_names, str):
-#         dataset_names = [dataset_names]
+def get_preprocessed_data_path(cfg):
+    """ TODO """
+    dataset_names = cfg["trainer"]["dataset_names"]
 
+    # Ensure dataset_names is a list
+    if isinstance(dataset_names, str):
+        dataset_names = [dataset_names]
 
-#     for dataset_name in dataset_names:
-#         assert dataset_name in DATASET_DICT, f"Dataset {dataset_name} not found!"
-#         dataset = DATASET_DICT[dataset_name]()
+    # Create a unique identifier for the combined datasets
+    combined_dataset_name = "_".join(dataset_names)
 
+    data_path = os.path.join(
+        cfg["general"]["paths"]["data_dir"],
+        combined_dataset_name,
+        cfg["trainer"]["preprocessor_name"],
+        f'{cfg["model"]["tokenizer_type"]}-{cfg["model"]["vocab_size"]}-{cfg["model"].get("tokenizer_num_reserved_tokens", 0)}'
+    )
 
-#     # create dataset split
-#     split_dataset = dataset["train"].train_test_split(
-#         test_size=0.01, seed=489, shuffle=shuffle
-#     )
-
-#     # rename test split to val
-#     split_dataset["val"] = split_dataset.pop("test")
-
-#     # return the training and validation datasets
-#     return split_dataset
-
-
-def load_prm800k_dataset():
-    """ 
-    Load the PRM800k dataset
-    https://arxiv.org/abs/2305.20050
-    https://huggingface.co/datasets/tasksource/PRM800K
-    """
-    pass
+    return data_path

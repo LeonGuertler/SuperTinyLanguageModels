@@ -17,7 +17,7 @@ model:
     normalization: rms_norm
     bias: false
     dropout: false
-    depth: 1
+    #depth: 1
     #k_reduction_factor: 4
     #share_kv_proj: True
     #nb_features: 64
@@ -45,11 +45,16 @@ model:
 
 trainer:
   trainer_type: base_trainer
-  dataset: [simple_en_wiki]
-  batch_size: 4
-  gradient_accumulation_steps: 2
 
-  max_iters: 1000
+  dataset_names: [simple_en_wiki]
+  preprocessor_name: text_preprocessor
+  dataloader_name: random
+
+
+  batch_size: 12
+  gradient_accumulation_steps: 10
+
+  max_iters: 10000
   eval_interval: 50
   log_interval: 10
   checkpoint_interval: 5000
@@ -107,21 +112,23 @@ trainer:
       #- GSM8k-Subset
     val_loss_iters: 1000
 
-  optimizer:
-    optimizer_name: rprop
-    lr: 5.0e-4
-    min_lr: 5.0e-5
+  optimizer_name: AdamW
+  optimizer_params:
+    lr: 1.0e-3
     weight_decay: 0.01
-    beta1: 0.9
-    beta2: 0.98
-    grad_clip: 1.0
+    betas: [0.9, 0.98]
+
+  gradient_clipping: 1.0
+  
 
   lr_scheduler:
-    name: cosine
-    warmup_iters: 500
+    name: ExponentialLR
+    params: 
+      gamma: 0.999
+      warmup_steps: 100
 
-  dataloader:
-    name: standard
+
+
 
   datasampling:
     name: standard

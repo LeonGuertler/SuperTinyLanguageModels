@@ -7,28 +7,6 @@ from typing import Optional
 
 
 
-class RotaryPEMultiHeadAttention(torch.nn.Module):
-    """
-    Taken from: https://nn.labml.ai/transformers/rope/index.html
-    """
-    def __init__(
-        self, 
-        heads: int, 
-        hidden_dim: int, 
-        rope_percentage: float=0.5,
-        dropout_p: float=0.0
-        ):
-        # super().
-        pass
-
-
-class RoPE(torch.nn.Module):
-    """
-    https://arxiv.org/pdf/2104.09864
-    """
-    pass
-
-
 
 class RoPEAttention(Attention):
     """
@@ -111,7 +89,7 @@ class RoPEAttention(Attention):
             key=k,
             value=v,
             attn_mask=attn_mask,
-            dropout_p=self.dropout_p,
+            dropout_p=self.dropout_p if self.training else 0,
             is_causal=self.is_causal
         )
 

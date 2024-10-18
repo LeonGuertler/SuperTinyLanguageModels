@@ -18,7 +18,7 @@ class Attention(ABC, torch.nn.Module):
         num_kv_heads: int,
         bias: bool = False,
         dropout_p: float = 0.0,
-        context_window: int = 512,
+        context_window: int = 2048,
         is_causal: bool = True,
     ):
         """

@@ -10,21 +10,13 @@ from torch.distributed import init_process_group
 
 from models.experimental.hugging_face import MockTrainer
 from trainers.base_trainer import BaseTrainer
-from trainers.datasets import (
-    BaseDatasetRandom,
-    BytePoolingDataset,
-    DatasetInterface,
-    DualBytePooling,
-)
+from trainers.datasets import build_dataset
 from trainers.loss_fn import (
     cross_entropy_loss_fn,
     next_token_mlm_loss_fn,
 )
 from trainers.optimizers import build_optimizer
-from trainers.scheduler import (
-    CosineLRScheduler,
-    LRScheduler,
-)
+from trainers.schedulers import build_scheduler
 
 
 def ddp_setup(rank, world_size):
@@ -47,43 +39,43 @@ def ddp_setup(rank, world_size):
 
 
 
-SCHEDULER_DICT = {
-    "cosine": lambda trainer_cfg: CosineLRScheduler(
-        warmup_iters=trainer_cfg["lr_scheduler"]["warmup_iters"],
-        decay_iters=trainer_cfg["lr_scheduler"].get(
-            "lr_decay_iters", 
-            trainer_cfg["max_iters"]
-        ),
-        lr=trainer_cfg["optimizer"]["lr"],
-        min_lr=trainer_cfg["optimizer"]["min_lr"],
-    ),
-    "constant": lambda trainer_cfg: LRScheduler(
-        lr=trainer_cfg["optimizer"]["lr"],
-    ),
-}
+# SCHEDULER_DICT = {
+#     "cosine": lambda trainer_cfg: CosineLRScheduler(
+#         warmup_iters=trainer_cfg["lr_scheduler"]["warmup_iters"],
+#         decay_iters=trainer_cfg["lr_scheduler"].get(
+#             "lr_decay_iters", 
+#             trainer_cfg["max_iters"]
+#         ),
+#         lr=trainer_cfg["optimizer_params"]["lr"],
+#         min_lr=trainer_cfg["lr_scheduler"]["min_lr"],
+#     ),
+#     "constant": lambda trainer_cfg: LRScheduler(
+#         lr=trainer_cfg["optimizer_params"]["lr"],
+#     ),
+# }
 
 
-def build_lr_scheduler(trainer_cfg):
-    """
-    Given the trainer config, build the LR scheduler.build_model
-    """
-    return SCHEDULER_DICT[trainer_cfg["lr_scheduler"]["name"]](trainer_cfg=trainer_cfg)
+# def build_lr_scheduler(trainer_cfg):
+#     """
+#     Given the trainer config, build the LR scheduler.build_model
+#     """
+#     return SCHEDULER_DICT[trainer_cfg["lr_scheduler"]["name"]](trainer_cfg=trainer_cfg)
 
 
 
 
-DATASET_DICT: dict[str, DatasetInterface] = {
-    "standard": BaseDatasetRandom,
-    "byte_pooling": BytePoolingDataset,
-    "dual_byte_pooling": DualBytePooling,
-}
+# DATASET_DICT: dict[str, DatasetInterface] = {
+#     "standard": BaseDatasetRandom,
+#     "byte_pooling": BytePoolingDataset,
+#     "dual_byte_pooling": DualBytePooling,
+# }
 
 
-def build_dataset(cfg, split):
-    """
-    Given the config, build the dataloader
-    """
-    return DATASET_DICT[cfg.trainer["dataloader"]["name"]](cfg=cfg, split=split)
+# def build_dataset(cfg, split):
+#     """
+#     Given the config, build the dataloader
+#     """
+#     return DATASET_DICT[cfg.trainer["dataloader"]["name"]](cfg=cfg, split=split)
 
 
 
@@ -113,10 +105,18 @@ def build_trainer(cfg, model, gpu_id, loaded_train_config):
     """
 
     # build optimizer
-    optimizer = build_optimizer(model=model, optimizer_config=cfg.trainer["optimizer"])
+    optimizer = build_optimizer(
+        optimizer_name=cfg.trainer["optimizer_name"],
+        model=model,
+        optimizer_params=cfg.trainer["optimizer_params"]
+    )
 
     # build LR scheduler
-    lr_scheduler = build_lr_scheduler(trainer_cfg=cfg.trainer)
+    lr_scheduler = build_scheduler(
+        scheduler_name=cfg.trainer["lr_scheduler"]["name"],
+        optimizer=optimizer,
+        scheduler_params=cfg.trainer["lr_scheduler"]["params"],    
+    )
 
     # build dataloder
     train_dataset = build_dataset(cfg=cfg, split="train")

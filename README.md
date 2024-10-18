@@ -5,6 +5,11 @@
 - fix sparse attention
 
 
+- create detailed docs for optimizers and scheduler
+- update the config structure for attention and ffn
+
+
+
 - add more teacher models (3B Mistral etc.)
 
 
@@ -25,8 +30,6 @@
 - add the attention mask tracking back in
 
 - add ffn methods
-- add attention methods
-- add optimizers
 
 
 - add idea list to readme

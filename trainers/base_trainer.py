@@ -260,9 +260,10 @@ class BaseTrainer:
             x = x.to(self.gpu_id if self.gpu_id is not None else self.model.device)
             y = y.to(self.gpu_id if self.gpu_id is not None else self.model.device)
 
+
             # Enable or disable gradient synchronization based on the need for accumulation
-            if self.dist and hasattr(self.DDP_model, 'no_sync') and i != self.gradient_accumulation_steps-1:
-                context_manager = self.DDP_model.no_sync()
+            if self.dist and hasattr(self.DDP_model, 'no_sync'):
+                context_manager = self.DDP_model.no_sync() if i != self.gradient_accumulation_steps - 1 else nullcontext()
             else:
                 context_manager = nullcontext()
 
@@ -279,11 +280,11 @@ class BaseTrainer:
                 accumulated_loss += loss.item()
 
         # once graidents are accumulated, step 
-        if self.cfg.trainer.optimizer.grad_clip > 0:
+        if self.cfg.trainer["gradient_clipping"] > 0:
             # Unscale the gradients of the optimizer's assigned params in-place
             self.scaler.unscale_(self.optimizer)
             # Clip the gradients with normalization
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.trainer.optimizer.grad_clip)
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.trainer["gradient_clipping"])
         
         # Perform a single optimization step
         self.scaler.step(self.optimizer)
@@ -311,49 +312,53 @@ class BaseTrainer:
         print("Training loop is starting")
         for iter_num in range(self.current_iter, self.cfg["trainer"]["max_iters"]):
             start_time = time.time()
+
+            # Run a training step
+            lossf = self._run_step()
+
+            # Step the LR scheduler
             if self.lr_scheduler is not None:
-                lr = self.lr_scheduler.step(self.optimizer, iter_num)
+                self.lr_scheduler.step()
+                lr = self.lr_scheduler.get_last_lr()[0]
             else:
                 lr = self.optimizer.param_groups[0]["lr"]
 
-            # estimate model performance
-            # run on first iter to prevent bugs causing it to crash
-            if (not iter_num % self.cfg["trainer"]["eval_interval"]): 
+
+            # Estimate model performance at intervals
+            if (not iter_num % self.cfg["trainer"]["eval_interval"]):
                 self.estimate_performance(
                     iter_num=iter_num,
-                    eval_iters=self.cfg["trainer"].get("val_loss_iters", 100)
+                    eval_iters=self.cfg["trainer"].get("val_loss_iters", 100) # Default 100
                 )
+
+            
 
             # save checkpoints
             if (
                 not iter_num % self.cfg["trainer"]["checkpoint_interval"]
                 and iter_num > 0
-                and (
-                    self.gpu_id == 0
-                    or self.gpu_id == None
-                 ) ## ensure only the first GPU prints
+                and (self.gpu_id == 0 or self.gpu_id == None) ## ensure only the first GPU prints
             ):
                 self._save_model(iter_num)
 
 
-            lossf = self._run_step() 
             end_time = time.time()
-            if not iter_num % self.cfg["trainer"]["log_interval"] and iter_num > 0:
-                ## uncomment the following line to print the loss on all GPUs
-                # print(f"GPU {self.gpu_id}: step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.1f}s")
 
-                ## aggregate the loss across all GPUs
+
+            # Log training statistics
+            if not iter_num % self.cfg["trainer"]["log_interval"] and iter_num > 0:
+                # Aggregate the loss across all GPUs
                 lossf = aggregate_value(lossf, self.cfg["general"]["device"])
 
-                ## print and log the result only on the first GPU after aggregation
-                print(f"All GPU(s): step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time-start_time:.4f}s")
+                # Print and log result only on the first GPU after aggregation
+                print(f"All GPU(s): step {iter_num}: loss {lossf:.4f}, lr {lr:.1e}, dt {end_time - start_time:.2f}s")
                 if (self.gpu_id == 0 or self.gpu_id is None) and self.use_wandb:
                     token_num = (
                         self.batch_size
-                        *self.gradient_accumulation_steps
-                        *iter_num
-                        *self.cfg["model"]["context_window"]
-                        * torch.cuda.device_count() if torch.cuda.is_available() else 1 # To account for the divided accumulation steps
+                        * self.gradient_accumulation_steps
+                        * iter_num
+                        * self.cfg["model"]["context_window"]
+                        * (torch.cuda.device_count() if torch.cuda.is_available() else 1)  # To account for the divided accumulation steps
                     )
                     wandb.log(
                         {
@@ -364,6 +369,7 @@ class BaseTrainer:
                         },
                         step=token_num
                     )
+
         # save the final model
         if self.gpu_id == 0 or self.gpu_id is None: ## ensure only the first GPU saves the model
             self._save_model(iter_num+1) # just so it looks nicer

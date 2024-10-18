@@ -57,4 +57,4 @@ class AutoregressiveLMHead(torch.nn.Module):
         Returns:
             x: torch.tensor(B, V)
         """
-        return self.forward(x)[0][:, -1, :]
+        return self.forward(x[:, -1, :])[0]
