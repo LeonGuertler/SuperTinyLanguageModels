@@ -1,0 +1,165 @@
+model:
+  core_model_type: generic
+  num_layers: 1
+  
+  ffn:
+    ffn_type: moe_ffn
+    ffn_dim: 1536
+    nblocks: 2
+    num_experts: 4
+    top_k: 2
+    activation: gelu
+    normalization: rms_norm
+    bias: false
+    dropout: 0.0
+    init_config:
+      weight_init: fixed
+      initializer_range: 0.02
+    config:
+      first_layers: true
+      nblocks: 2
+      training:
+        enabled: false
+      init:
+        post_init: ortho
+    leaf_width: 192 # eil(hidden_width / 2**depth)
+    depth: 3
+
+  attn:
+    attn_type: generic_attention
+    num_kv_heads: 4
+    num_q_heads: 4
+    normalization: rms_norm
+    bias: false
+    dropout: false
+
+  embedding_model_type: generic
+  tokenizer_type: bpe
+  tokenizer_dataset_names: [simple_en_wiki]
+  tokenizer_simplify_data: true
+  tokenizer_num_reserved_tokens: 20
+  vocab_size: 4000
+
+  hidden_dim: 384
+  context_window: 2048
+
+  lm_head_type: generic
+  lm_head_normalization: rms_norm
+  lm_head_bias: false
+  lm_head_dropout: 0.0
+
+  model_shell_type: standard
+  embedding_weight_tying: true
+  ffn_weight_tying: false
+  cproj_weight_tying: false
+  embedding_positional_encoding: none
+
+trainer:
+  trainer_type: base_trainer
+
+  dataset_names: [simple_en_wiki]
+  preprocessor_name: text_preprocessor
+  dataloader_name: random
+
+  
+  batch_size: 24
+  gradient_accumulation_steps: 10
+
+  max_iters: 1000
+  eval_interval: 50
+  log_interval: 10
+  checkpoint_interval: 5000
+  eval_iters: 1000
+
+  eval:
+    benchmarks:
+      #- ArcEasy
+      #- ArcEasy-Subset
+      #- ArcEasy-STLMSubset
+      #- Blimp
+      - Blimp-Subset
+      #- Hellaswag
+      #- Hellaswag-Subset
+      #- Hellaswag-STLMSubset
+      #- MMLU
+      #- MMLU-Subset
+      #- Winogrande
+      #- Winogrande-Subset
+      #- TruthfulQA-M2
+      #- Truthful-M2-Subset
+      #- TruthfulQA-M2-STLMSubset
+      #- PIQA
+      #- PIQA-Subset
+      #- BoolQ
+      #- BoolQ-Subset
+      #- RACEMiddle
+      #- RACEMiddle-Subset
+      #- RACEHigh
+      #- RACEHigh-Subset
+      #- OpenbookQAOpen
+      #- OpenbookQAOpen-Subset
+      #- OpenbookQAClosed
+      #- OpenbookQAClosed-Subset
+      #- Copa
+      #- Copa-Subset
+      #- CommonsenseQA
+      #- CommonsenseQA-Subset
+      #- Ewok
+      # - Ewok-Subset
+      # - STLM-Text-Modeling (full)
+      #- STLM-Text-Modeling (Science-Easy)
+      #- STLM-Text-Modeling (Science-Medium)
+      #- STLM-Text-Modeling (Science-Hard)
+      #- STLM-Text-Modeling (Science)
+      #- STLM-Text-Modeling (Conversational)
+      #- STLM-Text-Modeling (Ethics)
+      #- STLM-Text-Modeling (Literature)
+      #- STLM-Text-Modeling (Code)
+      # - Teacher-Text-Modeling (full)
+      # - Text-Generation (full)
+      #- MATH
+      #- MATH-Subset
+      #- GSM8K
+      #- GSM8k-Subset
+    val_loss_iters: 1000
+
+ 
+  optimizer_name: adamW
+  optimizer_params:
+    lr: 5.0e-4
+    # min_lr: 5.0e-5
+    # weight_decay: 0.01
+    # beta1: 0.9
+    # beta2: 0.98
+  
+  gradient_clipping: 1.0
+
+  lr_scheduler:
+    name: ExponentialLR
+    params: 
+      gamma: 0.999
+      warmup_steps: 100
+
+  dataloader:
+    name: standard
+
+  datasampling:
+    name: standard
+
+  loss_fn:
+    name: cross_entropy
+
+general:
+  logging:
+    wandb_log: true
+    wandb_project: SuperTinyLanguageModels
+    wandb_run_name: Null
+    group_name: base_group
+
+  paths:
+    output_dir: outputs
+    data_dir: data
+    checkpoint_dir: checkpoints
+    eval_dir: evals
+  seed: 489
+  device: cuda

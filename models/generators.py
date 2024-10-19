@@ -589,6 +589,8 @@ class StandardGenerator(BaseGenerator):
         self.device = device 
         self.model = self.model.to(torch.device(device))
         self.generate_config = generate_cfg
+        ## self.temperature = generate_cfg.get("temperature", 1.0)
+        
 
     def default_generate(self, input_text):
         """
@@ -602,12 +604,15 @@ class StandardGenerator(BaseGenerator):
         )
 
     @torch.no_grad()
-    def generate(self, input_text, max_new_tokens, temperature=1.0, top_k=None):
+    def generate(self, input_text, max_new_tokens = None, temperature= None, top_k=None):
         """
         Take a conditioning sequence of indices idx (LongTensor of shape (b,t)) and complete
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
         Most likely you'll want to make sure to be in model.eval() mode of operation for this.
         """
+
+        ## if it is none, then use the self. 
+
         idx = self.model.embedding_model.tokenize_input(
             input_string=input_text,
             add_eot=False,
