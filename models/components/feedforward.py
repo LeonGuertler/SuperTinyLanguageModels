@@ -211,18 +211,18 @@ class KANFFN(torch.nn.Module):
 
 
 FFN_DICT = {
-    "generic": lambda hidden_dim, ffn_cfg: GenericFFN(
+    "generic": lambda hidden_dim, ffn_params: GenericFFN(
         hidden_dim=hidden_dim,
-        ffn_dim=ffn_cfg["ffn_dim"],
-        bias=ffn_cfg.get("bias", False), # Default to False
-        ffn_activation=ffn_cfg.get("activation", "gelu"), # Default to 'gelu
-        ffn_dropout=ffn_cfg.get("ffn_dropout", 0.0) # Default to 0.0
+        ffn_dim=ffn_params["ffn_dim"],
+        bias=ffn_params.get("bias", False), # Default to False
+        ffn_activation=ffn_params.get("activation", "gelu"), # Default to 'gelu
+        ffn_dropout=ffn_params.get("dropout", 0.0) # Default to 0.0
     ),
-    "silu_ffn": lambda hidden_dim, ffn_cfg: SiluFFN(
+    "silu_ffn": lambda hidden_dim, ffn_params: SiluFFN(
         hidden_dim=hidden_dim,
-        ffn_dim=ffn_cfg["ffn_dim"],
-        bias=ffn_cfg.get("bias", False), # Default to False
-        ffn_dropout=ffn_cfg.get("ffn_dropout", 0.0) # Default to 0.0
+        ffn_dim=ffn_params["ffn_dim"],
+        bias=ffn_params.get("bias", False), # Default to False
+        ffn_dropout=ffn_params.get("dropout", 0.0) # Default to 0.0
     ),
     "moe_ffn": lambda hidden_dim, ffn_cfg: MixtureOfExpertFFN(
         hidden_dim=hidden_dim,
@@ -264,11 +264,14 @@ FFN_DICT = {
 }
 
 
-def build_ffn(hidden_dim, ffn_cfg):
+def build_ffn(ffn_name, ffn_params, hidden_dim):
     """
     Build a feedforward network
     """
-    assert ffn_cfg["ffn_type"] in FFN_DICT, \
-        f"FFN type {ffn_cfg['ffn_type']} not found. Available types: {FFN_DICT.keys()}"
+    assert ffn_name in FFN_DICT, \
+        f"FFN NAME {ffn_name} not found. Available types: {FFN_DICT.keys()}"
     
-    return FFN_DICT[ffn_cfg["ffn_type"]](hidden_dim=hidden_dim, ffn_cfg=ffn_cfg)
+    return FFN_DICT[ffn_name](
+        hidden_dim=hidden_dim, 
+        ffn_params=ffn_params
+    )

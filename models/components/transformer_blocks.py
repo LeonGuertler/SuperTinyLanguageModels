@@ -7,7 +7,6 @@ import torch
 
 from models.components.attention import build_attention
 from models.components.feedforward import build_ffn
-from models.components.normalization import build_normalization
 
 from typing import Optional
 
@@ -22,31 +21,33 @@ class GenericTransformerBlock(torch.nn.Module):
         super().__init__()
 
         # build the attn norm
-        self.attn_norm = build_normalization(
-            normalization_name=attn_cfg["normalization"],
-            dim=hidden_dim,
-            bias=attn_cfg["bias"],
-        )
+        # self.attn_norm = build_normalization(
+        #     normalization_name=attn_cfg.get("normalization", "none"),
+        #     dim=hidden_dim,
+        #     bias=attn_cfg["bias"],
+        # )
 
         # build the attention
         self.attn = build_attention(
+            attn_name=attn_cfg["name"],
+            attn_params=attn_cfg["params"],
             hidden_dim=hidden_dim,
             context_window=context_window,
-            attn_cfg=attn_cfg,
             depth=depth,
         )
 
         # build the ffn norm
-        self.ffn_norm = build_normalization(
-            normalization_name=ffn_cfg.get("normalization", "rms_norm"), # Default: rms_norm
-            dim=hidden_dim,
-            bias=ffn_cfg["bias"],
-        )
+        # self.ffn_norm = build_normalization(
+        #     normalization_name=ffn_cfg.get("normalization", "none"), # Default: none
+        #     dim=hidden_dim,
+        #     bias=ffn_cfg["bias"],
+        # )
 
         # build the ffn block
         self.ffn = build_ffn(
+            ffn_name=ffn_cfg["name"],
+            ffn_params=ffn_cfg["params"],
             hidden_dim=hidden_dim,
-            ffn_cfg=ffn_cfg,
         )
 
     def forward(self, x, attn_mask=None):
@@ -59,6 +60,9 @@ class GenericTransformerBlock(torch.nn.Module):
         Returns:
             x: the output tensor (b, s, h)
         """
-        x = x + self.attn(self.attn_norm(x), attn_mask)
-        x = x + self.ffn(self.ffn_norm(x))
+        x = x + self.attn(x, attn_mask)
+        x = x + self.ffn(x)
+
+        #x = x + self.attn(self.attn_norm(x), attn_mask)
+        #x = x + self.ffn(self.ffn_norm(x))
         return x
