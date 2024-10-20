@@ -119,7 +119,7 @@ def build_positional_encodings(model_cfg):
     Returns:
         positional_encodings: positional_encodings_instance
     """
-    encoding_type = model_cfg["embedding_positional_encoding"]
+    encoding_type = model_cfg.get("embedding_positional_encoding", "none")
     if encoding_type == "alibi":
         return POS_ENCODING_DICT[encoding_type](
             dim=model_cfg["hidden_dim"],

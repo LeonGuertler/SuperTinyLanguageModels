@@ -111,9 +111,9 @@ def build_trainer(cfg, model, gpu_id, loaded_train_config):
 
     # build optimizer
     optimizer = build_optimizer(
-        optimizer_name=cfg.trainer["optimizer_name"],
+        optimizer_name=cfg.trainer["optimizer"]["name"],
         model=model,
-        optimizer_params=cfg.trainer["optimizer_params"]
+        optimizer_params=cfg.trainer["optimizer"]["params"]
     )
 
     # build LR scheduler

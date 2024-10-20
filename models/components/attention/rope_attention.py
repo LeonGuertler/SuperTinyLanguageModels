@@ -21,8 +21,9 @@ class RoPEAttention(Attention):
         num_kv_heads: int,
         bias: bool = False,
         dropout_p: float = 0.0,
-        context_window: int = 512,
+        context_window: int = 2048,
         is_causal: bool = True,
+        normalization_name: str = "none",
     ):
         """
         Initialize the RoPEAttention module.
@@ -44,6 +45,7 @@ class RoPEAttention(Attention):
             dropout_p=dropout_p,
             context_window=context_window,
             is_causal=is_causal,
+            normalization_name=normalization_name
         )
 
         # Compute frequencies for RoPE and register as buffer
@@ -61,6 +63,9 @@ class RoPEAttention(Attention):
         attn_mask: Optional[torch.tensor] = None
     ):
         """ TODO """
+        # normalize x
+        x = self.normalization(x)
+
         B, S, H = x.size()
         
         # calculate query, key, values for all heads in batch

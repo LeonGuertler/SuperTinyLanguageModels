@@ -4,6 +4,7 @@ TODO
 import torch 
 from typing import Optional, List, Dict
 from abc import ABC, abstractmethod
+from models.components.normalization import build_normalization
 
 
 class Attention(ABC, torch.nn.Module):
@@ -20,6 +21,7 @@ class Attention(ABC, torch.nn.Module):
         dropout_p: float = 0.0,
         context_window: int = 2048,
         is_causal: bool = True,
+        normalization_name: str = "none",
     ):
         """
         Initialize the Attention module.
@@ -58,6 +60,12 @@ class Attention(ABC, torch.nn.Module):
             bias=bias
         )
 
+        self.normalization = build_normalization(
+            normalization_name=normalization_name,
+            dim=hidden_dim,
+            bias=bias
+        )
+
     def forward(
         self, 
         x: torch.tensor, 
@@ -73,6 +81,9 @@ class Attention(ABC, torch.nn.Module):
         Returns:
             torch.Tensor: Output tensor of shape (B, S, H).
         """
+        # normalize x 
+        x = self.normalization(x)
+
         B, S, H = x.size()
         
         # calculate query, key, values for all heads in batch
