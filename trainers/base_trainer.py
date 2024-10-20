@@ -118,7 +118,7 @@ class BaseTrainer:
         else:
             # provide a generic (hopefully descriptive) run name if none was provided
             run_name = (
-                f"Unname_Model_{self.cfg.trainer['dataset']}"
+                f"Unname_Model_{self.cfg.trainer['dataset_names']}"
                 f"_{self.cfg.model['vocab_size']}"
                 f"_Parameters_{total_parameter_count_str}"
                 f"_TrainTokens_{train_token_count}"

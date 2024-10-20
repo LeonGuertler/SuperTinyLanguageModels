@@ -54,8 +54,12 @@ class TextGenerationEvaluator(BaseEvaluator):
             Dict[str, Any]: A dictionary containing evaluation metrics for the completion.
         """
         # Grammatical Error Detection
-        matches = self.grammar_tool.check(completion)
-        num_errors = len(matches)
+        try:
+            matches = self.grammar_tool.check(completion)
+            num_errors = len(matches)
+        except Exception as e:
+            print(f"Exception when using grammer tool checking: {e}")
+            num_errors = None
         words = completion.split()
         errors_per_100_words = (num_errors / len(words)) * 100 if words else 0
 

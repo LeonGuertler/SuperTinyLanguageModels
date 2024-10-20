@@ -1,6 +1,6 @@
 model:
   core_model_type: generic
-  num_layers: 33
+  num_layers: 4 #33
   
   ffn:
     name: generic
@@ -64,6 +64,10 @@ trainer:
     benchmarks:
       - Ewok-Subset
       - Blimp-Subset
+      - Winogrande-Subset
+      - MMLU-Subset
+      - Hellaswag-Subset
+      - ArcEasy-Subset
       - Teacher-Text-Modeling (full)
       - Text-Generation (full)
       - STLM-Text-Modeling (full)

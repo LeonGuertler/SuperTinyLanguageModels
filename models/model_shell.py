@@ -79,11 +79,17 @@ class ModelShell(torch.nn.Module):
         if isinstance(model_input, str):
             # use inference function of the embedding model
             model_input = self.embedding_model.tokenize_input(model_input, truncate=True, add_eot=False)
-        x = torch.tensor(model_input, device=self.device, dtype=torch.long).unsqueeze(0)
+
+        if isinstance(model_input, torch.Tensor):
+            x = model_input.to(device=self.device, dtype=torch.long).unsqueeze(0)
+        else:
+            x = torch.tensor(model_input, device=self.device, dtype=torch.long).unsqueeze(0)
+        
+        
         x = self.embedding_model(model_input)
 
         # pass the embeddings through the core model
-        x = self.core_model(x)
+        x = self.core_model(x, attn_mask=None)
 
         # pass the core model output through the model head
         logits = self.model_head.inference(x)

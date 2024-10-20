@@ -269,7 +269,7 @@ def build_ffn(ffn_name, ffn_params, hidden_dim):
     Build a feedforward network
     """
     assert ffn_name in FFN_DICT, \
-        f"FFN NAME {ffn_name} not found. Available types: {FFN_DICT.keys()}"
+        f"FFN NAME {ffn_name} not found. Available types: {list(FFN_DICT.keys())}"
     
     return FFN_DICT[ffn_name](
         hidden_dim=hidden_dim, 
