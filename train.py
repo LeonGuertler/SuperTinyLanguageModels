@@ -53,7 +53,7 @@ def ddp_main(rank, world_size, cfg):
         destroy_process_group()
 
         # restore the print function
-        restore_print_override(original_print)
+        # restore_print_override(original_print)
 
 def basic_main(cfg):
     """
