@@ -50,7 +50,7 @@ class RoPEAttention(Attention):
 
         # Compute frequencies for RoPE and register as buffer
         # buffering is necessary to ensure correct device
-        self.freqs_cis = compute_freqs_cis(
+        freqs_cis = compute_freqs_cis(
             max_seq_len=context_window,
             head_dim=hidden_dim // num_q_heads
         )
@@ -80,7 +80,7 @@ class RoPEAttention(Attention):
         q, k = apply_rotary_emb(
             q=q, 
             k=k, 
-            freqs_cis=self.freqs_cis[:S] #.to(q.device)
+            freqs_cis=self.freqs_cis[:S]
         )
         q = q.transpose(1, 2)
         k = k.transpose(1, 2)
