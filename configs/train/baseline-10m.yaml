@@ -73,11 +73,12 @@ trainer:
     val_loss_iters: 1000
 
   optimizer:
-    optimizer_name: adamW
-    lr: 5.0e-4
-    min_lr: 5.0e-5
-    weight_decay: 0.1
-    betas: [0.9, 0.98]
+    name: adamW
+    params:
+      lr: 5.0e-4
+      min_lr: 5.0e-5
+      weight_decay: 0.1
+      betas: [0.9, 0.98]
 
   gradient_clipping: 1.0
 
