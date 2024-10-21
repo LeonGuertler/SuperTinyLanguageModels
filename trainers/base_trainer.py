@@ -49,7 +49,7 @@ class BaseTrainer:
 
         if gpu_id is not None: # using ddp
             self.dist = True
-            input(gpu_id)
+            print(gpu_id)
             self.DDP_model = DDP(self.model, device_ids=[gpu_id])
         else:
             self.dist = False
