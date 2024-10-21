@@ -54,7 +54,7 @@ class RoPEAttention(Attention):
             max_seq_len=context_window,
             head_dim=hidden_dim // num_q_heads
         )
-        #self.register_buffer('freqs_cis', freqs_cis)
+        self.register_buffer('freqs_cis', freqs_cis)
 
 
     def forward(
@@ -80,7 +80,7 @@ class RoPEAttention(Attention):
         q, k = apply_rotary_emb(
             q=q, 
             k=k, 
-            freqs_cis=self.freqs_cis[:S].to(q.device)
+            freqs_cis=self.freqs_cis[:S] #.to(q.device)
         )
         q = q.transpose(1, 2)
         k = k.transpose(1, 2)
