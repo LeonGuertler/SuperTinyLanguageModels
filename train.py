@@ -23,7 +23,7 @@ def ddp_main(rank, world_size, cfg):
     """
     os.environ["GLOBAL_RANK"] = str(rank)
 
-    original_print = init_print_override()
+    # original_print = init_print_override()
 
     try:
         print("Rank: ", rank, "World Size: ", world_size)
