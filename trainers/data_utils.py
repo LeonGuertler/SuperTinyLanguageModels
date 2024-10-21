@@ -112,7 +112,10 @@ def load_general_dataset(dataset_name, lambda_fn):
     """
     load and re-format a huggingface dataset
     """
-    dataset = load_dataset(dataset_name)
+    dataset = load_dataset(
+        dataset_name,
+        trust_remote_code=True
+    )
     dataset = dataset.map(lambda_fn)
     return dataset
 

@@ -206,18 +206,18 @@ def initialize_model(model_cfg):
         model_head=model_head,
     )
 
-    # initialize the model weights
-    init_fn_type = model_cfg.get("initialization_fn", "kaiming")
-    if init_fn_type != None:
-        init_fn = build_model_initialization_function(model_cfg)
+    # # initialize the model weights
+    # init_fn_type = model_cfg.get("initialization_fn", "kaiming")
+    # if init_fn_type != None:
+    #     init_fn = build_model_initialization_function(model_cfg)
 
-        def init_weights(m):
-            if isinstance(m, (torch.nn.Linear, torch.nn.Conv2d, torch.nn.Conv1d)):
-                init_fn(m.weight)
-                if m.bias is not None:
-                    torch.nn.init.zeros_(m.bias)
+    #     def init_weights(m):
+    #         if isinstance(m, (torch.nn.Linear, torch.nn.Conv2d, torch.nn.Conv1d)):
+    #             init_fn(m.weight)
+    #             if m.bias is not None:
+    #                 torch.nn.init.zeros_(m.bias)
         
-        model.apply(init_weights)
+    #     model.apply(init_weights)
 
 
     return model

@@ -1,59 +1,72 @@
 model:
   core_model_type: generic
-  num_layers: 5
+  num_layers: 18
   
   ffn:
-    ffn_type: generic
-    ffn_dim: 1536
-    activation: gelu
+    name: generic
     normalization: rms_norm
-    bias: false
-    dropout: 0.0
+    params:
+      ffn_dim: 1536
+      activation: gelu
+      normalization: rms_norm
+      bias: true 
+      dropout: 0.0 
 
   attn:
-    attn_type: rope_attention
-    num_kv_heads: 4
-    num_q_heads: 8 # has to be == num_kv_heads for alibi attention
+    name: rope_attention
     normalization: rms_norm
-    bias: false
-    dropout: false
+    params:
+      num_kv_heads: 4
+      num_q_heads: 8
+      normalization: rms_norm
+      bias: true 
+      dropout: 0.0
 
   embedding_model_type: generic
   tokenizer_type: bpe
-  tokenizer_dataset_names: [simple_en_wiki]
+  tokenizer_dataset_names: [en_wiki, MATH]
   tokenizer_simplify_data: true
-  vocab_size: 4000
+  tokenizer_num_reserved_tokens: 20
+  vocab_size: 9984
 
   hidden_dim: 384
   context_window: 2048
 
   lm_head_type: generic
   lm_head_normalization: rms_norm
-  lm_head_bias: false
+  lm_head_bias: true
   lm_head_dropout: 0.0
 
   model_shell_type: standard
   embedding_weight_tying: true
-  ffn_weight_tying: false
-  cproj_weight_tying: false
+  ffn_weight_tying: true
+  cproj_weight_tying: true
   embedding_positional_encoding: none
 
 trainer:
   trainer_type: base_trainer
-  dataset: fineweb_edu_10B
+
+  dataset_names: [fineweb_edu_10B, MATH]
+  preprocessor_name: text_preprocessor
+  dataloader_name: random
+  
+  
   batch_size: 24
   gradient_accumulation_steps: 10
 
-  max_iters: 50000
+  max_iters: 100000
   eval_interval: 5000
   log_interval: 10
-  checkpoint_interval: 10000
-  eval_iters: 1000
+  checkpoint_interval: 20000
 
   eval:
     benchmarks:
       - Ewok-Subset
       - Blimp-Subset
+      - Winogrande-Subset
+      - MMLU-Subset
+      - Hellaswag-Subset
+      - ArcEasy-Subset
       - Teacher-Text-Modeling (full)
       - Text-Generation (full)
       - STLM-Text-Modeling (full)
@@ -64,13 +77,16 @@ trainer:
     lr: 5.0e-4
     min_lr: 5.0e-5
     weight_decay: 0.1
-    beta1: 0.9
-    beta2: 0.98
-    gradient_clipping: 1.0
+    betas: [0.9, 0.98]
+
+  gradient_clipping: 1.0
 
   lr_scheduler:
-    name: cosine
-    warmup_iters: 2500
+    name: ExponentialLR
+    params: 
+      gamma: 0.999
+      warmup_steps: 5000
+
 
   dataloader:
     name: standard
@@ -94,4 +110,5 @@ general:
     checkpoint_dir: checkpoints
     eval_dir: evals
   seed: 489
+  max_num_cores: 12 # to make sure not too much disk memory is used
   device: cuda
