@@ -121,10 +121,15 @@ class DocumentClassificationDataset(torch.utils.data.Dataset):
         label = torch.tensor(self.labels[idx], dtype=torch.long)
         return input_ids, label
 
-
+from models.experimental.global_local.datasets import DualBaseDatasetRandom
 DATASET_REGISTRY = {
     "random": BaseDatasetRandom,
-    "text_classification": DocumentClassificationDataset
+    "text_classification": DocumentClassificationDataset,
+
+
+
+    # Experimental
+    "dual_random": DualBaseDatasetRandom
 }
 
 def build_dataset(cfg, split):

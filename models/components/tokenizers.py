@@ -293,7 +293,7 @@ class ByteTokenizer(TokenizerClass):
         self.id_to_byte = {i: i for i in range(256)}
 
         # Define special tokens and their ids starting from 256
-        self.special_tokens = ["[PAD]", "[EOT]", "[UNK]"] + [f"[RES{x}]" for x in range(1, num_reserved_tokens - 2 + 1)]
+        self.special_tokens = ["[PAD]", "[EOT]", "[UNK]", "[SG]", "[EG]"] + [f"[RES{x}]" for x in range(1, num_reserved_tokens - 2 + 1)]
         self.special_token_to_id = {token: 256 + i for i, token in enumerate(self.special_tokens)}
         self.id_to_special_token = {256 + i: token for i, token in enumerate(self.special_tokens)}
 
@@ -301,6 +301,9 @@ class ByteTokenizer(TokenizerClass):
         self.pad_token = self.special_token_to_id.get("[PAD]")
         self.eot_token = self.special_token_to_id.get("[EOT]")
         self.unk_token = self.special_token_to_id.get("[UNK]")
+
+        self.start_global = self.special_token_to_id.get("[SG]")
+        self.end_global = self.special_token_to_id.get("[EG]")
 
     def encode(self, text):
         """Encode a string into byte-level tokens."""
@@ -341,16 +344,16 @@ class ByteTokenizer(TokenizerClass):
 
 TOKENIZER_DICT = {
     # a number of standard tiktoken tokenizers
-    "o200k_base": lambda vocab_size, dataset_name, simplify: TiktokenTokenizer(tokenizer_name="o200k_base"),
-    "cl100k_base": lambda vocab_size, dataset_name, simplify: TiktokenTokenizer(tokenizer_name="cl100k_base"),
-    "p50k_base": lambda vocab_size, dataset_name, simplify: TiktokenTokenizer(tokenizer_name="p50k_base"),
-    "gpt2": lambda vocab_size, dataset_name, simplify: TiktokenTokenizer(tokenizer_name="gpt2"),
+    "o200k_base": lambda vocab_size, dataset_names, simplify, num_reserved_tokens: TiktokenTokenizer(tokenizer_name="o200k_base"),
+    "cl100k_base": lambda vocab_size, dataset_names, simplify, num_reserved_tokens: TiktokenTokenizer(tokenizer_name="cl100k_base"),
+    "p50k_base": lambda vocab_size, dataset_names, simplify, num_reserved_tokens: TiktokenTokenizer(tokenizer_name="p50k_base"),
+    "gpt2": lambda vocab_size, dataset_names, simplify, num_reserved_tokens: TiktokenTokenizer(tokenizer_name="gpt2"),
 
     # a number of standard huggingface tokenizers
-    "llama_32k": lambda vocab_size, dataset_name, simplify: HuggingfaceTokenizer(tokenizer_path="chavinlo/alpaca-native"),
-    "opt_50k": lambda vocab_size, dataset_name, simplify: HuggingfaceTokenizer(tokenizer_path="facebook/opt-1.3b"),
-    "mistral_32k": lambda vocab_size, dataset_name, simplify: HuggingfaceTokenizer(tokenizer_path="mistralai/Mistral-7B-v0.1"),
-    "llama_3.2_1B": lambda vocab_size, dataset_name, simplify: HuggingfaceTokenizer(tokenizer_path="meta-llama/Llama-3.2-1B"),
+    "llama_32k": lambda vocab_size, dataset_names, simplify, num_reserved_tokens: HuggingfaceTokenizer(tokenizer_path="chavinlo/alpaca-native"),
+    "opt_50k": lambda vocab_size, dataset_names, simplify, num_reserved_tokens: HuggingfaceTokenizer(tokenizer_path="facebook/opt-1.3b"),
+    "mistral_32k": lambda vocab_size, dataset_names, simplify, num_reserved_tokens: HuggingfaceTokenizer(tokenizer_path="mistralai/Mistral-7B-v0.1"),
+    "llama_3.2_1B": lambda vocab_size, dataset_names, simplify, num_reserved_tokens: HuggingfaceTokenizer(tokenizer_path="meta-llama/Llama-3.2-1B"),
 
     # a custom BPE tokenizer (using the HF implementation)
     "bpe": lambda vocab_size, dataset_names, simplify, num_reserved_tokens: BPETokenizer(

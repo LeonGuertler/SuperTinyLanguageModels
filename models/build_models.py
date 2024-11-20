@@ -27,6 +27,12 @@ from models.experimental.moe_weight_sharing import (
     SharedMoE
 )
 
+from models.experimental.global_local.model_shell import (
+    DualModelShell
+)
+from models.experimental.global_local.core_model import (
+    DualCoreModel
+)
 
 
 
@@ -103,6 +109,7 @@ CORE_MODEL_DICT = {
     "ffn_lora_sharing": SharedInteriorFFNLora,
     "ffn_lora_sharing": SharedInteriorFFNLoraAndCProj,
     "ffn_lora_sharing_moe": SharedMoE,
+    "dual": DualCoreModel
 }
 
 
@@ -143,7 +150,10 @@ def build_model_head(model_cfg, embedding_model=None):
 
 MODEL_SHELL_DICT = {
     "standard": ModelShell,
-    "byte_shell": ByteModelShell
+    "byte_shell": ByteModelShell,
+
+
+    "dual": DualModelShell
 }
 
 

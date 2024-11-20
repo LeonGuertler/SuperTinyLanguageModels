@@ -98,8 +98,13 @@ class RoPEAttention(Attention):
         v = v.transpose(1, 2)
 
         # reshape attn_mask
-        if attn_mask is not None:
-            attn_mask = attn_mask.unsqueeze(1).unsqueeze(2)
+        # if attn_mask is not None:
+        #     attn_mask = attn_mask.unsqueeze(1).unsqueeze(2)
+
+        # print(f"{q.size()=}")
+        # print(f"{k.size()=}")
+        # print(f"{v.size()=}")
+        # print(f"{attn_mask.size()=}")
 
         y = torch.nn.functional.scaled_dot_product_attention(
             query=q,

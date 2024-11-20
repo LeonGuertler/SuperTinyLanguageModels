@@ -68,6 +68,7 @@ class TextPreProcessor(BasePreProcessor):
             arr.flush() 
 
 
+
 class DocumentClassificationPreProcessor(BasePreProcessor):
     """
     PreProcessor for document classification datasets.
@@ -109,10 +110,16 @@ class DocumentClassificationPreProcessor(BasePreProcessor):
             np.save(labels_filename, np.array(labels, dtype=np.int64))
 
 
+from models.experimental.global_local.preprocess import DualTextPreProcessor
 # Dictionary mapping processor names to classes
 PROCESSORS = {
     "text_preprocessor": TextPreProcessor,
     "text_classification_preprocessor": DocumentClassificationPreProcessor,
+
+    # Experimental
+    "dual_text_preprocessor": DualTextPreProcessor,
+
+
 }
 
 def prepare_data(cfg):

@@ -1,5 +1,6 @@
 from models.components.attention.attention import Attention 
 from models.components.attention.rope_attention import RoPEAttention 
+from models.components.attention.rope_sliding_window_attention import RopeSlidingWindowAttention 
 from models.components.attention.alibi_attention import ALiBiAttention
 from models.components.attention.linformer_attention import LinformerAttention
 from models.components.attention.performer_attention import PerformerAttention
@@ -46,6 +47,9 @@ ATTENTION_REGISTRY: Dict[str, Callable[[int, int, Dict[str, Any], Optional[int]]
     ),
     "rope_attention": lambda hidden_dim, context_window, attn_params, depth: RoPEAttention(
         **default_attention_params(hidden_dim, context_window, attn_params)
+    ),
+    "rope_sliding_window_attention": lambda hidden_dim, context_window, attn_params, depth: RopeSlidingWindowAttention(
+        **default_attention_params(hidden_dim, context_window, attn_params, window_size=64)
     ),
     "alibi_attention": lambda hidden_dim, context_window, attn_params, depth: ALiBiAttention(
         **default_attention_params(hidden_dim, context_window, attn_params)

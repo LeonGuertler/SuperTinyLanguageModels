@@ -199,9 +199,10 @@ def collate_fn(batch):
     return inputs_padded, labels, attn_masks
 
 def identify_collate_fn(batch):
-    inputs, labels = zip(*batch)
+    inputs, delimits, labels = zip(*batch)
 
     # stack inputs and labels
     inputs = torch.stack(inputs)
+    delimits = torch.stack(delimits)
     labels = torch.stack(labels)
-    return inputs, labels, None
+    return inputs, delimits, labels, None
