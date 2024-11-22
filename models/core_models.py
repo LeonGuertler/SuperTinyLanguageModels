@@ -35,16 +35,18 @@ class GenericTransformer(torch.nn.Module):
             }
         )
 
-        if model_cfg.get("ffn_weight_tying", False): # Default: False
-            # Share the weights between all FFN blocks, similar to:
-            # https://arxiv.org/abs/2402.16840
+        if model_cfg.get("ffn_weight_tying", False):  # Default: False
+            # Share the weights between all FFN blocks
             ffn_0 = self.transformer.h[0].ffn
             for i in range(1, len(self.transformer.h)):
-                for name, module in ffn_0.named_modules():
-                    if isinstance(module, torch.nn.Linear):
-                        target_module = dict(self.transformer.h[i].ffn.named_modules())[name]
-                        target_module.weight = module.weight
-                        target_module.bias = module.bias
+                ffn_i = self.transformer.h[i].ffn
+                for name, parameter in ffn_0.named_parameters():
+                    # Access the parameter of the target FFN block
+                    target_param = dict(ffn_i.named_parameters())[name]
+                    
+                    # Share the storage of the parameter using .data
+                    target_param.data = parameter.data
+                    print(name)
 
         if model_cfg.get("cproj_weight_tying", False): # Default: False
             # Share the weights between all CProj blocks
@@ -53,6 +55,16 @@ class GenericTransformer(torch.nn.Module):
                 for name, module in cproj_0.named_modules():
                     if isinstance(module, torch.nn.Linear):
                         target_module = dict(self.transformer.h[i].attn.c_proj.named_modules())[name]
+                        target_module.weight = module.weight
+                        target_module.bias = module.bias
+
+        if model_cfg.get("attn_weight_tying", False): # Default: False
+            # Share the weights between all CProj blocks
+            cattn_0 = self.transformer.h[0].attn.c_attn
+            for i in range(1, len(self.transformer.h)):
+                for name, module in cattn_0.named_modules():
+                    if isinstance(module, torch.nn.Linear):
+                        target_module = dict(self.transformer.h[i].attn.c_attn.named_modules())[name]
                         target_module.weight = module.weight
                         target_module.bias = module.bias
 
@@ -69,8 +81,9 @@ class GenericTransformer(torch.nn.Module):
         x = self.transformer.drop(x)
 
         # pass through the transformer blocks
-        for block in self.transformer.h:
-            x = block(x, attn_mask)
+        for _ in range(8):
+            for block in self.transformer.h:
+                x = block(x, attn_mask)
             
         return x
 

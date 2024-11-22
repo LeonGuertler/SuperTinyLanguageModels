@@ -3,10 +3,8 @@ Simple LoRA FFN weight sharing but with softmax-weighted experts.
 """
 import torch 
 import math 
-from models.core_models import GenericTransformer
 
 from models.components.attention import build_attention
-from models.components.feedforward import build_ffn
 from models.components.normalization import build_normalization
 
 from models.components.activations import build_activation
@@ -58,6 +56,8 @@ class MoELoRA(torch.nn.Module):
 
         self.reset_parameters()
 
+        self.leaky_relu = torch.nn.LeakyReLU()
+
     def reset_parameters(self):
         torch.nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
         self.gate_linear.reset_parameters()
@@ -76,7 +76,8 @@ class MoELoRA(torch.nn.Module):
             gate = torch.nn.functional.softmax(self.gate_linear(x[:,-1]), dim=-1) # torch.Size([2, 8]) torch.Size([8, 32, 416]) torch.Size([8, 1072, 32])
             
             lora_weights = self.lora_experts_V @ self.lora_experts_U
-            updated_weight = self.weight + self.scaling * lora_weights
+            updated_weight = self.weight + self.leaky_relu(self.scaling-1/248) * lora_weights # apply leaky relu to lora scaling
+
             #print(x.size(), updated_weight.size()) # torch.Size([2, 512, 416]) torch.Size([8, 1072, 416])
             #input()
             output = torch.einsum('bsh,efh->besf', x, updated_weight) # torch.Size([2, 8, 1072])
@@ -104,6 +105,7 @@ class MoELoRA(torch.nn.Module):
 
             lora_weights = self.lora_experts_V @ self.lora_experts_U # torch.Size([8, 1072, 416])
             # Add LoRA update to the main weight
+            # updated_weight = self.weight + self.leaky_relu(self.scaling-1/248) * lora_weights # torch.Size([8, 1072, 416])
             updated_weight = self.weight + self.scaling * lora_weights # torch.Size([8, 1072, 416])
             # apply weights
             #print(updated_weight.size(), x.size()) # torch.Size([8, 1072, 416]) torch.Size([1024, 416])

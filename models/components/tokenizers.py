@@ -283,6 +283,55 @@ class BPETokenizer(TokenizerClass):
         print(f"Loaded a BPE tokenizer with {len(self.vocab)} tokens.")
 
 
+class ByteTokenizer(TokenizerClass):
+    def __init__(self, num_reserved_tokens=5):
+        super().__init__()
+        self.num_reserved_tokens = num_reserved_tokens
+
+        # Map bytes (0-255) to ids (0-255)
+        self.byte_to_id = {i: i for i in range(256)}
+        self.id_to_byte = {i: i for i in range(256)}
+
+        # Define special tokens and their ids starting from 256
+        self.special_tokens = ["[PAD]", "[EOT]", "[UNK]"] + [f"[RES{x}]" for x in range(1, num_reserved_tokens - 2 + 1)]
+        self.special_token_to_id = {token: 256 + i for i, token in enumerate(self.special_tokens)}
+        self.id_to_special_token = {256 + i: token for i, token in enumerate(self.special_tokens)}
+
+        self.vocab_size = 256 + len(self.special_tokens)
+        self.pad_token = self.special_token_to_id.get("[PAD]")
+        self.eot_token = self.special_token_to_id.get("[EOT]")
+        self.unk_token = self.special_token_to_id.get("[UNK]")
+
+    def encode(self, text):
+        """Encode a string into byte-level tokens."""
+        byte_values = text.encode('utf-8', errors='replace')
+        return [self.byte_to_id.get(b, self.unk_token) for b in byte_values]
+
+    def decode(self, tokens):
+        """Decode a list of tokens into a string."""
+        bytes_list = []
+        for token in tokens:
+            if isinstance(token, torch.Tensor):
+                token = token.item()
+            if token in self.id_to_byte:
+                bytes_list.append(self.id_to_byte[token])
+            elif token in self.id_to_special_token:
+                # Skip special tokens or handle them as needed
+                continue
+            else:
+                # Unknown token; you can choose to handle this case differently
+                continue
+        return bytes(bytes_list).decode('utf-8', errors='replace')
+
+    def encode_batch(self, texts):
+        """Encode a list of strings into byte-level tokens."""
+        return [self.encode(text) for text in texts]
+
+    def decode_batch(self, token_lists):
+        """Decode a list of token lists into a list of strings."""
+        if torch.is_tensor(token_lists):
+            token_lists = token_lists.tolist()
+        return [self.decode(tokens) for tokens in token_lists]
 
 
 
@@ -304,6 +353,11 @@ TOKENIZER_DICT = {
     # a custom BPE tokenizer (using the HF implementation)
     "bpe": lambda vocab_size, dataset_names, simplify, num_reserved_tokens: BPETokenizer(
         vocab_size=vocab_size, dataset_names=dataset_names, simplify=simplify, num_reserved_tokens=num_reserved_tokens
+    ),
+
+    # a custom Byte Level tokenizer
+    "byte": lambda vocab_size, dataset_names, simplify, num_reserved_tokens: ByteTokenizer(
+        num_reserved_tokens=num_reserved_tokens
     ),
 }
 

@@ -1,0 +1,114 @@
+model:
+  core_model_type: generic
+  num_layers: 8
+  
+  ffn:
+    name: generic
+    normalization: rms_norm
+    params:
+      ffn_dim: 1536
+      activation: gelu
+      normalization: rms_norm
+      bias: true 
+      dropout: 0.0 
+
+  attn:
+    name: rope_attention
+    normalization: rms_norm
+    params:
+      num_kv_heads: 8
+      num_q_heads: 8
+      normalization: rms_norm
+      bias: true 
+      dropout: 0.0
+
+  embedding_model_type: generic
+  tokenizer_type: byte
+  tokenizer_dataset_names: [en_wiki, MATH]
+  tokenizer_simplify_data: true
+  tokenizer_num_reserved_tokens: 20
+  vocab_size: 259
+
+  hidden_dim: 384
+  context_window: 2048
+
+  lm_head_type: generic
+  lm_head_normalization: rms_norm
+  lm_head_bias: true
+  lm_head_dropout: 0.0
+
+  model_shell_type: standard
+  embedding_weight_tying: false
+  ffn_weight_tying: false
+  cproj_weight_tying: false
+  embedding_positional_encoding: none
+
+trainer:
+  trainer_type: base_trainer
+
+  dataset_names: fineweb_edu_10B
+  preprocessor_name: text_preprocessor
+  dataloader_name: random
+  
+  
+  batch_size: 24
+  gradient_accumulation_steps: 10
+
+  max_iters: 100000
+  eval_interval: 1000
+  log_interval: 10
+  checkpoint_interval: 20000
+
+  eval:
+    benchmarks:
+      - Ewok-Subset
+      - Blimp-Subset
+      - Winogrande-Subset
+      - MMLU-Subset
+      - Hellaswag-Subset
+      - ArcEasy-Subset
+      - Teacher-Text-Modeling (full)
+      - Text-Generation (full)
+      - STLM-Text-Modeling (full)
+    val_loss_iters: 1000
+
+  optimizer:
+    name: adamW
+    params:
+      lr: 1.0e-3
+      weight_decay: 0.1
+      betas: [0.9, 0.98]
+
+  gradient_clipping: 1.0
+
+  lr_scheduler:
+    name: ExponentialLR
+    params: 
+      gamma: 0.99995
+      warmup_steps: 5000
+
+
+  dataloader:
+    name: standard
+
+  datasampling:
+    name: standard
+
+  loss_fn:
+    name: cross_entropy
+
+general:
+  logging:
+    wandb_log: true
+    wandb_project: SuperTinyLanguageModels
+    wandb_run_name: Null
+    group_name: base_group
+
+  paths:
+    output_dir: outputs
+    data_dir: data
+    checkpoint_dir: checkpoints
+    eval_dir: evals
+  seed: 489
+  max_num_cores: 12 # to make sure not too much disk memory is used
+  device: cuda

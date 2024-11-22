@@ -5,11 +5,11 @@ The main eval code
 import hydra
 import torch
 
-from evals.load_evaluators import load_evaluator
+# from evals.load_evaluators import load_evaluator
 from models.build_models import build_model
+import evals 
 
-
-@hydra.main(config_path="configs", config_name="test")
+@hydra.main(config_path="configs", config_name="test/test_stlm")
 def main(cfg):
     """run the main eval loop"""
 
@@ -28,14 +28,21 @@ def main(cfg):
     # load the evaluator
     benchmark_names = cfg["testing"]["benchmarks"]
     benchmark_names = [str(benchmark_name) for benchmark_name in benchmark_names]
-    evaluator = load_evaluator(
-        evaluator_name=cfg["testing"]["evaluator_name"], model=model, benchmarks=benchmark_names
-    )
 
+    results_list = []
+    for benchmark_name in benchmark_names:
+        # make benchmark
+        benchmark_evaluator = evals.make(benchmark_name)
+
+        # Eval
+        results = benchmark_evaluator.evaluate(model=model)
+        results_list.append(results)
+        print(benchmark_name, results)
+    print(results_list)
     # run the evaluator
-    results = evaluator.evaluate()
-    with open(cfg["output_path"], "w") as f:
-        f.write(str(results))
+    # results = evaluator.evaluate()
+    # with open(cfg["output_path"], "w") as f:
+    #     f.write(str(results))
 
 
 if __name__ == "__main__":

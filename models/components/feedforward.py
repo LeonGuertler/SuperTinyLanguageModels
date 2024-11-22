@@ -10,6 +10,9 @@ from models.components.ffn import *
 from einops import rearrange
 
 
+from models.experimental.moe_weight_sharing import MoELoRA
+
+
 class GenericFFN(torch.nn.Module):
     """
     A simple feedforward network
@@ -260,6 +263,12 @@ FFN_DICT = {
     "kan_ffn": lambda hidden_dim, ffn_cfg: KANFFN(
         hidden_dim=hidden_dim,
         ffn_dim=ffn_cfg["ffn_dim"]
+    ),
+    "blending_moe_ffn": lambda hidden_dim, ffn_params: MoELoRA(
+        in_features=hidden_dim,
+        out_features=hidden_dim,
+        lora_rank=32,
+        n_experts=248,
     )
 }
 
