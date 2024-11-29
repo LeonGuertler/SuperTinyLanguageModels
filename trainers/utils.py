@@ -129,6 +129,7 @@ DATASET_DICT = {
     "openwebtext": lambda: load_dataset("Skylion007/openwebtext"),
     "github-code": lambda: load_github_code_dataset(),
     "competition_math": lambda: load_competition_math_dataset(),
+    # "pint": lambda: load_dataset("pints-ai/Expository-Prose-V1", token=), # place auth token here
 }
 
 
